@@ -102,7 +102,7 @@
       ],
       "productID" : "com.fable.foodcourt.pack.festival",
       "referenceName" : "Carnival Pass",
-      "type" : "NonConsumable"
+      "type" : "Consumable"
     },
     {
       "displayPrice" : "9.99",

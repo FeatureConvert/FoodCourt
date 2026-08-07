@@ -168,9 +168,14 @@ final class GameEngine: ObservableObject {
                 var station = state.venues[venue.id].stations[spec.id]
                 guard station.isOwned else { continue }
 
-                let cycle = state.cycleTime(venue: venue.id, station: spec.id)
+                // Resolve the station's modifiers once. Each of cycleTime/baseRevenue
+                // recomputes them internally, and they walk every manager in the venue, so
+                // calling all three per station tripled the work on every tick.
                 let mods = state.modifiers(venue: venue.id, station: spec.id)
-                let revenue = state.baseRevenue(venue: venue.id, station: spec.id) * multiplier
+                let cycle = max(Balance.minimumCycle,
+                                Balance.cycleTime(spec: spec, level: station.level) / mods.speed)
+                let revenue = Balance.revenuePerCycle(spec: spec, level: station.level)
+                    * mods.profit * multiplier
 
                 if station.isStaffed {
                     station.isRunning = true
@@ -223,6 +228,10 @@ final class GameEngine: ObservableObject {
         flushBursts()
 
         League.advanceRivals(&state.league, to: now)
+        // Both of these used to be checked only on foreground, so a season or a league week
+        // that ended while the app was open just sat there until the next relaunch.
+        settleLeagueIfFinished()
+        Festival.rolloverIfNeeded(&state.festival, now: now)
     }
 
     /// Releases pooled payouts, at most one burst per station per interval, so each animation
@@ -359,7 +368,7 @@ final class GameEngine: ObservableObject {
             state.coins -= cost
         }
         state.hire(specID: ManagerCatalog.traineeID, venue: venue, station: index)
-        advanceQuests(kind: .hire, by: 1)
+        advanceQuests(kind: .hire, to: Double(state.assignedManagerCount))
         return true
     }
 
@@ -518,6 +527,8 @@ final class GameEngine: ObservableObject {
         // Staff, recipes, and research all survive a franchise reset - they are collections
         // the player built, not station upgrades. Only the board itself resets.
         lastServe.removeAll()
+        pendingBursts.removeAll()
+        lastBurstAt.removeAll()
         combo.reset()
         save()
         return award

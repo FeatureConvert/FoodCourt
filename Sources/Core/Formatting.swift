@@ -53,6 +53,11 @@ enum Format {
         return currency(Double(value))
     }
 
+    /// Agrees the noun with the count: "1 manager", "2 managers".
+    static func plural(_ count: Int, _ singular: String, _ plural: String? = nil) -> String {
+        "\(self.count(count)) " + (count == 1 ? singular : (plural ?? singular + "s"))
+    }
+
     /// `9014` -> `2h 30m`. Used for boost timers and offline windows.
     static func duration(_ seconds: TimeInterval) -> String {
         let s = max(0, Int(seconds.rounded()))

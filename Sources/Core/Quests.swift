@@ -4,10 +4,11 @@ enum QuestKind: String, Codable, CaseIterable {
     case serve, earn, level, hire, tap, rush, recipes
 
     /// Absolute kinds read a running total rather than accumulating deltas, so they stay
-    /// correct even if the app is relaunched mid-quest.
+    /// correct even if the app is relaunched mid-quest. A kind must be consistently one or
+    /// the other: mixing them makes the target mean something different to the progress.
     var isAbsolute: Bool {
         switch self {
-        case .level, .recipes: return true
+        case .level, .recipes, .hire: return true
         default: return false
         }
     }
@@ -38,14 +39,17 @@ struct ActiveQuest: Codable, Equatable, Identifiable {
     var fraction: Double { target > 0 ? min(1, progress / target) : 0 }
 
     var title: String {
+        let n = Int(target)
         switch kind {
-        case .serve:   return "Serve \(Format.count(Int(target))) dishes"
+        case .serve:   return "Serve \(Format.plural(n, "dish", "dishes"))"
         case .earn:    return "Earn \(Format.currency(target)) this run"
-        case .level:   return "Take a station to Lv \(Format.count(Int(target)))"
-        case .hire:    return "Hire \(Format.count(Int(target))) managers"
-        case .tap:     return "Tap \(Format.count(Int(target))) times"
-        case .rush:    return "Complete \(Format.count(Int(target))) Rush Hours"
-        case .recipes: return "Collect \(Format.count(Int(target))) recipe cards"
+        case .level:   return "Take a station to Lv \(Format.count(n))"
+        // Absolute kinds describe the end state rather than the action, because progress
+        // starts from whatever the player already has.
+        case .hire:    return "Staff \(Format.plural(n, "station"))"
+        case .tap:     return "Tap \(Format.plural(n, "time"))"
+        case .rush:    return "Complete \(Format.plural(n, "Rush Hour"))"
+        case .recipes: return "Collect \(Format.plural(n, "recipe card"))"
         }
     }
 
@@ -82,8 +86,10 @@ enum Quests {
             target = Double(40 + rng.next(5) * 30)
             gems = 10; seconds = 60
         case .earn:
+            // Relative to now, not to the run so far - progress counts from zero, so adding
+            // runEarnings here would quietly demand the whole run again.
             let base = max(1_000, incomePerSecond * 120)
-            target = state.runEarnings + base * Double(1 + rng.next(3))
+            target = base * Double(1 + rng.next(3))
             gems = 15; seconds = 120
         case .level:
             // Always a step beyond the current best, rounded to something legible.
@@ -108,8 +114,13 @@ enum Quests {
             id: UUID().uuidString, kind: kind, target: target, progress: 0,
             rewardGems: gems, rewardSeconds: seconds
         )
-        if kind.isAbsolute {
-            quest.progress = kind == .level ? Double(bestLevel) : Double(totalCards)
+        // Absolute kinds start from wherever the player already is, so the bar shows the
+        // distance still to go rather than jumping when the first one lands.
+        switch kind {
+        case .level:   quest.progress = Double(bestLevel)
+        case .recipes: quest.progress = Double(totalCards)
+        case .hire:    quest.progress = Double(state.assignedManagerCount)
+        default:       break
         }
         return quest
     }

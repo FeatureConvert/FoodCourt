@@ -293,6 +293,75 @@ final class FeatureTests: XCTestCase {
         XCTAssertNil(e.claimQuest(id: e.state.quests[0].id))
     }
 
+    @MainActor
+    func testEarnQuestAsksForNewEarningsNotTheWholeRun() {
+        // Deep into a run the target must still be reachable: progress counts from zero, so
+        // folding runEarnings into the target would silently demand the run again.
+        var state = GameState.newGame()
+        state.runEarnings = 50_000_000
+        let quest = Quests.roll(state: state, incomePerSecond: 1_000, avoiding: [.serve, .level],
+                                seed: 7)
+        if quest.kind == .earn {
+            XCTAssertLessThan(quest.target, 10_000_000)
+        }
+
+        // Whatever the roll, an earn quest rolled at any point in a run has the same target.
+        var fresh = GameState.newGame()
+        fresh.runEarnings = 0
+        let a = Quests.roll(state: state, incomePerSecond: 1_000, avoiding: [], seed: 42)
+        let b = Quests.roll(state: fresh, incomePerSecond: 1_000, avoiding: [], seed: 42)
+        XCTAssertEqual(a.kind, b.kind)
+        if a.kind == .earn { XCTAssertEqual(a.target, b.target, accuracy: 1e-6) }
+    }
+
+    @MainActor
+    func testHireQuestCountsTotalStaffNotJustNewHires() {
+        // .hire is an absolute kind: it reads the roster total, so a quest rolled with two
+        // managers already working starts at two rather than at zero.
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 5
+        state.venues[0].stations[1].level = 5
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+
+        let quest = Quests.roll(state: state, incomePerSecond: 0,
+                                avoiding: QuestKind.allCases.filter { $0 != .hire }, seed: 3)
+        XCTAssertEqual(quest.kind, .hire)
+        XCTAssertEqual(quest.progress, 1, "starts from the staff already working")
+        XCTAssertGreaterThan(quest.target, quest.progress)
+
+        // Carry the same board into the engine - a fresh one would have no open station 1.
+        state.quests = [quest]
+        let e = engine(state)
+        e.addCoins(1_000_000)
+        XCTAssertTrue(e.hireManager(for: 1))
+        XCTAssertEqual(e.state.quests[0].progress, 2, "progress tracks the roster total")
+    }
+
+    func testQuestTitlesAgreeWithTheirCount() {
+        func title(_ kind: QuestKind, _ target: Double) -> String {
+            ActiveQuest(id: "t", kind: kind, target: target, progress: 0,
+                        rewardGems: 0, rewardSeconds: 0).title
+        }
+        XCTAssertEqual(title(.rush, 1), "Complete 1 Rush Hour")
+        XCTAssertEqual(title(.rush, 2), "Complete 2 Rush Hours")
+        XCTAssertEqual(title(.hire, 1), "Staff 1 station")
+        XCTAssertEqual(title(.hire, 3), "Staff 3 stations")
+        XCTAssertEqual(title(.serve, 1), "Serve 1 dish")
+        XCTAssertEqual(title(.serve, 40), "Serve 40 dishes")
+        XCTAssertEqual(title(.tap, 1), "Tap 1 time")
+        XCTAssertEqual(title(.recipes, 1), "Collect 1 recipe card")
+    }
+
+    func testSeasonPassIsAConsumableSoItIsNeverRestored() {
+        // A restored season pass would hand out every later season for free.
+        guard let pass = ShopCatalog.item(for: Festival.premiumProductID) else {
+            return XCTFail("missing Carnival Pass")
+        }
+        XCTAssertTrue(pass.isConsumable)
+        XCTAssertFalse(ShopCatalog.offers.first { $0.reward == .vip }?.isConsumable ?? true)
+        XCTAssertFalse(ShopCatalog.offers.first { $0.reward == .starterPack }?.isConsumable ?? true)
+    }
+
     // MARK: 8 - Recipes
 
     func testFirstDropCreatesACardThenUpgradesIt() {
@@ -480,6 +549,43 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(e.state.league.tier, .silver, "a top-7 finish promotes")
         XCTAssertEqual(e.state.league.score, 0, "the new week starts level")
         XCTAssertEqual(e.state.league.seasonsPlayed, 1)
+    }
+
+    // MARK: Prestige interaction
+
+    @MainActor
+    func testFranchiseResetKeepsTheCollectionsButClearsTheBoard() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 60
+        state.venues[0].stations[0].perks = [25: 0]
+        state.hire(specID: "dex", venue: 0, station: 0)
+        state.recipeCards[Recipes.key(venue: 0, station: 0)] = 2
+        state.research["prep"] = 3
+        state.venues[1].unlocked = true
+
+        let e = engine(state)
+        e.addCoins(4e12)
+        let awarded = e.prestige()
+        XCTAssertGreaterThan(awarded, 0)
+
+        // Kept: the things the player collected.
+        XCTAssertEqual(e.state.managers.count, 1, "staff survive a franchise reset")
+        XCTAssertEqual(e.state.managers.first?.specID, "dex")
+        XCTAssertEqual(e.state.recipeCards[Recipes.key(venue: 0, station: 0)], 2)
+        XCTAssertEqual(e.state.research["prep"], 3)
+        XCTAssertEqual(e.state.stars, awarded)
+        XCTAssertEqual(e.state.lifetimeStars, awarded)
+
+        // Cleared: the board itself.
+        XCTAssertEqual(e.state.venues[0].stations[0].level, 1)
+        XCTAssertTrue(e.state.venues[0].stations[0].perks.isEmpty, "perks reset with the station")
+        XCTAssertFalse(e.state.venues[0].stations[0].isStaffed, "staff return to the bench")
+        XCTAssertFalse(e.state.venues[1].unlocked)
+        XCTAssertEqual(e.state.coins, 0)
+
+        // The manager is unassigned rather than deleted, so it can be put straight back to work.
+        XCTAssertEqual(e.state.unassignedManagers.count, 1)
+        XCTAssertEqual(e.state.assignedManagerCount, 0)
     }
 
     // MARK: Save migration

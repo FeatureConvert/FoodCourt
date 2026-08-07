@@ -20,7 +20,14 @@ struct ShopItem: Identifiable, Equatable {
     /// Drives the gem-pile artwork size in the shop.
     let magnitude: Int
 
-    var isConsumable: Bool { if case .gems = reward { return true }; return false }
+    /// Consumables are never restored. The Carnival Pass counts as one: it lasts a single
+    /// festival season, so restoring it would hand out every later season free.
+    var isConsumable: Bool {
+        switch reward {
+        case .gems, .festivalPass: return true
+        case .starterPack, .vip: return false
+        }
+    }
 }
 
 enum ShopCatalog {

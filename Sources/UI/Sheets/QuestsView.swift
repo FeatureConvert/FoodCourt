@@ -11,7 +11,7 @@ struct QuestsView: View {
             }
 
             VStack(spacing: 4) {
-                Text("\(Format.count(engine.state.questsClaimed)) goals completed")
+                Text("\(Format.plural(engine.state.questsClaimed, "goal")) completed")
                     .font(Theme.body(12, weight: .bold))
                     .foregroundStyle(Theme.textDim)
                 Text("Each one also pays \(Festival.ticketsPerQuest) festival tickets")
