@@ -1,0 +1,142 @@
+import SwiftUI
+
+struct DailyRewardView: View {
+    @EnvironmentObject private var engine: GameEngine
+    @Environment(\.dismiss) private var dismiss
+    let onToast: (String) -> Void
+
+    @State private var celebrating: Int?
+
+    private var status: DailyClaimStatus { engine.dailyStatus }
+
+    private var claimableDay: Int? {
+        if case .available(let day) = status { return day }
+        return nil
+    }
+
+    var body: some View {
+        SheetScaffold(title: "Daily Rewards", subtitle: subtitleText) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
+                ForEach(DailyRewards.calendar) { spec in
+                    dayTile(spec)
+                }
+            }
+
+            Button(action: claim) {
+                Text(claimableDay == nil ? "Come back tomorrow" : "Claim Day \(claimableDay ?? 1)")
+                    .font(Theme.body(16, weight: .black))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 15)
+            }
+            .buttonStyle(ChunkyButtonStyle(
+                fill: claimableDay == nil ? Theme.locked : Theme.positive,
+                shadow: claimableDay == nil ? Theme.ink : Theme.positive.opacity(0.5),
+                disabled: claimableDay == nil
+            ))
+            .disabled(claimableDay == nil)
+            .padding(.top, 6)
+
+            Text("Log in on consecutive days to keep your streak. Miss a day and the calendar restarts.")
+                .font(Theme.body(11, weight: .medium))
+                .foregroundStyle(Theme.textDim)
+                .multilineTextAlignment(.center)
+        }
+    }
+
+    private var subtitleText: String {
+        switch status {
+        case .available(let day):
+            return day == 1 && engine.state.daily.lastClaimedDay != nil
+                ? "Streak restarted - day 1 is ready"
+                : "Day \(day) is ready to claim"
+        case .claimed(let next, _):
+            return "Claimed today. Day \(next) unlocks tomorrow."
+        }
+    }
+
+    private func dayTile(_ spec: DailyRewardSpec) -> some View {
+        let claimable = claimableDay == spec.day
+        let claimed = isClaimed(spec.day)
+
+        return VStack(spacing: 6) {
+            Text("DAY \(spec.day)")
+                .font(Theme.body(10, weight: .black))
+                .foregroundStyle(claimable ? Theme.ink : Theme.textDim)
+
+            rewardArt(spec)
+                .frame(height: 34)
+
+            Text(spec.title)
+                .font(Theme.body(10, weight: .bold))
+                .foregroundStyle(claimable ? Theme.ink : Theme.text)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .frame(height: 26)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(claimable ? Theme.coin : (spec.isGrand ? Theme.panelRaised : Theme.panel))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(spec.isGrand ? Theme.coin : Theme.stroke, lineWidth: spec.isGrand ? 2 : 1.5)
+                )
+        )
+        .overlay(alignment: .topTrailing) {
+            if claimed {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Theme.positive)
+                    .padding(6)
+            }
+        }
+        .scaleEffect(celebrating == spec.day ? 1.08 : 1)
+        .animation(.spring(response: 0.3, dampingFraction: 0.5), value: celebrating)
+    }
+
+    @ViewBuilder
+    private func rewardArt(_ spec: DailyRewardSpec) -> some View {
+        switch spec.kind {
+        case .coins:
+            CoinIcon().frame(width: 32, height: 32)
+        case .gems:
+            GemIcon().frame(width: 30, height: 30)
+        case .boost:
+            Image(systemName: "bolt.fill")
+                .font(.system(size: 26, weight: .black))
+                .foregroundStyle(Theme.coin)
+        case .grand:
+            HStack(spacing: -6) {
+                GemIcon().frame(width: 26, height: 26)
+                CoinIcon().frame(width: 26, height: 26)
+                StarIcon().frame(width: 26, height: 26)
+            }
+        }
+    }
+
+    /// Everything before the day waiting to be claimed has already been collected in this cycle.
+    private func isClaimed(_ day: Int) -> Bool {
+        switch status {
+        case .available(let current): return day < current
+        case .claimed(let next, _): return next == 1 ? true : day < next
+        }
+    }
+
+    private func claim() {
+        guard let payout = engine.claimDaily() else {
+            onToast("Already claimed today")
+            return
+        }
+        Haptics.success()
+        celebrating = payout.day
+
+        var parts: [String] = []
+        if payout.coins > 0 { parts.append(Format.currency(payout.coins) + " coins") }
+        if payout.gems > 0 { parts.append("\(payout.gems) gems") }
+        if let boost = payout.boost { parts.append(boost.label) }
+        onToast("Day \(payout.day): " + parts.joined(separator: " + "))
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { dismiss() }
+    }
+}

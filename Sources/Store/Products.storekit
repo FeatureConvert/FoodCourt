@@ -1,0 +1,167 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "F00DC0RT",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "1000000001",
+      "localizations" : [
+        {
+          "description" : "A handful of gems to keep the fryers hot.",
+          "displayName" : "Handful of Gems",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fable.foodcourt.gems.handful",
+      "referenceName" : "Handful of Gems",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "1000000002",
+      "localizations" : [
+        {
+          "description" : "A pouch of gems for the ambitious owner.",
+          "displayName" : "Pouch of Gems",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fable.foodcourt.gems.pouch",
+      "referenceName" : "Pouch of Gems",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "1000000003",
+      "localizations" : [
+        {
+          "description" : "A chest of gems. Best everyday value.",
+          "displayName" : "Chest of Gems",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fable.foodcourt.gems.chest",
+      "referenceName" : "Chest of Gems",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "24.99",
+      "familyShareable" : false,
+      "internalID" : "1000000004",
+      "localizations" : [
+        {
+          "description" : "A vault of gems for serious franchise builders.",
+          "displayName" : "Vault of Gems",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fable.foodcourt.gems.vault",
+      "referenceName" : "Vault of Gems",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "1000000005",
+      "localizations" : [
+        {
+          "description" : "500 gems, a manager for every open station, and 24 hours of double profit.",
+          "displayName" : "Starter Pack",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fable.foodcourt.pack.starter",
+      "referenceName" : "Starter Pack",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : true,
+      "internalID" : "1000000006",
+      "localizations" : [
+        {
+          "description" : "Permanent +25% profit, 12 hour offline earnings, and no ads.",
+          "displayName" : "VIP Pass",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fable.foodcourt.vip.pass",
+      "referenceName" : "VIP Pass",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

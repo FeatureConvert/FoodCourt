@@ -1,0 +1,165 @@
+import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
+
+extension Color {
+    init(hex: String) {
+        var s = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if s.hasPrefix("#") { s.removeFirst() }
+        var value: UInt64 = 0
+        Scanner(string: s).scanHexInt64(&value)
+        let r, g, b, a: Double
+        switch s.count {
+        case 8:
+            r = Double((value >> 24) & 0xFF) / 255
+            g = Double((value >> 16) & 0xFF) / 255
+            b = Double((value >> 8) & 0xFF) / 255
+            a = Double(value & 0xFF) / 255
+        default:
+            r = Double((value >> 16) & 0xFF) / 255
+            g = Double((value >> 8) & 0xFF) / 255
+            b = Double(value & 0xFF) / 255
+            a = 1
+        }
+        self.init(.sRGB, red: r, green: g, blue: b, opacity: a)
+    }
+}
+
+/// Per-venue look. Each venue gets its own room so travelling between them reads as
+/// genuine progress rather than a reskinned list.
+struct VenuePalette {
+    let wallTop: Color
+    let wallBottom: Color
+    let floor: Color
+    let counter: Color
+    let counterEdge: Color
+    let accent: Color
+    let sign: Color
+
+    static func of(_ theme: VenueTheme) -> VenuePalette {
+        switch theme {
+        case .burger:
+            return VenuePalette(wallTop: Color(hex: "#2B4E6B"), wallBottom: Color(hex: "#1B3348"),
+                                floor: Color(hex: "#D9BE96"), counter: Color(hex: "#E4453A"),
+                                counterEdge: Color(hex: "#A62F27"), accent: Color(hex: "#F5C242"),
+                                sign: Color(hex: "#FFE9A8"))
+        case .sushi:
+            return VenuePalette(wallTop: Color(hex: "#2F4A46"), wallBottom: Color(hex: "#1A2F2C"),
+                                floor: Color(hex: "#C9AE86"), counter: Color(hex: "#3F6B5C"),
+                                counterEdge: Color(hex: "#27493E"), accent: Color(hex: "#F4A9A0"),
+                                sign: Color(hex: "#F6E7C9"))
+        case .pizza:
+            return VenuePalette(wallTop: Color(hex: "#3A2E4C"), wallBottom: Color(hex: "#241C31"),
+                                floor: Color(hex: "#CBB59A"), counter: Color(hex: "#C4462F"),
+                                counterEdge: Color(hex: "#8C2E1F"), accent: Color(hex: "#F0C24B"),
+                                sign: Color(hex: "#FFE6B8"))
+        case .taco:
+            return VenuePalette(wallTop: Color(hex: "#2C5E56"), wallBottom: Color(hex: "#173B36"),
+                                floor: Color(hex: "#E0C08A"), counter: Color(hex: "#E07A3C"),
+                                counterEdge: Color(hex: "#A9532A"), accent: Color(hex: "#F5D547"),
+                                sign: Color(hex: "#FFF0C2"))
+        case .dessert:
+            return VenuePalette(wallTop: Color(hex: "#4B3355"), wallBottom: Color(hex: "#2C1E36"),
+                                floor: Color(hex: "#E8D3C4"), counter: Color(hex: "#E88AA8"),
+                                counterEdge: Color(hex: "#B45E7C"), accent: Color(hex: "#9BD4C8"),
+                                sign: Color(hex: "#FFE7F0"))
+        }
+    }
+}
+
+enum Theme {
+    // Shared chrome, consistent across every venue so the HUD never feels like it moved.
+    static let ink = Color(hex: "#1C1622")
+    static let panel = Color(hex: "#241D2E")
+    static let panelRaised = Color(hex: "#332A40")
+    static let stroke = Color(hex: "#4A3E59")
+    static let text = Color(hex: "#F6F1EA")
+    static let textDim = Color(hex: "#B3A8C0")
+
+    static let coin = Color(hex: "#F5C242")
+    static let coinDeep = Color(hex: "#D89A22")
+    static let gem = Color(hex: "#5BD6E8")
+    static let gemDeep = Color(hex: "#2A9DB5")
+    static let star = Color(hex: "#FFD75E")
+    static let positive = Color(hex: "#5DD08A")
+    static let negative = Color(hex: "#E4453A")
+    static let locked = Color(hex: "#6E627D")
+
+    static func title(_ size: CGFloat) -> Font { .system(size: size, weight: .heavy, design: .rounded) }
+    static func body(_ size: CGFloat, weight: Font.Weight = .semibold) -> Font {
+        .system(size: size, weight: weight, design: .rounded)
+    }
+    static func numeric(_ size: CGFloat) -> Font {
+        .system(size: size, weight: .black, design: .rounded).monospacedDigit()
+    }
+}
+
+// MARK: - Reusable chrome
+
+struct PanelBackground: ViewModifier {
+    var color: Color = Theme.panel
+    var radius: CGFloat = 18
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .fill(color)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: radius, style: .continuous)
+                            .stroke(Theme.stroke, lineWidth: 1.5)
+                    )
+            )
+    }
+}
+
+extension View {
+    func panel(_ color: Color = Theme.panel, radius: CGFloat = 18) -> some View {
+        modifier(PanelBackground(color: color, radius: radius))
+    }
+}
+
+/// Chunky arcade-style button. Presses translate downward onto their own shadow, which is
+/// most of what makes a tap feel physical.
+struct ChunkyButtonStyle: ButtonStyle {
+    var fill: Color
+    var shadow: Color
+    var disabled: Bool = false
+    var radius: CGFloat = 16
+
+    func makeBody(configuration: Configuration) -> some View {
+        let pressed = configuration.isPressed && !disabled
+        return configuration.label
+            .foregroundStyle(disabled ? Theme.textDim : Theme.text)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
+                        .fill(disabled ? Theme.locked.opacity(0.5) : shadow)
+                        .offset(y: 4)
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
+                        .fill(disabled ? Theme.locked.opacity(0.75) : fill)
+                }
+            )
+            .offset(y: pressed ? 3 : 0)
+            .animation(.easeOut(duration: 0.08), value: pressed)
+            .contentShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+    }
+}
+
+enum Haptics {
+    static func tap() {
+        #if canImport(UIKit)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        #endif
+    }
+    static func success() {
+        #if canImport(UIKit)
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        #endif
+    }
+    static func thud() {
+        #if canImport(UIKit)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        #endif
+    }
+}

@@ -1,0 +1,122 @@
+import SwiftUI
+
+/// The room itself: back wall, sign, floor, counter, and the queue of waiting customers.
+/// Purely decorative, but it is what makes the numbers feel like a restaurant.
+struct VenueStageView: View {
+    @EnvironmentObject private var engine: GameEngine
+
+    private var venue: VenueSpec { Balance.venue(engine.state.currentVenue) }
+    private var palette: VenuePalette { VenuePalette.of(venue.theme) }
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height
+
+            ZStack(alignment: .bottom) {
+                LinearGradient(colors: [palette.wallTop.opacity(0.9), palette.wallBottom],
+                               startPoint: .top, endPoint: .bottom)
+
+                // Floor plane.
+                VStack(spacing: 0) {
+                    Spacer()
+                    LinearGradient(colors: [palette.floor, palette.floor.opacity(0.75)],
+                                   startPoint: .top, endPoint: .bottom)
+                        .frame(height: h * 0.42)
+                }
+
+                // Hanging sign.
+                VStack(spacing: 2) {
+                    Text(venue.name.uppercased())
+                        .font(Theme.title(15))
+                        .foregroundStyle(palette.sign)
+                    Text(venue.tagline)
+                        .font(Theme.body(10, weight: .medium))
+                        .foregroundStyle(palette.sign.opacity(0.7))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 7)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(palette.counter)
+                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(palette.accent, lineWidth: 2))
+                )
+                .frame(maxHeight: .infinity, alignment: .top)
+                .padding(.top, 12)
+
+                CustomerQueueView(width: w)
+                    .frame(height: h * 0.46)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+                    .padding(.bottom, h * 0.16)
+
+                // Counter across the front.
+                ZStack(alignment: .top) {
+                    Rectangle().fill(palette.counterEdge)
+                    Rectangle().fill(palette.counter).frame(height: 7)
+                }
+                .frame(height: h * 0.17)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(Color.black.opacity(0.35), lineWidth: 2)
+            )
+        }
+        .frame(height: 168)
+    }
+}
+
+/// Customers file in on the left and are retired as stations complete cycles.
+struct CustomerQueueView: View {
+    @EnvironmentObject private var engine: GameEngine
+    let width: CGFloat
+
+    @State private var seeds: [Int] = []
+    @State private var nextSeed = 1
+    @State private var lastRotation = Date.distantPast
+
+    private var capacity: Int { max(3, min(6, Int(width / 58))) }
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 6) {
+            ForEach(seeds, id: \.self) { seed in
+                CustomerSprite(seed: seed)
+                    .frame(width: 44, height: 62)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .leading).combined(with: .opacity),
+                        removal: .scale(scale: 0.6).combined(with: .opacity)
+                    ))
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .onAppear(perform: refill)
+        .onChange(of: engine.servedCustomers) { _, _ in rotate() }
+        .onChange(of: engine.state.currentVenue) { _, _ in
+            seeds.removeAll()
+            refill()
+        }
+    }
+
+    private func refill() {
+        while seeds.count < capacity {
+            seeds.append(nextSeed)
+            nextSeed += 1
+        }
+    }
+
+    private func rotate() {
+        // A maxed venue completes dozens of cycles a second; animating each one would be
+        // visual noise and a waste of frames.
+        let now = Date()
+        guard now.timeIntervalSince(lastRotation) > 0.35 else { return }
+        lastRotation = now
+
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+            if !seeds.isEmpty { seeds.removeFirst() }
+            seeds.append(nextSeed)
+            nextSeed += 1
+        }
+    }
+}
