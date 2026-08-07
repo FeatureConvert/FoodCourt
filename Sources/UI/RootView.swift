@@ -26,7 +26,6 @@ enum ActiveSheet: Identifiable, Equatable {
 struct RootView: View {
     @EnvironmentObject private var engine: GameEngine
     @EnvironmentObject private var store: StoreService
-    @EnvironmentObject private var ads: AdService
 
     @State private var sheet: ActiveSheet?
     @State private var toast: String?
@@ -60,7 +59,7 @@ struct RootView: View {
                     VenueStageView(onGolden: { amount in
                         showToast("VIP tipped \(Format.currency(amount))!")
                     })
-                    StageActionsView(onBoost: watchAd, onRush: startRush)
+                    StageActionsView(onBoost: takeCoffeeBreak, onRush: startRush)
                         .padding(.top, 10)
                         .padding(.trailing, 10)
                 }
@@ -83,10 +82,6 @@ struct RootView: View {
                 .padding(.bottom, 4)
             }
 
-            if ads.isPlaying {
-                AdOverlayView().transition(.opacity)
-            }
-
             if let toast {
                 ToastView(message: toast)
                     .padding(.bottom, 120)
@@ -95,7 +90,6 @@ struct RootView: View {
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: toast)
-        .animation(.easeInOut(duration: 0.2), value: ads.isPlaying)
         .animation(.spring(response: 0.3, dampingFraction: 0.85), value: engine.rushActive)
         .sheet(item: $sheet, onDismiss: handleSheetDismissed) { which in
             sheetContent(for: which)
@@ -120,7 +114,6 @@ struct RootView: View {
         }
         .onChange(of: store.lastGrant) { _, new in if let new { showToast(new) } }
         .onChange(of: store.errorMessage) { _, new in if let new { showToast(new) } }
-        .onChange(of: ads.lastReward) { _, new in if let new { showToast(new) } }
         .onAppear(perform: handleLaunch)
         .preferredColorScheme(.dark)
     }
@@ -174,7 +167,8 @@ struct RootView: View {
 
     private var defaultEventsTab: EventsView.Tab {
         if engine.dailyAvailable { return .daily }
-        if Festival.unclaimedCount(engine.state.festival) > 0 { return .festival }
+        if Festival.unclaimedCount(engine.state.festival,
+                                   premiumActive: engine.festivalPremiumActive) > 0 { return .festival }
         return .league
     }
 
@@ -192,13 +186,14 @@ struct RootView: View {
 
     // MARK: Actions
 
-    private func watchAd() {
-        guard engine.adReady else {
-            showToast("Next free boost in \(Format.clock(engine.adCooldownRemaining))")
+    /// No ads in this game - the boost is simply free on a cooldown.
+    private func takeCoffeeBreak() {
+        guard engine.claimFreeBoost() else {
+            showToast("Coffee Break ready in \(Format.clock(engine.boostCooldownRemaining))")
             return
         }
-        Haptics.tap()
-        ads.play(engine: engine)
+        Haptics.success()
+        showToast("Coffee Break! ×\(Format.trim(ActivePlay.freeBoostMultiplier)) for \(Int(ActivePlay.freeBoostHours * 60)) minutes")
     }
 
     private func startRush() {
@@ -267,7 +262,9 @@ private struct BottomBar: View {
     }
 
     private var eventsBadge: Bool {
-        engine.dailyAvailable || Festival.unclaimedCount(engine.state.festival) > 0
+        engine.dailyAvailable
+            || Festival.unclaimedCount(engine.state.festival,
+                                       premiumActive: engine.festivalPremiumActive) > 0
     }
 
     private func barButton(_ title: String, _ symbol: String, badge: Bool,

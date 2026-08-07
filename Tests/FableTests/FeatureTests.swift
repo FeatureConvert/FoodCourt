@@ -352,6 +352,76 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(title(.recipes, 1), "Collect 1 recipe card")
     }
 
+    // MARK: Ad-free model
+
+    @MainActor
+    func testCoffeeBreakIsFreeAndGoesOnCooldown() {
+        let e = engine()
+        XCTAssertTrue(e.boostReady)
+        XCTAssertTrue(e.claimFreeBoost(), "the boost costs nothing - there is no ad to watch")
+
+        let boost = e.state.activeBoosts.first { $0.id == ActivePlay.freeBoostID }
+        XCTAssertEqual(boost?.multiplier, ActivePlay.freeBoostMultiplier)
+        XCTAssertFalse(e.boostReady)
+        XCTAssertFalse(e.claimFreeBoost(), "cannot re-take it inside the cooldown")
+        XCTAssertGreaterThan(e.boostCooldownRemaining, 0)
+    }
+
+    @MainActor
+    func testOfflineDoubleIsFreeOncePerDay() {
+        let e = engine()
+        let report = OfflineReport(elapsed: 7200, credited: 7200, coins: 5_000,
+                                   wasCapped: false, capHours: 2)
+
+        XCTAssertTrue(e.offlineDoubleAvailable())
+        let before = e.state.coins
+        XCTAssertTrue(e.claimOfflineDouble(report))
+        XCTAssertEqual(e.state.coins, before + 5_000, accuracy: 1)
+
+        XCTAssertFalse(e.offlineDoubleAvailable(), "once a day")
+        XCTAssertFalse(e.claimOfflineDouble(report))
+
+        // Tomorrow it is available again.
+        e.debugSkip(hours: 24)
+        XCTAssertTrue(e.offlineDoubleAvailable())
+    }
+
+    @MainActor
+    func testVIPCarriesTheCarnivalPassEverySeason() {
+        let e = engine()
+        e.awardTickets(Festival.ticketsRequired(forTier: 3))
+        XCTAssertFalse(e.festivalPremiumActive)
+        XCTAssertNil(e.claimFestival(tier: 3, premium: true))
+
+        e.setEntitlement(vip: true)
+        XCTAssertTrue(e.festivalPremiumActive)
+        XCTAssertNotNil(e.claimFestival(tier: 3, premium: true))
+
+        // Survives a season rollover, unlike a bought pass.
+        let season = e.state.festival.seasonID
+        e.debugSkip(hours: Festival.seasonLength / 3600 + 1)
+        XCTAssertGreaterThan(e.state.festival.seasonID, season, "the season rolled")
+        XCTAssertFalse(e.state.festival.premiumUnlocked, "a bought pass would have lapsed")
+        XCTAssertTrue(e.festivalPremiumActive, "VIP still includes it in the new season")
+    }
+
+    @MainActor
+    func testServingCannotRunAwayWithTheWholeFestivalTrack() {
+        // The drip scales with income, which scales without limit. The cap is what stops an
+        // established player finishing a 3-day season in minutes.
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 400
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        let e = engine(state)
+
+        // A full day of a very fast station.
+        for _ in 0..<600 { e.advance(by: 144) }
+
+        XCTAssertLessThanOrEqual(e.state.festival.ticketsFromServing, Festival.maxTicketsFromServing)
+        XCTAssertLessThan(e.state.festival.tickets, Festival.ticketsRequired(forTier: Festival.tierCount),
+                          "serving alone must not complete the track")
+    }
+
     func testSeasonPassIsAConsumableSoItIsNeverRestored() {
         // A restored season pass would hand out every later season for free.
         guard let pass = ShopCatalog.item(for: Festival.premiumProductID) else {
@@ -427,11 +497,11 @@ final class FeatureTests: XCTestCase {
     func testPremiumRewardsNeedThePass() {
         var state = FestivalState()
         state.tickets = Festival.ticketsRequired(forTier: 3)
-        XCTAssertTrue(Festival.canClaim(state, tier: 3, premium: false))
-        XCTAssertFalse(Festival.canClaim(state, tier: 3, premium: true))
+        XCTAssertTrue(Festival.canClaim(state, tier: 3, premium: false, premiumActive: false))
+        XCTAssertFalse(Festival.canClaim(state, tier: 3, premium: true, premiumActive: false))
 
         state.premiumUnlocked = true
-        XCTAssertTrue(Festival.canClaim(state, tier: 3, premium: true))
+        XCTAssertTrue(Festival.canClaim(state, tier: 3, premium: true, premiumActive: true))
     }
 
     @MainActor

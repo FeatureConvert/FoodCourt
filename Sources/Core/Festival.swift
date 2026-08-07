@@ -42,6 +42,8 @@ struct FestivalState: Codable, Equatable {
     var endsAt: Date = Date().addingTimeInterval(Festival.seasonLength)
     /// Carries over between seasons so the fractional drip isn't lost on rollover.
     var serveCounter: Int = 0
+    /// Tickets this season that came from serving, so the drip can be capped.
+    var ticketsFromServing: Int = 0
 }
 
 enum Festival {
@@ -50,12 +52,22 @@ enum Festival {
     static let seasonLength: TimeInterval = 3 * 24 * 3600
     static let premiumProductID = "com.fable.foodcourt.pack.festival"
 
-    // Ticket sources. Serving alone would run away at high income, so the drip is slow and
-    // the bulk comes from things the player has to actually turn up for.
+    // Ticket sources.
     static let servesPerTicket = 25
     static let ticketsPerQuest = 40
     static let ticketsPerDaily = 100
     static let ticketsPerRush = 60
+
+    /// The serve drip scales with income, and income scales without limit - left uncapped an
+    /// established player earned the entire track hundreds of times over in a single season,
+    /// which defeats the point of a season. Serving can carry the player this far and no
+    /// further; the rest has to come from turning up for dailies, goals, and rushes.
+    /// Tuned so a player who turns up daily and clears goals finishes the track with a
+    /// little room, while serving alone leaves them well short.
+    static let serveShareOfTrack = 0.45
+    static var maxTicketsFromServing: Int {
+        Int(Double(ticketsRequired(forTier: tierCount)) * serveShareOfTrack)
+    }
 
     static let seasonName = "Street Food Carnival"
 
@@ -109,19 +121,21 @@ enum Festival {
         return (current, current + 1, min(1, Double(tickets - floorTickets) / Double(span)))
     }
 
-    static func canClaim(_ state: FestivalState, tier: Int, premium: Bool) -> Bool {
+    /// `premiumActive` covers both a bought pass and VIP, which includes it every season.
+    static func canClaim(_ state: FestivalState, tier: Int, premium: Bool,
+                         premiumActive: Bool) -> Bool {
         guard tier <= unlockedTier(tickets: state.tickets) else { return false }
-        if premium && !state.premiumUnlocked { return false }
+        if premium && !premiumActive { return false }
         return !(premium ? state.claimedPremium : state.claimedFree).contains(tier)
     }
 
-    static func unclaimedCount(_ state: FestivalState) -> Int {
+    static func unclaimedCount(_ state: FestivalState, premiumActive: Bool) -> Int {
         let reached = unlockedTier(tickets: state.tickets)
         guard reached > 0 else { return 0 }
         var count = 0
         for tier in 1...reached {
-            if canClaim(state, tier: tier, premium: false) { count += 1 }
-            if canClaim(state, tier: tier, premium: true) { count += 1 }
+            if canClaim(state, tier: tier, premium: false, premiumActive: premiumActive) { count += 1 }
+            if canClaim(state, tier: tier, premium: true, premiumActive: premiumActive) { count += 1 }
         }
         return count
     }
@@ -137,6 +151,7 @@ enum Festival {
         state.claimedPremium = []
         state.premiumUnlocked = false
         state.serveCounter = 0
+        state.ticketsFromServing = 0
         state.endsAt = now.addingTimeInterval(seasonLength)
         return true
     }

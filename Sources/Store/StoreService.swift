@@ -39,7 +39,7 @@ enum ShopCatalog {
         ShopItem(id: prefix + "gems.pouch", title: "Pouch", subtitle: "550 gems",
                  reward: .gems(550), fallbackPrice: "$4.99", badge: "+10%", magnitude: 2),
         ShopItem(id: prefix + "gems.chest", title: "Chest", subtitle: "1,200 gems",
-                 reward: .gems(1200), fallbackPrice: "$9.99", badge: "BEST VALUE", magnitude: 3),
+                 reward: .gems(1200), fallbackPrice: "$9.99", badge: "+20%", magnitude: 3),
         ShopItem(id: prefix + "gems.vault", title: "Vault", subtitle: "3,300 gems",
                  reward: .gems(3300), fallbackPrice: "$24.99", badge: "+35%", magnitude: 4),
     ]
@@ -49,8 +49,8 @@ enum ShopCatalog {
                  subtitle: "500 gems · a manager for every open station · 24h double profit",
                  reward: .starterPack, fallbackPrice: "$4.99", badge: "ONE TIME", magnitude: 3),
         ShopItem(id: prefix + "vip.pass", title: "VIP Pass",
-                 subtitle: "+25% profit forever · 12h offline earnings · no ads",
-                 reward: .vip, fallbackPrice: "$9.99", badge: "VIP", magnitude: 4),
+                 subtitle: "+25% profit forever · 12h offline earnings · Carnival Pass every season",
+                 reward: .vip, fallbackPrice: "$9.99", badge: "BEST VALUE", magnitude: 4),
         ShopItem(id: prefix + "pack.festival", title: "Carnival Pass",
                  subtitle: "Unlocks the premium reward on all 30 festival tiers",
                  reward: .festivalPass, fallbackPrice: "$7.99", badge: "SEASON", magnitude: 3),
@@ -117,8 +117,9 @@ final class StoreService: ObservableObject {
         case .gems: return false
         case .starterPack: return engine.state.entitlements.starterPack
         case .vip: return engine.state.entitlements.vip
-        // The pass is per-season, so it stops reading as owned once the season rolls.
-        case .festivalPass: return engine.state.festival.premiumUnlocked
+        // Per-season, so it stops reading as owned once the season rolls - unless the
+        // player holds VIP, which includes it and makes buying it separately pointless.
+        case .festivalPass: return engine.festivalPremiumActive
         }
     }
 

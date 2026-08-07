@@ -132,9 +132,9 @@ struct StageActionsView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            circleButton(symbol: "bolt.fill",
-                         tint: engine.adReady ? Theme.positive : Theme.locked,
-                         badge: engine.adReady,
+            circleButton(symbol: "cup.and.saucer.fill",
+                         tint: engine.boostReady ? Theme.positive : Theme.locked,
+                         badge: engine.boostReady,
                          action: onBoost)
 
             circleButton(symbol: "timer",

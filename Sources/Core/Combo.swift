@@ -21,6 +21,13 @@ enum ActivePlay {
     static let goldenWindow: TimeInterval = 5
     static let goldenMinSeconds: Double = 30  // of current income
     static let goldenMaxSeconds: Double = 120
+
+    // Coffee Break - the free boost. This used to be behind a rewarded ad; the game is
+    // ad-free, so it is simply given away on a cooldown.
+    static let freeBoostMultiplier: Double = 2
+    static let freeBoostHours: Double = 0.25       // 15 minutes
+    static let freeBoostCooldownMinutes: Double = 20
+    static let freeBoostID = "coffee-break"
 }
 
 /// Transient combo state. Deliberately not persisted - a combo you left an hour ago should

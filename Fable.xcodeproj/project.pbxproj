@@ -20,11 +20,9 @@
 		30CFDD3FD5F954C521D0E0A2 /* OfflineEarnings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7222D4A6ECABE2F13FE32FAE /* OfflineEarnings.swift */; };
 		30F8A8CF61FE595A0EE1187A /* Quests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B34835D7F5A7622BB272E93 /* Quests.swift */; };
 		312921B8E3AE9A57B3E6EBF4 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E8833189801270C6E78D286 /* RootView.swift */; };
-		39B0CBCB0D61CFD9E0AD298D /* AdOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD67B781424941B621DCC95 /* AdOverlayView.swift */; };
 		46EF0E95E698953D1B5F9277 /* CustomerSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = B56026DD041F82FCAAF814D9 /* CustomerSprite.swift */; };
 		47C8E48D0CF365D21C3AF103 /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 90ADE33E20D3F2B41202C2A1 /* Products.storekit */; };
 		56BD95ED366A8F35E3D7BDEF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F09D63C291B04A5F9057BC6 /* SettingsView.swift */; };
-		574CAFBFEDD4CE97F896E3F8 /* AdService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD0F1511F0BE0466C1D663F /* AdService.swift */; };
 		62E6F3569791FF240B8F752A /* VenueStageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2532F7EDEF7C37C11C81E08C /* VenueStageView.swift */; };
 		75321F06B4C9A848CBD2DC9B /* FoodSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2EE81608776E2BF273BBBD /* FoodSprite.swift */; };
 		79C4CA2410441F131686D40E /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A26A43CF2C4D9BBECE52A00 /* Theme.swift */; };
@@ -55,6 +53,7 @@
 		EB6CA288EED7AAEE9C372B77 /* DailyRewards.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF0F3E61981543C34C90567C /* DailyRewards.swift */; };
 		EDC2E9F49F724833352C78C3 /* StoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E9FBAB04997C010D88507E /* StoreTests.swift */; };
 		F3A571D29B7FC1381E1054FD /* VenueSelectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DC9C30BAAF4753AAF01055 /* VenueSelectView.swift */; };
+		F4F5E2480A8519A92F0C8507 /* AdFreeBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0586BCCDEDBDE702E5A8337E /* AdFreeBadge.swift */; };
 		F9A2797441C4E4BE694E2ECB /* DailyRewardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00F2A8A161196B9066FFE9 /* DailyRewardView.swift */; };
 		FA6AF9C9902DFF8F201F57B1 /* StationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD24733F2D1BC1BBE3D6F0E /* StationListView.swift */; };
 		FC246313F805860C203CB101 /* Festival.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B5E019C15AA811DEA06C126 /* Festival.swift */; };
@@ -71,6 +70,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0586BCCDEDBDE702E5A8337E /* AdFreeBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdFreeBadge.swift; sourceTree = "<group>"; };
 		125320FE8C0CD27DABD2E408 /* Managers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Managers.swift; sourceTree = "<group>"; };
 		14E9FBAB04997C010D88507E /* StoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreTests.swift; sourceTree = "<group>"; };
 		1B320AD114EF8759BA8EA4A0 /* Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatting.swift; sourceTree = "<group>"; };
@@ -80,7 +80,6 @@
 		37515A3266C48B43461F8FFF /* EventsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsView.swift; sourceTree = "<group>"; };
 		388AFC1D19065A136570A153 /* PerkChoiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerkChoiceView.swift; sourceTree = "<group>"; };
 		3A2EE81608776E2BF273BBBD /* FoodSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodSprite.swift; sourceTree = "<group>"; };
-		3FD0F1511F0BE0466C1D663F /* AdService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdService.swift; sourceTree = "<group>"; };
 		40A09664AFA96F68507B8608 /* StationMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationMath.swift; sourceTree = "<group>"; };
 		46D1911EBB949FF72F6AB016 /* Research.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Research.swift; sourceTree = "<group>"; };
 		4B34835D7F5A7622BB272E93 /* Quests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Quests.swift; sourceTree = "<group>"; };
@@ -103,7 +102,6 @@
 		8A26A43CF2C4D9BBECE52A00 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		90ADE33E20D3F2B41202C2A1 /* Products.storekit */ = {isa = PBXFileReference; path = Products.storekit; sourceTree = "<group>"; };
 		97F978F2657BFE1A5089482A /* GameEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngine.swift; sourceTree = "<group>"; };
-		9DD67B781424941B621DCC95 /* AdOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdOverlayView.swift; sourceTree = "<group>"; };
 		A6D9C15F5FAAEE676AFA42E6 /* GemSpend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GemSpend.swift; sourceTree = "<group>"; };
 		AB9CDFE41E11F22B7F4BB70F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		ADBF6FA651E23B2CE296686C /* SaveManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveManager.swift; sourceTree = "<group>"; };
@@ -194,7 +192,6 @@
 		9DC4DC81BC1CB6163A43F7D2 /* Sheets */ = {
 			isa = PBXGroup;
 			children = (
-				9DD67B781424941B621DCC95 /* AdOverlayView.swift */,
 				89F2E53AB8B4FAF1BD409A44 /* CollectionView.swift */,
 				5A00F2A8A161196B9066FFE9 /* DailyRewardView.swift */,
 				69FFAD265ADEF5481F857016 /* DebugMenuView.swift */,
@@ -214,7 +211,6 @@
 		CD2953EBA2A374C41A1DBCC4 /* Store */ = {
 			isa = PBXGroup;
 			children = (
-				3FD0F1511F0BE0466C1D663F /* AdService.swift */,
 				A6D9C15F5FAAEE676AFA42E6 /* GemSpend.swift */,
 				90ADE33E20D3F2B41202C2A1 /* Products.storekit */,
 				7C344A7F73D53DFFE26173A1 /* StoreService.swift */,
@@ -234,6 +230,7 @@
 			isa = PBXGroup;
 			children = (
 				5C17466D04161D4F16C6110A /* ActivePlayViews.swift */,
+				0586BCCDEDBDE702E5A8337E /* AdFreeBadge.swift */,
 				240578676C0B706FC34950F7 /* HUDView.swift */,
 				4E8833189801270C6E78D286 /* RootView.swift */,
 				4FD24733F2D1BC1BBE3D6F0E /* StationListView.swift */,
@@ -380,8 +377,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AF0FD8C199117D1A431555A2 /* ActivePlayViews.swift in Sources */,
-				39B0CBCB0D61CFD9E0AD298D /* AdOverlayView.swift in Sources */,
-				574CAFBFEDD4CE97F896E3F8 /* AdService.swift in Sources */,
+				F4F5E2480A8519A92F0C8507 /* AdFreeBadge.swift in Sources */,
 				228B89D93E112BDF014988A5 /* Balance.swift in Sources */,
 				2FEFB4DEC9538D8CB0331FD2 /* Boosts.swift in Sources */,
 				2EB53E40C1F48100422B9C33 /* CoinBurst.swift in Sources */,

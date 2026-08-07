@@ -7,7 +7,6 @@ extension OfflineReport: Identifiable {
 
 struct OfflineEarningsView: View {
     @EnvironmentObject private var engine: GameEngine
-    @EnvironmentObject private var ads: AdService
     @Environment(\.dismiss) private var dismiss
 
     let report: OfflineReport
@@ -53,15 +52,20 @@ struct OfflineEarningsView: View {
 
                 Spacer(minLength: 0)
 
-                if !doubled {
+                if !doubled && engine.offlineDoubleAvailable() {
                     Button(action: doubleIt) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "play.rectangle.fill")
-                            Text("Watch to double it")
+                        VStack(spacing: 1) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "gift.fill")
+                                Text("Double it — free")
+                            }
+                            .font(Theme.body(15, weight: .black))
+                            Text("Once a day, on the house")
+                                .font(Theme.body(10, weight: .medium))
+                                .opacity(0.8)
                         }
-                        .font(Theme.body(15, weight: .black))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 12)
                     }
                     .buttonStyle(ChunkyButtonStyle(fill: Theme.positive, shadow: Theme.positive.opacity(0.5)))
                 }
@@ -77,26 +81,13 @@ struct OfflineEarningsView: View {
                 .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
             }
             .padding(20)
-
-            // The ad has to be presented from inside this sheet. RootView's copy sits
-            // below the sheet in the window, so playing it from there would hide the
-            // countdown and the skip button behind this view.
-            if ads.isPlaying {
-                AdOverlayView().transition(.opacity)
-            }
         }
-        .animation(.easeInOut(duration: 0.2), value: ads.isPlaying)
         .preferredColorScheme(.dark)
-        .interactiveDismissDisabled(ads.isPlaying)
     }
 
-    /// The bonus is credited from the ad callback, so a cancelled ad pays nothing.
     private func doubleIt() {
-        guard !doubled else { return }
-        ads.play(engine: engine, reason: "offline") {
-            engine.addCoins(report.coins)
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { doubled = true }
-            Haptics.success()
-        }
+        guard !doubled, engine.claimOfflineDouble(report) else { return }
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { doubled = true }
+        Haptics.success()
     }
 }

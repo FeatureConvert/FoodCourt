@@ -270,13 +270,20 @@ final class GameEngine: ObservableObject {
         state.totalServed += count
         advanceQuests(kind: .serve, by: Double(count))
 
-        // Festival tickets drip from serving; the bulk comes from quests and dailies.
+        // Festival tickets drip from serving, up to a per-season ceiling. Without the cap
+        // an established player's serve rate alone finished the whole track in minutes.
         state.festival.serveCounter += count
         let per = Festival.servesPerTicket
         if state.festival.serveCounter >= per {
             let tickets = state.festival.serveCounter / per
             state.festival.serveCounter %= per
-            awardTickets(Int((Double(tickets) * state.researchEffects.ticketMultiplier).rounded()))
+            let scaled = Int((Double(tickets) * state.researchEffects.ticketMultiplier).rounded())
+            let headroom = Swift.max(0, Festival.maxTicketsFromServing - state.festival.ticketsFromServing)
+            let granted = Swift.min(scaled, headroom)
+            if granted > 0 {
+                state.festival.ticketsFromServing += granted
+                awardTickets(granted)
+            }
         }
     }
 
@@ -595,8 +602,14 @@ final class GameEngine: ObservableObject {
         state.festival.tickets += amount
     }
 
+    /// True when premium rewards are claimable: a bought pass, or VIP which includes it.
+    var festivalPremiumActive: Bool {
+        state.festival.premiumUnlocked || state.entitlements.includesFestivalPremium
+    }
+
     func claimFestival(tier: Int, premium: Bool) -> FestivalReward? {
-        guard Festival.canClaim(state.festival, tier: tier, premium: premium) else { return nil }
+        guard Festival.canClaim(state.festival, tier: tier, premium: premium,
+                                premiumActive: festivalPremiumActive) else { return nil }
         let reward = premium ? Festival.tier(tier).premium : Festival.tier(tier).free
         if premium { state.festival.claimedPremium.append(tier) }
         else { state.festival.claimedFree.append(tier) }
@@ -714,18 +727,43 @@ final class GameEngine: ObservableObject {
         advanceQuests(kind: .hire, to: Double(state.assignedManagerCount))
     }
 
-    // MARK: Ads
+    // MARK: Free boost (Coffee Break)
 
-    var adReady: Bool {
-        state.entitlements.adsRemoved || state.now >= state.adAvailableAt
+    var boostReady: Bool { state.now >= state.boostAvailableAt }
+
+    var boostCooldownRemaining: TimeInterval {
+        Swift.max(0, state.boostAvailableAt.timeIntervalSince(state.now))
     }
 
-    var adCooldownRemaining: TimeInterval {
-        Swift.max(0, state.adAvailableAt.timeIntervalSince(state.now))
+    /// The game has no ads, so this is simply given away on a cooldown.
+    @discardableResult
+    func claimFreeBoost() -> Bool {
+        guard boostReady else { return false }
+        addBoost(id: ActivePlay.freeBoostID,
+                 label: "Coffee Break ×\(Format.trim(ActivePlay.freeBoostMultiplier))",
+                 multiplier: ActivePlay.freeBoostMultiplier,
+                 hours: ActivePlay.freeBoostHours)
+        state.boostAvailableAt = state.now
+            .addingTimeInterval(ActivePlay.freeBoostCooldownMinutes * 60)
+        save()
+        return true
     }
 
-    func startAdCooldown(minutes: Double) {
-        state.adAvailableAt = state.now.addingTimeInterval(minutes * 60)
+    // MARK: Welcome-back double
+
+    /// Doubling the offline payout is free, once a day. It used to be behind a rewarded ad.
+    func offlineDoubleAvailable(calendar: Calendar = .current) -> Bool {
+        guard let last = state.lastOfflineDoubleDay else { return true }
+        return calendar.startOfDay(for: state.now) > calendar.startOfDay(for: last)
+    }
+
+    @discardableResult
+    func claimOfflineDouble(_ report: OfflineReport, calendar: Calendar = .current) -> Bool {
+        guard offlineDoubleAvailable(calendar: calendar) else { return false }
+        state.lastOfflineDoubleDay = calendar.startOfDay(for: state.now)
+        addCoins(report.coins)
+        save()
+        return true
     }
 
     // MARK: Daily rewards

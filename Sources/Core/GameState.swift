@@ -62,7 +62,8 @@ struct Entitlements: Codable, Equatable {
     var starterPack: Bool = false
 
     var profitMultiplier: Double { vip ? 1 + Balance.vipProfitBonus : 1 }
-    var adsRemoved: Bool { vip }
+    /// VIP carries the Carnival Pass, every season, for as long as they hold it.
+    var includesFestivalPremium: Bool { vip }
 }
 
 /// Login calendar progress. Tracked by calendar day, not by a rolling 24h timer.
@@ -93,7 +94,10 @@ struct GameState: Codable, Equatable {
     var daily = DailyRewardState()
 
     var lastSeen: Date = Date()
-    var adAvailableAt: Date = .distantPast
+    /// When the free Coffee Break boost comes off cooldown.
+    var boostAvailableAt: Date = .distantPast
+    /// Start-of-day of the last free welcome-back double, so it is once per day.
+    var lastOfflineDoubleDay: Date? = nil
     var timeOffset: TimeInterval = 0
 
     // Depth systems
@@ -275,7 +279,11 @@ struct GameState: Codable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case schemaVersion, coins, gems, stars, lifetimeStars, lifetimeEarnings, runEarnings
-        case venues, currentVenue, boosts, entitlements, daily, lastSeen, adAvailableAt, timeOffset
+        case venues, currentVenue, boosts, entitlements, daily, lastSeen, timeOffset
+        // Was the rewarded-ad cooldown before the game went ad-free; the stored key is kept
+        // so existing saves still decode.
+        case boostAvailableAt = "adAvailableAt"
+        case lastOfflineDoubleDay
         case research, managers, recipeCards, quests, questsClaimed, festival, league
         case rushEndsAt, rushAvailableAt, rushesCompleted, totalTaps, totalServed
     }
@@ -300,7 +308,8 @@ struct GameState: Codable, Equatable {
         entitlements = try c.decodeIfPresent(Entitlements.self, forKey: .entitlements) ?? Entitlements()
         daily = try c.decodeIfPresent(DailyRewardState.self, forKey: .daily) ?? DailyRewardState()
         lastSeen = try c.decodeIfPresent(Date.self, forKey: .lastSeen) ?? Date()
-        adAvailableAt = try c.decodeIfPresent(Date.self, forKey: .adAvailableAt) ?? .distantPast
+        boostAvailableAt = try c.decodeIfPresent(Date.self, forKey: .boostAvailableAt) ?? .distantPast
+        lastOfflineDoubleDay = try c.decodeIfPresent(Date.self, forKey: .lastOfflineDoubleDay)
         timeOffset = try c.decodeIfPresent(TimeInterval.self, forKey: .timeOffset) ?? 0
 
         research = try c.decodeIfPresent([String: Int].self, forKey: .research) ?? [:]

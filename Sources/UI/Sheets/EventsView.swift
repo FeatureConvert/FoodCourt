@@ -63,7 +63,7 @@ private struct FestivalSection: View {
     var body: some View {
         header
 
-        if !festival.premiumUnlocked {
+        if !engine.festivalPremiumActive {
             premiumPitch
         }
 
@@ -150,8 +150,11 @@ private struct FestivalSection: View {
 
     private func tierRow(_ tier: FestivalTier) -> some View {
         let reached = festival.tickets >= tier.ticketsRequired
-        let freeClaimable = Festival.canClaim(festival, tier: tier.index, premium: false)
-        let premiumClaimable = Festival.canClaim(festival, tier: tier.index, premium: true)
+        let premiumActive = engine.festivalPremiumActive
+        let freeClaimable = Festival.canClaim(festival, tier: tier.index, premium: false,
+                                              premiumActive: premiumActive)
+        let premiumClaimable = Festival.canClaim(festival, tier: tier.index, premium: true,
+                                                 premiumActive: premiumActive)
 
         return HStack(spacing: 10) {
             VStack(spacing: 1) {
@@ -172,7 +175,7 @@ private struct FestivalSection: View {
 
             rewardChip(tier.premium, claimable: premiumClaimable,
                        claimed: festival.claimedPremium.contains(tier.index),
-                       locked: !reached || !festival.premiumUnlocked, premium: true) {
+                       locked: !reached || !premiumActive, premium: true) {
                 claim(tier: tier.index, premium: true)
             }
         }

@@ -4,7 +4,6 @@ import SwiftUI
 struct FableApp: App {
     @StateObject private var engine = GameEngine()
     @StateObject private var store = StoreService()
-    @StateObject private var ads = AdService()
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -13,7 +12,6 @@ struct FableApp: App {
             RootView()
                 .environmentObject(engine)
                 .environmentObject(store)
-                .environmentObject(ads)
                 .task {
                     // The store needs the engine to grant rewards, and the engine is only
                     // available once both objects exist.

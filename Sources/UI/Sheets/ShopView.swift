@@ -7,6 +7,8 @@ struct ShopView: View {
 
     var body: some View {
         SheetScaffold(title: "Shop", subtitle: "Gems keep the kitchen moving") {
+            AdFreeBadge()
+
             SectionLabel(text: "Spend gems")
             ForEach(GemOffer.all) { offer in
                 gemSinkRow(offer)
@@ -33,7 +35,7 @@ struct ShopView: View {
             .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
             .padding(.top, 8)
 
-            Text("Purchases are billed to your Apple Account. Gems are a virtual currency with no cash value.")
+            Text("Nothing here is required to finish the game. Purchases are billed to your Apple Account. Gems are a virtual currency with no cash value.")
                 .font(Theme.body(10, weight: .medium))
                 .foregroundStyle(Theme.textDim)
                 .multilineTextAlignment(.center)
