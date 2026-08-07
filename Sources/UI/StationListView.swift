@@ -111,11 +111,7 @@ struct StationCardView: View {
         } label: {
             ZStack {
                 Circle().fill(Theme.ink.opacity(0.55))
-                Circle().stroke(Theme.stroke, lineWidth: 5)
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(palette.accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
+                CookerRing(progress: progress, cycle: cycle, accent: palette.accent)
 
                 FoodSprite(art: spec.art, colors: spec.colors)
                     .frame(width: 44, height: 44)
@@ -324,6 +320,66 @@ struct StationCardView: View {
                 onToast("Need \(GemSpend.instantManagerGemCost) gems or \(Format.currency(cost))")
             case .nothingToDo(let message):
                 onToast(message)
+            }
+        }
+    }
+}
+
+/// The station's progress ring.
+///
+/// Past a certain speed a per-cycle sweep stops reading as progress and starts reading as a
+/// flicker - a maxed station completes ten-plus cycles a second, and the ring just strobes.
+/// Below the threshold the ring locks to full and switches to a glow with a slow sweep, which
+/// says "running flat out" instead, and doubles as a reward for having got it that fast.
+private struct CookerRing: View {
+    let progress: Double
+    let cycle: TimeInterval
+    let accent: Color
+
+    /// A sweep is still legible at roughly three cycles a second; past that it is a blur.
+    static let flatOutBelow: TimeInterval = 0.35
+
+    private var isFlatOut: Bool { cycle < Self.flatOutBelow }
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(Theme.stroke, lineWidth: 5)
+
+            if isFlatOut {
+                flatOut.transition(.opacity)
+            } else {
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: isFlatOut)
+    }
+
+    /// Driven off the timeline rather than a `repeatForever` animation: this card re-renders
+    /// at the tick rate, which would keep restarting a state-driven animation.
+    private var flatOut: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+            let t = timeline.date.timeIntervalSinceReferenceDate
+            let pulse = 0.5 + 0.5 * sin(t * 4.5)
+            let sweep = Angle.degrees((t * 400).truncatingRemainder(dividingBy: 360))
+
+            ZStack {
+                Circle()
+                    .stroke(accent, lineWidth: 5)
+                    .shadow(color: accent.opacity(0.35 + 0.45 * pulse), radius: 4 + 5 * pulse)
+                Circle()
+                    .trim(from: 0, to: 0.2)
+                    .stroke(
+                        AngularGradient(
+                            gradient: Gradient(colors: [accent.opacity(0), .white.opacity(0.85)]),
+                            center: .center
+                        ),
+                        style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                    )
+                    .rotationEffect(sweep)
             }
         }
     }

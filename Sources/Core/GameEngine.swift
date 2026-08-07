@@ -57,6 +57,13 @@ final class GameEngine: ObservableObject {
     @Published var pendingLeagueOutcome: LeagueOutcome?
     @Published var toast: String?
 
+    /// Payouts waiting to be shown, and when each station last showed one. A fast station
+    /// completes ten-plus cycles a second; spawning a burst per cycle restarts the animation
+    /// before it can play, so they are pooled and shown as one larger number.
+    private var pendingBursts: [Int: (amount: Double, count: Int)] = [:]
+    private var lastBurstAt: [Int: CFTimeInterval] = [:]
+    private static let burstMinimumInterval: CFTimeInterval = 0.25
+
     private let persistence: GamePersisting
     private var tickTimer: Timer?
     private var autosaveTimer: Timer?
@@ -205,11 +212,33 @@ final class GameEngine: ObservableObject {
             registerServed(totalServed)
         }
         if !serves.isEmpty {
-            for (key, value) in serves { lastServe[key] = value }
+            for (station, event) in serves {
+                var pending = pendingBursts[station] ?? (amount: 0, count: 0)
+                pending.amount += event.amount
+                pending.count += event.count
+                pendingBursts[station] = pending
+            }
             servedCustomers += totalServed
         }
+        flushBursts()
 
         League.advanceRivals(&state.league, to: now)
+    }
+
+    /// Releases pooled payouts, at most one burst per station per interval, so each animation
+    /// gets to finish and the number shown is the whole take since the last one.
+    private func flushBursts() {
+        guard !pendingBursts.isEmpty else { return }
+        let now = CACurrentMediaTimeCompat()
+
+        for station in Array(pendingBursts.keys) {
+            let last = lastBurstAt[station] ?? -.greatestFiniteMagnitude
+            guard now - last >= Self.burstMinimumInterval else { continue }
+            guard let pending = pendingBursts.removeValue(forKey: station) else { continue }
+            lastBurstAt[station] = now
+            lastServe[station] = ServeEvent(station: station, amount: pending.amount,
+                                            count: pending.count)
+        }
     }
 
     /// Expected multiplier from the double-serve perk over N servings.
@@ -459,6 +488,8 @@ final class GameEngine: ObservableObject {
         guard state.venues.indices.contains(id), state.venues[id].unlocked else { return }
         state.currentVenue = id
         lastServe.removeAll()
+        pendingBursts.removeAll()
+        lastBurstAt.removeAll()
         golden = nil
     }
 
