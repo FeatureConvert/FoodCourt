@@ -4,6 +4,7 @@ struct HUDView: View {
     @EnvironmentObject private var engine: GameEngine
     let onDebug: () -> Void
     let onSettings: () -> Void
+    let onStars: () -> Void
 
     var body: some View {
         VStack(spacing: 8) {
@@ -27,18 +28,22 @@ struct HUDView: View {
                         .foregroundStyle(Theme.text)
                 }
 
-                if engine.state.stars > 0 {
-                    currencyPill {
-                        StarIcon().frame(width: 20, height: 20)
-                        VStack(alignment: .leading, spacing: -2) {
-                            Text(Format.count(engine.state.stars))
-                                .font(Theme.numeric(16))
-                                .foregroundStyle(Theme.text)
-                            Text("+\(Int(Double(engine.state.stars) * Balance.profitPerStar * 100))%")
-                                .font(Theme.body(10, weight: .bold))
-                                .foregroundStyle(Theme.star)
+                if engine.state.lifetimeStars > 0 {
+                    // Tapping the star pill is the way into Franchise and Research.
+                    Button(action: onStars) {
+                        currencyPill {
+                            StarIcon().frame(width: 20, height: 20)
+                            VStack(alignment: .leading, spacing: -2) {
+                                Text(Format.count(engine.state.stars))
+                                    .font(Theme.numeric(16))
+                                    .foregroundStyle(Theme.text)
+                                Text("+\(Int(Double(engine.state.lifetimeStars) * Balance.profitPerStar * 100))%")
+                                    .font(Theme.body(10, weight: .bold))
+                                    .foregroundStyle(Theme.star)
+                            }
                         }
                     }
+                    .buttonStyle(.plain)
                 }
 
                 Spacer(minLength: 0)

@@ -1,9 +1,11 @@
 import SwiftUI
 
-struct DailyRewardView: View {
+/// The 7-day calendar. Split from its sheet wrapper so the Events hub can embed it as a tab
+/// while the launch flow still presents it on its own.
+struct DailyRewardSection: View {
     @EnvironmentObject private var engine: GameEngine
-    @Environment(\.dismiss) private var dismiss
     let onToast: (String) -> Void
+    var onClaimed: (() -> Void)? = nil
 
     @State private var celebrating: Int?
 
@@ -14,36 +16,7 @@ struct DailyRewardView: View {
         return nil
     }
 
-    var body: some View {
-        SheetScaffold(title: "Daily Rewards", subtitle: subtitleText) {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
-                ForEach(DailyRewards.calendar) { spec in
-                    dayTile(spec)
-                }
-            }
-
-            Button(action: claim) {
-                Text(claimableDay == nil ? "Come back tomorrow" : "Claim Day \(claimableDay ?? 1)")
-                    .font(Theme.body(16, weight: .black))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-            }
-            .buttonStyle(ChunkyButtonStyle(
-                fill: claimableDay == nil ? Theme.locked : Theme.positive,
-                shadow: claimableDay == nil ? Theme.ink : Theme.positive.opacity(0.5),
-                disabled: claimableDay == nil
-            ))
-            .disabled(claimableDay == nil)
-            .padding(.top, 6)
-
-            Text("Log in on consecutive days to keep your streak. Miss a day and the calendar restarts.")
-                .font(Theme.body(11, weight: .medium))
-                .foregroundStyle(Theme.textDim)
-                .multilineTextAlignment(.center)
-        }
-    }
-
-    private var subtitleText: String {
+    var subtitle: String {
         switch status {
         case .available(let day):
             return day == 1 && engine.state.daily.lastClaimedDay != nil
@@ -52,6 +25,33 @@ struct DailyRewardView: View {
         case .claimed(let next, _):
             return "Claimed today. Day \(next) unlocks tomorrow."
         }
+    }
+
+    var body: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
+            ForEach(DailyRewards.calendar) { spec in
+                dayTile(spec)
+            }
+        }
+
+        Button(action: claim) {
+            Text(claimableDay == nil ? "Come back tomorrow" : "Claim Day \(claimableDay ?? 1)")
+                .font(Theme.body(16, weight: .black))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+        }
+        .buttonStyle(ChunkyButtonStyle(
+            fill: claimableDay == nil ? Theme.locked : Theme.positive,
+            shadow: claimableDay == nil ? Theme.ink : Theme.positive.opacity(0.5),
+            disabled: claimableDay == nil
+        ))
+        .disabled(claimableDay == nil)
+        .padding(.top, 6)
+
+        Text("Log in on consecutive days to keep your streak. Each claim also pays \(Festival.ticketsPerDaily) festival tickets.")
+            .font(Theme.body(11, weight: .medium))
+            .foregroundStyle(Theme.textDim)
+            .multilineTextAlignment(.center)
     }
 
     private func dayTile(_ spec: DailyRewardSpec) -> some View {
@@ -63,8 +63,7 @@ struct DailyRewardView: View {
                 .font(Theme.body(10, weight: .black))
                 .foregroundStyle(claimable ? Theme.ink : Theme.textDim)
 
-            rewardArt(spec)
-                .frame(height: 34)
+            rewardArt(spec).frame(height: 34)
 
             Text(spec.title)
                 .font(Theme.body(10, weight: .bold))
@@ -115,7 +114,6 @@ struct DailyRewardView: View {
         }
     }
 
-    /// Everything before the day waiting to be claimed has already been collected in this cycle.
     private func isClaimed(_ day: Int) -> Bool {
         switch status {
         case .available(let current): return day < current
@@ -137,6 +135,32 @@ struct DailyRewardView: View {
         if let boost = payout.boost { parts.append(boost.label) }
         onToast("Day \(payout.day): " + parts.joined(separator: " + "))
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { dismiss() }
+        onClaimed?()
+    }
+}
+
+/// Standalone presentation used when the game opens on a fresh day.
+struct DailyRewardView: View {
+    @EnvironmentObject private var engine: GameEngine
+    @Environment(\.dismiss) private var dismiss
+    let onToast: (String) -> Void
+
+    var body: some View {
+        SheetScaffold(title: "Daily Rewards", subtitle: subtitle) {
+            DailyRewardSection(onToast: onToast) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { dismiss() }
+            }
+        }
+    }
+
+    private var subtitle: String {
+        switch engine.dailyStatus {
+        case .available(let day):
+            return day == 1 && engine.state.daily.lastClaimedDay != nil
+                ? "Streak restarted - day 1 is ready"
+                : "Day \(day) is ready to claim"
+        case .claimed(let next, _):
+            return "Claimed today. Day \(next) unlocks tomorrow."
+        }
     }
 }

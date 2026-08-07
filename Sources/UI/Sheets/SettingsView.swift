@@ -14,7 +14,7 @@ struct SettingsView: View {
                 row("Lifetime earnings", Format.currency(engine.state.lifetimeEarnings))
                 row("Franchise stars", Format.count(engine.state.stars))
                 row("Venues open", "\(engine.state.venues.filter(\.self.unlocked).count) of \(Balance.venues.count)")
-                row("Offline cap", "\(Format.trim(engine.state.entitlements.offlineCapHours))h")
+                row("Offline cap", "\(Format.trim(engine.state.offlineCapHours))h")
             }
             .panel(Theme.panel)
 

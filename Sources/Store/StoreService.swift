@@ -6,6 +6,7 @@ enum ShopReward: Equatable {
     case gems(Int)
     case starterPack
     case vip
+    case festivalPass
 }
 
 struct ShopItem: Identifiable, Equatable {
@@ -43,6 +44,9 @@ enum ShopCatalog {
         ShopItem(id: prefix + "vip.pass", title: "VIP Pass",
                  subtitle: "+25% profit forever · 12h offline earnings · no ads",
                  reward: .vip, fallbackPrice: "$9.99", badge: "VIP", magnitude: 4),
+        ShopItem(id: prefix + "pack.festival", title: "Carnival Pass",
+                 subtitle: "Unlocks the premium reward on all 30 festival tiers",
+                 reward: .festivalPass, fallbackPrice: "$7.99", badge: "SEASON", magnitude: 3),
     ]
 
     static let all: [ShopItem] = offers + gemPacks
@@ -106,6 +110,8 @@ final class StoreService: ObservableObject {
         case .gems: return false
         case .starterPack: return engine.state.entitlements.starterPack
         case .vip: return engine.state.entitlements.vip
+        // The pass is per-season, so it stops reading as owned once the season rolls.
+        case .festivalPass: return engine.state.festival.premiumUnlocked
         }
     }
 
@@ -203,6 +209,10 @@ final class StoreService: ObservableObject {
         case .vip:
             engine.setEntitlement(vip: true)
             if announce { lastGrant = "VIP Pass active" }
+
+        case .festivalPass:
+            engine.unlockFestivalPremium()
+            if announce { lastGrant = "Carnival Pass unlocked" }
         }
         engine.save()
     }

@@ -8,7 +8,7 @@ final class ProgressionTests: XCTestCase {
     private func staffedState(level: Int = 10) -> GameState {
         var state = GameState.newGame()
         state.venues[0].stations[0].level = level
-        state.venues[0].stations[0].hasManager = true
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
         return state
     }
 
@@ -20,7 +20,7 @@ final class ProgressionTests: XCTestCase {
         XCTAssertEqual(OfflineEarnings.automatedIncomePerSecond(state), 0,
                        "an unstaffed station should not earn while the app is closed")
 
-        state.venues[0].stations[0].hasManager = true
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
         XCTAssertGreaterThan(OfflineEarnings.automatedIncomePerSecond(state), 0)
     }
 
@@ -28,7 +28,7 @@ final class ProgressionTests: XCTestCase {
         var state = staffedState()
         // Staff a station in a venue that was never opened.
         state.venues[1].stations[0].level = 50
-        state.venues[1].stations[0].hasManager = true
+        state.hire(specID: ManagerCatalog.traineeID, venue: 1, station: 0)
         let locked = OfflineEarnings.automatedIncomePerSecond(state)
 
         state.venues[1].unlocked = true
@@ -167,7 +167,7 @@ final class ProgressionTests: XCTestCase {
 
     func testGlobalMultiplierCombinesBoostsStarsAndVIP() {
         var state = GameState.newGame()
-        state.stars = 50                                  // +100%
+        state.lifetimeStars = 50                          // +100%
         state.entitlements.vip = true                     // +25%
         state.boosts = [BoostState(id: "b", label: "×2", multiplier: 2,
                                    expiry: state.now.addingTimeInterval(600))]
@@ -206,7 +206,9 @@ final class ProgressionTests: XCTestCase {
         XCTAssertFalse(engine.tap(station: 0), "a running station ignores further taps")
 
         engine.advance(by: spec.baseCycle + 0.01)
-        XCTAssertEqual(engine.state.coins, spec.baseRevenue, accuracy: 1e-6)
+        // Both taps fed the combo, so the payout carries its multiplier.
+        let expectedCombo = 1 + 2 * ActivePlay.comboPerStep
+        XCTAssertEqual(engine.state.coins, spec.baseRevenue * expectedCombo, accuracy: 1e-6)
         XCTAssertFalse(engine.state.venues[0].stations[0].isRunning,
                        "an unstaffed station stops after one cycle")
     }
@@ -214,7 +216,7 @@ final class ProgressionTests: XCTestCase {
     @MainActor
     func testStaffedStationRunsWithoutInput() {
         var state = GameState.newGame()
-        state.venues[0].stations[0].hasManager = true
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
         let engine = GameEngine(state: state, startTimers: false, persistence: EphemeralPersistence())
         let spec = Balance.venue(0).stations[0]
 

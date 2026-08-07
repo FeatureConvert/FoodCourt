@@ -102,6 +102,6 @@ struct VenueSelectView: View {
     }
 
     private func staffedCount(_ venue: VenueSpec) -> Int {
-        engine.state.venues[venue.id].stations.filter { $0.hasManager }.count
+        engine.state.venues[venue.id].stations.filter { $0.isStaffed }.count
     }
 }

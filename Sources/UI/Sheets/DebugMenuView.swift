@@ -34,6 +34,18 @@ struct DebugMenuView: View {
                 grantButton("Staff all") { engine.grantManagerPack(venue: engine.state.currentVenue) }
             }
 
+            SectionLabel(text: "Systems")
+            HStack(spacing: 8) {
+                grantButton("+2K tickets") { engine.awardTickets(2_000) }
+                grantButton("Finish goals") { engine.debugCompleteQuests() }
+                grantButton("End league") { engine.debugEndLeagueWeek() }
+            }
+            HStack(spacing: 8) {
+                grantButton("Rush now") { engine.startRush(force: true) }
+                grantButton("Epic staff") { _ = engine.grantManager(rarity: .epic) }
+                grantButton("Legend staff") { _ = engine.grantManager(rarity: .legendary) }
+            }
+
             SectionLabel(text: "State")
             Button {
                 engine.save()

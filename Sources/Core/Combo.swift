@@ -1,0 +1,69 @@
+import Foundation
+
+/// Tuning for the three active-play systems. They exist to give the player a reason to hold
+/// the phone once managers have taken over the tapping.
+enum ActivePlay {
+
+    // Combo
+    static let comboWindow: TimeInterval = 1.5
+    static let comboBaseSteps = 30
+    static let comboPerStep = 0.3
+
+    // Rush Hour
+    static let rushBaseSeconds: TimeInterval = 60
+    static let rushMultiplier: Double = 5
+    static let rushCooldownMinutes: Double = 20
+    static let rushGemCost = 40
+    static let rushBoostID = "rush-hour"
+
+    // Golden customer
+    static let goldenBaseChance = 0.05        // per queue rotation
+    static let goldenWindow: TimeInterval = 5
+    static let goldenMinSeconds: Double = 30  // of current income
+    static let goldenMaxSeconds: Double = 120
+}
+
+/// Transient combo state. Deliberately not persisted - a combo you left an hour ago should
+/// not still be running when you come back.
+struct ComboTracker: Equatable {
+    private(set) var count: Int = 0
+    private(set) var expiresAt: Date = .distantPast
+
+    var isActive: Bool { count > 0 }
+
+    func isLive(at now: Date) -> Bool { count > 0 && expiresAt > now }
+
+    func remaining(at now: Date) -> TimeInterval { max(0, expiresAt.timeIntervalSince(now)) }
+
+    /// Progress toward the cap, for the meter fill.
+    func fraction(maxSteps: Int) -> Double {
+        guard maxSteps > 0 else { return 0 }
+        return min(1, Double(count) / Double(maxSteps))
+    }
+
+    func multiplier(maxSteps: Int) -> Double {
+        guard count > 0 else { return 1 }
+        return 1 + Double(min(count, maxSteps)) * ActivePlay.comboPerStep
+    }
+
+    /// Registers a tap. `windowBonus` comes from manager traits like Crowd-Reader Cleo.
+    mutating func register(at now: Date, windowBonus: TimeInterval = 0) {
+        if expiresAt <= now { count = 0 }
+        count += 1
+        expiresAt = now.addingTimeInterval(ActivePlay.comboWindow + windowBonus)
+    }
+
+    /// Drops the combo once the window lapses. Returns true when it actually expired.
+    @discardableResult
+    mutating func prune(at now: Date) -> Bool {
+        guard count > 0, expiresAt <= now else { return false }
+        count = 0
+        expiresAt = .distantPast
+        return true
+    }
+
+    mutating func reset() {
+        count = 0
+        expiresAt = .distantPast
+    }
+}

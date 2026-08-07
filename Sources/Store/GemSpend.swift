@@ -18,6 +18,9 @@ struct GemOffer: Identifiable, Equatable {
                  subtitle: "Collect 4 hours of income now", cost: 150, symbol: "clock.arrow.circlepath"),
         GemOffer(id: "instant", title: "Serve Everyone",
                  subtitle: "Finish every station's cycle instantly", cost: 20, symbol: "hand.tap.fill"),
+        GemOffer(id: "rush", title: "Start Rush Hour",
+                 subtitle: "Skip the cooldown and go again now",
+                 cost: ActivePlay.rushGemCost, symbol: "timer"),
     ]
 }
 
@@ -59,6 +62,12 @@ enum GemSpend {
             guard engine.spendGems(offer.cost) else { return .insufficientGems }
             let earned = engine.instantCompleteAll()
             return .success("Served everyone for \(Format.currency(earned))")
+
+        case "rush":
+            guard !engine.rushActive else { return .nothingToDo("Rush Hour is already running") }
+            guard engine.spendGems(offer.cost) else { return .insufficientGems }
+            engine.startRush(force: true)
+            return .success("Rush Hour started")
 
         default:
             return .nothingToDo("Unavailable")

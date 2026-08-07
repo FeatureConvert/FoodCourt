@@ -3,6 +3,7 @@ import SwiftUI
 struct StationListView: View {
     @EnvironmentObject private var engine: GameEngine
     let onToast: (String) -> Void
+    let onChoosePerk: (Int) -> Void
 
     private var venue: VenueSpec { Balance.venue(engine.state.currentVenue) }
 
@@ -20,7 +21,7 @@ struct StationListView: View {
             ScrollView {
                 LazyVStack(spacing: 10) {
                     ForEach(venue.stations) { spec in
-                        StationCardView(spec: spec, onToast: onToast)
+                        StationCardView(spec: spec, onToast: onToast, onChoosePerk: onChoosePerk)
                     }
                     if let next = engine.nextLockedVenue {
                         NextVenueTeaser(venue: next, onToast: onToast)
@@ -60,24 +61,26 @@ struct BuyQuantityPicker: View {
     }
 }
 
-/// The card that does most of the work: cook, level up, and staff a single station.
+/// The card that does most of the work: cook, level up, staff, and spend perk choices.
 struct StationCardView: View {
     @EnvironmentObject private var engine: GameEngine
     let spec: StationSpec
     let onToast: (String) -> Void
+    let onChoosePerk: (Int) -> Void
 
-    private var state: StationState {
-        engine.state.venues[engine.state.currentVenue].stations[spec.id]
-    }
-    private var palette: VenuePalette {
-        VenuePalette.of(Balance.venue(engine.state.currentVenue).theme)
-    }
-    private var cycle: TimeInterval { Balance.cycleTime(spec: spec, level: state.level) }
-    private var progress: Double {
-        state.isRunning ? min(1, state.elapsed / cycle) : 0
-    }
+    private var venueID: Int { engine.state.currentVenue }
+    private var state: StationState { engine.state.venues[venueID].stations[spec.id] }
+    private var palette: VenuePalette { VenuePalette.of(Balance.venue(venueID).theme) }
+    private var cycle: TimeInterval { engine.state.cycleTime(venue: venueID, station: spec.id) }
+    private var progress: Double { state.isRunning ? min(1, state.elapsed / cycle) : 0 }
     private var payout: Double {
-        Balance.revenuePerCycle(spec: spec, level: state.level) * engine.state.globalMultiplier
+        engine.state.baseRevenue(venue: venueID, station: spec.id) * engine.payoutMultiplier
+    }
+    private var recipeStars: Int {
+        Recipes.stars(engine.state.recipeCards, venue: venueID, station: spec.id)
+    }
+    private var pendingPerk: Int? {
+        engine.pendingPerkLevel(venue: venueID, station: spec.id)
     }
 
     var body: some View {
@@ -100,15 +103,15 @@ struct StationCardView: View {
     private var cooker: some View {
         Button {
             if state.isOwned {
-                if engine.tap(station: spec.id) { Haptics.tap() }
+                engine.tap(station: spec.id)
+                Haptics.tap()
             } else {
                 purchase()
             }
         } label: {
             ZStack {
                 Circle().fill(Theme.ink.opacity(0.55))
-                Circle()
-                    .stroke(Theme.stroke, lineWidth: 5)
+                Circle().stroke(Theme.stroke, lineWidth: 5)
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(palette.accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
@@ -137,10 +140,21 @@ struct StationCardView: View {
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(spec.name)
-                .font(Theme.body(14, weight: .black))
-                .foregroundStyle(Theme.text)
-                .lineLimit(1)
+            HStack(spacing: 5) {
+                Text(spec.name)
+                    .font(Theme.body(14, weight: .black))
+                    .foregroundStyle(Theme.text)
+                    .lineLimit(1)
+                if recipeStars > 0 {
+                    HStack(spacing: 1) {
+                        ForEach(0..<recipeStars, id: \.self) { _ in
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 7))
+                                .foregroundStyle(Theme.star)
+                        }
+                    }
+                }
+            }
 
             if state.isOwned {
                 HStack(spacing: 6) {
@@ -155,6 +169,7 @@ struct StationCardView: View {
                         .foregroundStyle(Theme.textDim)
                 }
                 milestoneBar
+                staffLine
             } else {
                 Text("Tap to open this station")
                     .font(Theme.body(11, weight: .medium))
@@ -162,6 +177,20 @@ struct StationCardView: View {
             }
         }
         .frame(minWidth: 96, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var staffLine: some View {
+        if let manager = engine.state.managerSpec(venue: venueID, station: spec.id) {
+            HStack(spacing: 4) {
+                CustomerSprite(seed: manager.portraitSeed)
+                    .frame(width: 12, height: 17)
+                Text(manager.name)
+                    .font(Theme.body(9, weight: .bold))
+                    .foregroundStyle(Theme.positive)
+                    .lineLimit(1)
+            }
+        }
     }
 
     @ViewBuilder
@@ -199,12 +228,10 @@ struct StationCardView: View {
                 VStack(spacing: 1) {
                     Text(state.isOwned ? buyLabel : "UNLOCK")
                         .font(Theme.body(10, weight: .black))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .lineLimit(1).minimumScaleFactor(0.7)
                     Text(Format.currency(engine.price(for: spec.id)))
                         .font(Theme.numeric(13))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .lineLimit(1).minimumScaleFactor(0.7)
                 }
                 .frame(width: 92, height: 42)
             }
@@ -216,52 +243,58 @@ struct StationCardView: View {
             ))
             .disabled(!affordable)
 
-            managerButton
+            secondaryButton
         }
     }
 
     private var affordable: Bool { engine.canAfford(index: spec.id) }
 
-    /// Fixed quantities already say how many; only MAX needs the resolved count spelled out.
     private var buyLabel: String {
         engine.buyQuantity == .max
             ? "MAX · \(Format.count(engine.quantity(for: spec.id)))"
             : engine.buyQuantity.label
     }
 
+    /// A perk waiting to be spent always outranks the hire button - it's free value the
+    /// player has already earned.
     @ViewBuilder
-    private var managerButton: some View {
-        if state.isOwned {
-            if state.hasManager {
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark.seal.fill")
-                    Text("STAFFED")
-                }
-                .font(Theme.body(10, weight: .black))
-                .foregroundStyle(Theme.positive)
-                .frame(width: 92, height: 26)
-            } else {
-                let cost = engine.managerCost(for: spec.id)
-                let canHire = engine.state.coins >= cost
-                Button(action: hire) {
-                    HStack(spacing: 4) {
-                        Image(systemName: canHire ? "person.fill.badge.plus" : "diamond.fill")
-                            .font(.system(size: 10, weight: .black))
-                        Text(canHire ? Format.currency(cost) : "\(GemSpend.instantManagerGemCost)")
-                            .font(Theme.body(10, weight: .black))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    }
-                    .frame(width: 92, height: 26)
-                }
-                .buttonStyle(ChunkyButtonStyle(
-                    fill: canHire ? Theme.gemDeep : Theme.panelRaised,
-                    shadow: Theme.ink,
-                    radius: 10
-                ))
-            }
-        } else {
+    private var secondaryButton: some View {
+        if !state.isOwned {
             Color.clear.frame(width: 92, height: 26)
+        } else if pendingPerk != nil {
+            Button { onChoosePerk(spec.id) } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "sparkles").font(.system(size: 10, weight: .black))
+                    Text("PERK").font(Theme.body(10, weight: .black))
+                }
+                .frame(width: 92, height: 26)
+            }
+            .buttonStyle(ChunkyButtonStyle(fill: Theme.star, shadow: Theme.coinDeep, radius: 10))
+        } else if state.isStaffed {
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark.seal.fill")
+                Text("STAFFED")
+            }
+            .font(Theme.body(10, weight: .black))
+            .foregroundStyle(Theme.positive)
+            .frame(width: 92, height: 26)
+        } else {
+            let cost = engine.managerCost(for: spec.id)
+            let canHire = engine.state.coins >= cost
+            Button(action: hire) {
+                HStack(spacing: 4) {
+                    Image(systemName: canHire ? "person.fill.badge.plus" : "diamond.fill")
+                        .font(.system(size: 10, weight: .black))
+                    Text(canHire ? Format.currency(cost) : "\(GemSpend.instantManagerGemCost)")
+                        .font(Theme.body(10, weight: .black))
+                        .lineLimit(1).minimumScaleFactor(0.7)
+                }
+                .frame(width: 92, height: 26)
+            }
+            .buttonStyle(ChunkyButtonStyle(
+                fill: canHire ? Theme.gemDeep : Theme.panelRaised,
+                shadow: Theme.ink, radius: 10
+            ))
         }
     }
 
@@ -275,8 +308,6 @@ struct StationCardView: View {
         }
     }
 
-    /// Coins first; if the player is short, the same button spends gems instead. Two taps
-    /// for the same intent would be worse than one that always works.
     private func hire() {
         let cost = engine.managerCost(for: spec.id)
         if engine.state.coins >= cost {

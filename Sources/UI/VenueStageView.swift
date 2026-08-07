@@ -4,6 +4,7 @@ import SwiftUI
 /// Purely decorative, but it is what makes the numbers feel like a restaurant.
 struct VenueStageView: View {
     @EnvironmentObject private var engine: GameEngine
+    let onGolden: (Double) -> Void
 
     private var venue: VenueSpec { Balance.venue(engine.state.currentVenue) }
     private var palette: VenuePalette { VenuePalette.of(venue.theme) }
@@ -49,6 +50,18 @@ struct VenueStageView: View {
                     .frame(height: h * 0.46)
                     .frame(maxHeight: .infinity, alignment: .bottom)
                     .padding(.bottom, h * 0.16)
+
+                // The VIP stands centre-stage. Anywhere trailing would put the tap target
+                // under the boost and rush buttons, which sit in that corner.
+                if let golden = engine.golden {
+                    GoldenCustomerView(seed: golden.seed) {
+                        let earned = engine.collectGolden()
+                        Haptics.success()
+                        onGolden(earned)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .padding(.bottom, h * 0.14)
+                }
 
                 // Counter across the front.
                 ZStack(alignment: .top) {
@@ -118,5 +131,7 @@ struct CustomerQueueView: View {
             seeds.append(nextSeed)
             nextSeed += 1
         }
+        // Each rotation is a chance for a VIP to walk in.
+        engine.rollGoldenCustomer()
     }
 }

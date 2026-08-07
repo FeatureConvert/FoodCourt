@@ -30,18 +30,32 @@ struct ServeEvent: Identifiable, Equatable {
     let count: Int
 }
 
+/// A golden customer waiting to be tapped.
+struct GoldenCustomer: Identifiable, Equatable {
+    let id = UUID()
+    let seed: Int
+    let expiresAt: Date
+}
+
 @MainActor
 final class GameEngine: ObservableObject {
 
     @Published private(set) var state: GameState
-    /// Latest payout per station in the *current* venue, consumed by the card animations.
     @Published private(set) var lastServe: [Int: ServeEvent] = [:]
-    /// Monotonic counter the customer queue watches to retire a waiting customer.
     @Published private(set) var servedCustomers: Int = 0
     @Published var buyQuantity: BuyQuantity = .x1
 
-    /// Set when a session starts with meaningful offline income to report.
     @Published var pendingOfflineReport: OfflineReport?
+
+    // Active play
+    @Published private(set) var combo = ComboTracker()
+    @Published private(set) var golden: GoldenCustomer?
+
+    /// Transient banners the UI reacts to.
+    @Published var pendingPerkStation: Int?
+    @Published var lastRecipeDrop: Recipes.Drop?
+    @Published var pendingLeagueOutcome: LeagueOutcome?
+    @Published var toast: String?
 
     private let persistence: GamePersisting
     private var tickTimer: Timer?
@@ -50,8 +64,6 @@ final class GameEngine: ObservableObject {
 
     // MARK: Lifecycle
 
-    /// Tests pass `EphemeralPersistence` so they never write to the real save file - they
-    /// run inside the app as their test host and would otherwise clobber it.
     init(state: GameState? = nil,
          startTimers: Bool = true,
          persistence: GamePersisting = DiskPersistence()) {
@@ -59,15 +71,26 @@ final class GameEngine: ObservableObject {
         self.state = state ?? persistence.load()
         self.state.reconcileWithCatalog()
         Boosts.prune(&self.state)
+        bootstrapSystems()
         if startTimers { start() }
+    }
+
+    /// Fills in anything a fresh or migrated save is missing: quest slots and a seeded league.
+    private func bootstrapSystems() {
+        Quests.refill(state: &state, incomePerSecond: state.automatedRate)
+        if state.league.rivals.isEmpty {
+            state.league = League.newWeek(tier: state.league.tier,
+                                          playerRate: max(state.automatedRate, 1),
+                                          now: state.now,
+                                          seasonsPlayed: state.league.seasonsPlayed)
+        }
+        Festival.rolloverIfNeeded(&state.festival, now: state.now)
     }
 
     func start() {
         guard tickTimer == nil else { return }
         lastTickTime = CACurrentMediaTimeCompat()
 
-        // 20Hz is smooth enough for the progress rings without re-rendering the tree
-        // as fast as the display refreshes.
         let tick = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.step() }
         }
@@ -93,23 +116,21 @@ final class GameEngine: ObservableObject {
 
     // MARK: Foreground / background
 
-    /// Called when the app comes back to the foreground. Returns the offline report, if any,
-    /// and credits it immediately - the sheet is a celebration, not a gate.
     func handleForeground() {
         Boosts.prune(&state)
         if let report = OfflineEarnings.compute(state: state, now: state.now) {
             state.coins += report.coins
-            state.lifetimeEarnings += report.coins
-            state.runEarnings += report.coins
+            recordEarnings(report.coins)
             pendingOfflineReport = report
         }
+        Festival.rolloverIfNeeded(&state.festival, now: state.now)
+        League.advanceRivals(&state.league, to: state.now)
+        settleLeagueIfFinished()
         state.lastSeen = state.now
         lastTickTime = CACurrentMediaTimeCompat()
     }
 
-    func handleBackground() {
-        save()
-    }
+    func handleBackground() { save() }
 
     // MARK: Tick
 
@@ -117,19 +138,22 @@ final class GameEngine: ObservableObject {
         let now = CACurrentMediaTimeCompat()
         var delta = now - lastTickTime
         lastTickTime = now
-        // A long stall (debugger pause, app switch) should not dump a huge payout in one
-        // frame; offline earnings already covers real absences.
         delta = min(max(delta, 0), 1.0)
         guard delta > 0 else { return }
-
         advance(by: delta)
     }
 
     /// Exposed for tests and the debug time-warp.
     func advance(by delta: TimeInterval) {
+        let now = state.now
+
+        if combo.prune(at: now) { objectWillChange.send() }
+        expireGoldenIfNeeded(now: now)
+        finishRushIfNeeded(now: now)
+
         var serves: [Int: ServeEvent] = [:]
         var totalServed = 0
-        let multiplier = state.globalMultiplier
+        let multiplier = payoutMultiplier
         var earned: Double = 0
 
         for venue in Balance.venues where state.venues[venue.id].unlocked {
@@ -137,22 +161,22 @@ final class GameEngine: ObservableObject {
                 var station = state.venues[venue.id].stations[spec.id]
                 guard station.isOwned else { continue }
 
-                let cycle = Balance.cycleTime(spec: spec, level: station.level)
-                let revenue = Balance.revenuePerCycle(spec: spec, level: station.level) * multiplier
+                let cycle = state.cycleTime(venue: venue.id, station: spec.id)
+                let mods = state.modifiers(venue: venue.id, station: spec.id)
+                let revenue = state.baseRevenue(venue: venue.id, station: spec.id) * multiplier
 
-                if station.hasManager {
+                if station.isStaffed {
                     station.isRunning = true
                     station.elapsed += delta
-                    // Closed-form rather than a loop: a maxed station can complete dozens
-                    // of cycles inside a single 50ms tick.
                     let completions = floor(station.elapsed / cycle)
                     if completions > 0 {
                         station.elapsed -= completions * cycle
-                        let payout = revenue * completions
+                        let served = Int(completions)
+                        let payout = revenue * completions * doubleServeFactor(mods, servings: served)
                         earned += payout
+                        totalServed += served
                         if venue.id == state.currentVenue {
-                            serves[spec.id] = ServeEvent(station: spec.id, amount: payout, count: Int(completions))
-                            totalServed += Int(completions)
+                            serves[spec.id] = ServeEvent(station: spec.id, amount: payout, count: served)
                         }
                     }
                 } else if station.isRunning {
@@ -160,10 +184,11 @@ final class GameEngine: ObservableObject {
                     if station.elapsed >= cycle {
                         station.elapsed = 0
                         station.isRunning = false
-                        earned += revenue
+                        let payout = revenue * doubleServeFactor(mods, servings: 1)
+                        earned += payout
+                        totalServed += 1
                         if venue.id == state.currentVenue {
-                            serves[spec.id] = ServeEvent(station: spec.id, amount: revenue, count: 1)
-                            totalServed += 1
+                            serves[spec.id] = ServeEvent(station: spec.id, amount: payout, count: 1)
                         }
                     }
                 }
@@ -174,24 +199,83 @@ final class GameEngine: ObservableObject {
 
         if earned > 0 {
             state.coins += earned
-            state.lifetimeEarnings += earned
-            state.runEarnings += earned
+            recordEarnings(earned)
+        }
+        if totalServed > 0 {
+            registerServed(totalServed)
         }
         if !serves.isEmpty {
             for (key, value) in serves { lastServe[key] = value }
             servedCustomers += totalServed
         }
+
+        League.advanceRivals(&state.league, to: now)
+    }
+
+    /// Expected multiplier from the double-serve perk over N servings.
+    private func doubleServeFactor(_ mods: StationModifiers, servings: Int) -> Double {
+        guard mods.doubleServeChance > 0 else { return 1 }
+        // Bulk completions use the expected value; a single serve rolls for real so the
+        // player actually sees the occasional double.
+        if servings > 1 { return 1 + mods.doubleServeChance }
+        return Double.random(in: 0..<1) < mods.doubleServeChance ? 2 : 1
+    }
+
+    private func recordEarnings(_ amount: Double) {
+        state.lifetimeEarnings += amount
+        state.runEarnings += amount
+        state.league.score += amount
+        advanceQuests(kind: .earn, by: amount)
+    }
+
+    private func registerServed(_ count: Int) {
+        state.totalServed += count
+        advanceQuests(kind: .serve, by: Double(count))
+
+        // Festival tickets drip from serving; the bulk comes from quests and dailies.
+        state.festival.serveCounter += count
+        let per = Festival.servesPerTicket
+        if state.festival.serveCounter >= per {
+            let tickets = state.festival.serveCounter / per
+            state.festival.serveCounter %= per
+            awardTickets(Int((Double(tickets) * state.researchEffects.ticketMultiplier).rounded()))
+        }
+    }
+
+    // MARK: Multipliers
+
+    var comboMultiplier: Double {
+        combo.isLive(at: state.now) ? combo.multiplier(maxSteps: state.comboMaxSteps) : 1
+    }
+
+    /// Everything that scales a payout right now, including the transient combo.
+    var payoutMultiplier: Double {
+        state.globalMultiplier * comboMultiplier
+    }
+
+    var incomePerSecond: Double {
+        state.automatedRate * activeBoostMultiplier * comboMultiplier
+    }
+
+    private var activeBoostMultiplier: Double {
+        state.activeBoosts.reduce(1.0) { $0 * $1.multiplier }
     }
 
     // MARK: Player actions
 
-    /// Manual tap on a station. Managed stations ignore taps - they are already running.
     @discardableResult
     func tap(station index: Int) -> Bool {
         let venue = state.currentVenue
         guard state.venues[venue].stations.indices.contains(index) else { return false }
+
+        // Every tap feeds the combo, even on a staffed station - otherwise automation kills
+        // the reason to hold the phone.
+        combo.register(at: state.now, windowBonus: state.comboWindowBonus(venue: venue))
+        state.totalTaps += 1
+        advanceQuests(kind: .tap, by: 1)
+
         var station = state.venues[venue].stations[index]
-        guard station.isOwned, !station.hasManager, !station.isRunning else { return false }
+        guard station.isOwned, !station.isStaffed, !station.isRunning else { return false }
         station.isRunning = true
         station.elapsed = 0
         state.venues[venue].stations[index] = station
@@ -203,7 +287,7 @@ final class GameEngine: ObservableObject {
         let spec = Balance.venue(venueID).stations[index]
         let level = state.venues[venueID].stations[index].level
         if let fixed = buyQuantity.fixedAmount { return fixed }
-        return max(1, Balance.maxAffordable(spec: spec, level: level, coins: state.coins))
+        return Swift.max(1, Balance.maxAffordable(spec: spec, level: level, coins: state.coins))
     }
 
     func price(for index: Int, in venue: Int? = nil) -> Double {
@@ -213,9 +297,7 @@ final class GameEngine: ObservableObject {
         return Balance.cost(spec: spec, level: level, quantity: quantity(for: index, in: venueID))
     }
 
-    func canAfford(index: Int) -> Bool {
-        state.coins >= price(for: index)
-    }
+    func canAfford(index: Int) -> Bool { state.coins >= price(for: index) }
 
     @discardableResult
     func buy(station index: Int) -> Bool {
@@ -223,8 +305,13 @@ final class GameEngine: ObservableObject {
         let amount = quantity(for: index)
         let cost = price(for: index)
         guard amount > 0, state.coins >= cost else { return false }
+
         state.coins -= cost
         state.venues[venue].stations[index].level += amount
+
+        rollRecipe(venue: venue, station: index, levels: amount)
+        advanceQuests(kind: .level, to: Double(Quests.highestStationLevel(state)))
+        checkPerkUnlock(venue: venue, station: index)
         return true
     }
 
@@ -235,17 +322,119 @@ final class GameEngine: ObservableObject {
     @discardableResult
     func hireManager(for index: Int, free: Bool = false) -> Bool {
         let venue = state.currentVenue
-        var station = state.venues[venue].stations[index]
-        guard station.isOwned, !station.hasManager else { return false }
+        let station = state.venues[venue].stations[index]
+        guard station.isOwned, !station.isStaffed else { return false }
         let cost = managerCost(for: index)
         if !free {
             guard state.coins >= cost else { return false }
             state.coins -= cost
         }
-        station.hasManager = true
-        station.isRunning = true
-        state.venues[venue].stations[index] = station
+        state.hire(specID: ManagerCatalog.traineeID, venue: venue, station: index)
+        advanceQuests(kind: .hire, by: 1)
         return true
+    }
+
+    func assign(managerID: String?, venue: Int, station: Int) {
+        state.assign(managerID: managerID, venue: venue, station: station)
+        if managerID != nil { advanceQuests(kind: .hire, to: Double(state.assignedManagerCount)) }
+    }
+
+    /// Adds staff from a reward source and reports who turned up.
+    @discardableResult
+    func grantManager(rarity: ManagerRarity) -> ManagerSpec {
+        let spec = ManagerCatalog.random(rarity: rarity, seed: Int.random(in: 0..<10_000))
+        state.recruit(specID: spec.id)
+        return spec
+    }
+
+    // MARK: Perks
+
+    private func checkPerkUnlock(venue: Int, station: Int) {
+        let s = state.venues[venue].stations[station]
+        if Perks.pending(level: s.level, chosen: s.perks) != nil, venue == state.currentVenue {
+            pendingPerkStation = station
+        }
+    }
+
+    func pendingPerkLevel(venue: Int, station: Int) -> Int? {
+        let s = state.venues[venue].stations[station]
+        return Perks.pending(level: s.level, chosen: s.perks)
+    }
+
+    func choosePerk(venue: Int, station: Int, level: Int, index: Int) {
+        state.venues[venue].stations[station].perks[level] = index
+        pendingPerkStation = nil
+        save()
+    }
+
+    // MARK: Recipes
+
+    private func rollRecipe(venue: Int, station: Int, levels: Int) {
+        let drop = Recipes.roll(cards: &state.recipeCards, venue: venue, station: station,
+                                levelsBought: levels, random: Double.random(in: 0..<1))
+        switch drop {
+        case .none:
+            return
+        case .duplicateGems(let gems):
+            state.gems += gems
+        case .newCard, .upgraded:
+            advanceQuests(kind: .recipes, to: Double(Recipes.totalCollected(state.recipeCards)))
+        }
+        lastRecipeDrop = drop
+    }
+
+    // MARK: Rush Hour
+
+    var rushActive: Bool { state.isRushActive(at: state.now) }
+    var rushReady: Bool { state.rushReady(at: state.now) }
+    var rushRemaining: TimeInterval { state.rushRemaining(at: state.now) }
+    var rushCooldownRemaining: TimeInterval { state.rushCooldownRemaining(at: state.now) }
+
+    @discardableResult
+    func startRush(force: Bool = false) -> Bool {
+        guard force || rushReady else { return false }
+        let now = state.now
+        state.rushEndsAt = now.addingTimeInterval(state.rushDuration)
+        state.rushAvailableAt = state.rushEndsAt
+            .addingTimeInterval(ActivePlay.rushCooldownMinutes * 60)
+        Boosts.add(BoostState(id: ActivePlay.rushBoostID, label: "Rush ×\(Format.trim(ActivePlay.rushMultiplier))",
+                              multiplier: ActivePlay.rushMultiplier, expiry: state.rushEndsAt), to: &state)
+        return true
+    }
+
+    private func finishRushIfNeeded(now: Date) {
+        guard state.rushEndsAt != .distantPast, state.rushEndsAt <= now else { return }
+        state.rushEndsAt = .distantPast
+        state.rushesCompleted += 1
+        advanceQuests(kind: .rush, by: 1)
+        awardTickets(Festival.ticketsPerRush)
+        toast = "Rush Hour complete"
+    }
+
+    // MARK: Golden customer
+
+    /// Called by the queue each time it rotates a customer out.
+    func rollGoldenCustomer() {
+        guard golden == nil, state.automatedRate > 0 || state.coins > 0 else { return }
+        guard Double.random(in: 0..<1) < state.goldenChance else { return }
+        golden = GoldenCustomer(seed: Int.random(in: 0..<10_000),
+                                expiresAt: state.now.addingTimeInterval(ActivePlay.goldenWindow))
+    }
+
+    private func expireGoldenIfNeeded(now: Date) {
+        if let current = golden, current.expiresAt <= now { golden = nil }
+    }
+
+    /// Pays out 30-120 seconds of income for catching the VIP in time.
+    @discardableResult
+    func collectGolden() -> Double {
+        guard golden != nil else { return 0 }
+        golden = nil
+        let seconds = Double.random(in: ActivePlay.goldenMinSeconds...ActivePlay.goldenMaxSeconds)
+        let base = Swift.max(state.automatedRate, 50)
+        let amount = base * seconds * payoutMultiplier
+        addCoins(amount)
+        return amount
     }
 
     // MARK: Venues
@@ -254,16 +443,13 @@ final class GameEngine: ObservableObject {
         Balance.venues.first { !state.venues[$0.id].unlocked }
     }
 
-    func canUnlock(_ venue: VenueSpec) -> Bool {
-        state.coins >= venue.unlockCost
-    }
+    func canUnlock(_ venue: VenueSpec) -> Bool { state.coins >= venue.unlockCost }
 
     @discardableResult
     func unlock(_ venue: VenueSpec) -> Bool {
         guard !state.venues[venue.id].unlocked, canUnlock(venue) else { return false }
         state.coins -= venue.unlockCost
         state.venues[venue.id].unlocked = true
-        // Hand over a working first station so the new venue is immediately playable.
         state.venues[venue.id].stations[0].level = 1
         switchTo(venue: venue.id)
         return true
@@ -273,27 +459,13 @@ final class GameEngine: ObservableObject {
         guard state.venues.indices.contains(id), state.venues[id].unlocked else { return }
         state.currentVenue = id
         lastServe.removeAll()
-    }
-
-    // MARK: Income readouts
-
-    var incomePerSecond: Double {
-        var total: Double = 0
-        for venue in Balance.venues where state.venues[venue.id].unlocked {
-            for spec in venue.stations {
-                let station = state.venues[venue.id].stations[spec.id]
-                guard station.isOwned, station.hasManager else { continue }
-                total += Balance.revenuePerCycle(spec: spec, level: station.level)
-                    / Balance.cycleTime(spec: spec, level: station.level)
-            }
-        }
-        return total * state.globalMultiplier
+        golden = nil
     }
 
     // MARK: Prestige
 
     var pendingStars: Int {
-        Balance.pendingStars(lifetimeEarnings: state.lifetimeEarnings, currentStars: state.stars)
+        Balance.pendingStars(lifetimeEarnings: state.lifetimeEarnings, currentStars: state.lifetimeStars)
     }
 
     var canPrestige: Bool {
@@ -305,26 +477,137 @@ final class GameEngine: ObservableObject {
         let award = pendingStars
         guard canPrestige else { return 0 }
 
-        state.stars += award
+        state.stars += award            // spendable
+        state.lifetimeStars += award    // permanent multiplier
         state.coins = 0
         state.runEarnings = 0
-        // Lifetime earnings survive on purpose: stars are derived from it, so wiping it
-        // would claw back the multiplier the player just earned.
         state.venues = Balance.venues.map { VenueState.fresh(venue: $0, unlocked: $0.id == 0) }
         state.venues[0].stations[0].level = 1
         state.currentVenue = 0
+        // Staff, recipes, and research all survive a franchise reset - they are collections
+        // the player built, not station upgrades. Only the board itself resets.
         lastServe.removeAll()
+        combo.reset()
         save()
         return award
     }
 
-    // MARK: Currency & effects (used by the store and gem sinks)
+    // MARK: Research
+
+    func researchRank(_ id: String) -> Int { state.research[id] ?? 0 }
+
+    func canBuyResearch(_ node: ResearchNode) -> Bool {
+        Research.canBuy(node, ranks: state.research, stars: state.stars)
+    }
+
+    @discardableResult
+    func buyResearch(_ node: ResearchNode) -> Bool {
+        guard canBuyResearch(node) else { return false }
+        let rank = researchRank(node.id)
+        state.stars -= node.cost(forRank: rank)
+        state.research[node.id] = rank + 1
+        save()
+        return true
+    }
+
+    // MARK: Quests
+
+    private func advanceQuests(kind: QuestKind, by amount: Double) {
+        guard amount > 0 else { return }
+        for index in state.quests.indices where state.quests[index].kind == kind {
+            state.quests[index].progress += amount
+        }
+    }
+
+    private func advanceQuests(kind: QuestKind, to value: Double) {
+        for index in state.quests.indices where state.quests[index].kind == kind {
+            state.quests[index].progress = Swift.max(state.quests[index].progress, value)
+        }
+    }
+
+    var claimableQuests: Int { state.quests.filter(\.isComplete).count }
+
+    @discardableResult
+    func claimQuest(id: String) -> ActiveQuest? {
+        guard let index = state.quests.firstIndex(where: { $0.id == id }),
+              state.quests[index].isComplete else { return nil }
+        let quest = state.quests[index]
+
+        state.gems += quest.rewardGems
+        let coins = Swift.max(500, state.automatedRate * quest.rewardSeconds)
+        addCoins(coins)
+        state.questsClaimed += 1
+        awardTickets(Festival.ticketsPerQuest)
+
+        state.quests.remove(at: index)
+        Quests.refill(state: &state, incomePerSecond: state.automatedRate)
+        save()
+        return quest
+    }
+
+    // MARK: Festival
+
+    func awardTickets(_ amount: Int) {
+        guard amount > 0 else { return }
+        Festival.rolloverIfNeeded(&state.festival, now: state.now)
+        state.festival.tickets += amount
+    }
+
+    func claimFestival(tier: Int, premium: Bool) -> FestivalReward? {
+        guard Festival.canClaim(state.festival, tier: tier, premium: premium) else { return nil }
+        let reward = premium ? Festival.tier(tier).premium : Festival.tier(tier).free
+        if premium { state.festival.claimedPremium.append(tier) }
+        else { state.festival.claimedFree.append(tier) }
+        apply(reward)
+        save()
+        return reward
+    }
+
+    private func apply(_ reward: FestivalReward) {
+        switch reward {
+        case .gems(let amount):
+            state.gems += amount
+        case .coinSeconds(let seconds):
+            addCoins(Swift.max(1_000, state.automatedRate * seconds))
+        case .manager(let rarity):
+            _ = grantManager(rarity: rarity)
+        case .boost(let multiplier, let hours):
+            addBoost(id: "festival", label: "Festival ×\(Format.trim(multiplier))",
+                     multiplier: multiplier, hours: hours)
+        }
+    }
+
+    func unlockFestivalPremium() {
+        state.festival.premiumUnlocked = true
+        save()
+    }
+
+    // MARK: League
+
+    func settleLeagueIfFinished() {
+        guard League.isFinished(state.league, now: state.now) else { return }
+        let outcome = League.settle(state.league)
+        switch outcome {
+        case .promoted(_, _, _, let gems), .held(_, _, let gems):
+            state.gems += gems
+        case .relegated:
+            break
+        }
+        let nextTier = League.nextTier(after: outcome, current: state.league.tier)
+        state.league = League.newWeek(tier: nextTier,
+                                      playerRate: Swift.max(state.automatedRate, 1),
+                                      now: state.now,
+                                      seasonsPlayed: state.league.seasonsPlayed + 1)
+        pendingLeagueOutcome = outcome
+        save()
+    }
+
+    // MARK: Currency & effects
 
     func addCoins(_ amount: Double) {
         guard amount > 0 else { return }
         state.coins += amount
-        state.lifetimeEarnings += amount
-        state.runEarnings += amount
+        recordEarnings(amount)
     }
 
     func addGems(_ amount: Int) {
@@ -348,45 +631,45 @@ final class GameEngine: ObservableObject {
         if let starterPack { state.entitlements.starterPack = starterPack }
     }
 
-    /// Credits `hours` of automated income at full rate - what a time-warp purchase buys.
     @discardableResult
     func timeWarp(hours: Double) -> Double {
-        let amount = OfflineEarnings.automatedIncomePerSecond(state) * hours * 3600
+        let amount = state.automatedRate * hours * 3600
         addCoins(amount)
         return amount
     }
 
-    /// Instantly completes one cycle on every owned station in the current venue.
     @discardableResult
     func instantCompleteAll() -> Double {
         let venue = Balance.venue(state.currentVenue)
-        let multiplier = state.globalMultiplier
+        let multiplier = payoutMultiplier
         var total: Double = 0
         var served = 0
         for spec in venue.stations {
             var station = state.venues[venue.id].stations[spec.id]
             guard station.isOwned else { continue }
-            let payout = Balance.revenuePerCycle(spec: spec, level: station.level) * multiplier
+            let payout = state.baseRevenue(venue: venue.id, station: spec.id) * multiplier
             total += payout
             served += 1
             station.elapsed = 0
-            if !station.hasManager { station.isRunning = false }
+            if !station.isStaffed { station.isRunning = false }
             state.venues[venue.id].stations[spec.id] = station
             lastServe[spec.id] = ServeEvent(station: spec.id, amount: payout, count: 1)
         }
         servedCustomers += served
+        registerServed(served)
         addCoins(total)
         return total
     }
 
-    /// Grants managers on every currently owned station in the first venue.
+    /// Grants managers on every currently owned station in a venue.
     func grantManagerPack(venue id: Int = 0) {
         for spec in Balance.venue(id).stations {
-            if state.venues[id].stations[spec.id].isOwned {
-                state.venues[id].stations[spec.id].hasManager = true
-                state.venues[id].stations[spec.id].isRunning = true
+            let station = state.venues[id].stations[spec.id]
+            if station.isOwned && !station.isStaffed {
+                state.hire(specID: ManagerCatalog.traineeID, venue: id, station: spec.id)
             }
         }
+        advanceQuests(kind: .hire, to: Double(state.assignedManagerCount))
     }
 
     // MARK: Ads
@@ -396,7 +679,7 @@ final class GameEngine: ObservableObject {
     }
 
     var adCooldownRemaining: TimeInterval {
-        max(0, state.adAvailableAt.timeIntervalSince(state.now))
+        Swift.max(0, state.adAvailableAt.timeIntervalSince(state.now))
     }
 
     func startAdCooldown(minutes: Double) {
@@ -405,9 +688,7 @@ final class GameEngine: ObservableObject {
 
     // MARK: Daily rewards
 
-    var dailyStatus: DailyClaimStatus {
-        DailyRewards.status(state: state, now: state.now)
-    }
+    var dailyStatus: DailyClaimStatus { DailyRewards.status(state: state, now: state.now) }
 
     var dailyAvailable: Bool {
         if case .available = dailyStatus { return true }
@@ -417,7 +698,10 @@ final class GameEngine: ObservableObject {
     @discardableResult
     func claimDaily() -> DailyRewards.Payout? {
         let payout = DailyRewards.claim(state: &state, now: state.now)
-        if payout != nil { save() }
+        if payout != nil {
+            awardTickets(Festival.ticketsPerDaily)
+            save()
+        }
         return payout
     }
 
@@ -425,13 +709,22 @@ final class GameEngine: ObservableObject {
 
     func debugSkip(hours: Double) {
         state.timeOffset += hours * 3600
-        // Rewind lastSeen so the jump reads as time spent away, then run exactly the path a
-        // real foreground transition takes. Doing it here rather than waiting for a relaunch
-        // matters: the 5s autosave would otherwise stamp lastSeen at the new time and erase
-        // the window before the app could be reopened.
         state.lastSeen = state.now.addingTimeInterval(-hours * 3600)
         handleForeground()
         persistence.save(state)
+    }
+
+    /// Marks every open goal complete so the claim flow can be exercised on demand.
+    func debugCompleteQuests() {
+        for index in state.quests.indices {
+            state.quests[index].progress = state.quests[index].target
+        }
+    }
+
+    /// Ends the league week immediately and settles it.
+    func debugEndLeagueWeek() {
+        state.league.endsAt = state.now.addingTimeInterval(-1)
+        settleLeagueIfFinished()
     }
 
     func debugReset() {
@@ -440,6 +733,9 @@ final class GameEngine: ObservableObject {
         state = GameState.newGame()
         lastServe.removeAll()
         servedCustomers = 0
+        combo.reset()
+        golden = nil
+        bootstrapSystems()
         start()
     }
 }

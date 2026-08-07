@@ -90,6 +90,21 @@
       "type" : "NonConsumable"
     },
     {
+      "displayPrice" : "7.99",
+      "familyShareable" : false,
+      "internalID" : "1000000007",
+      "localizations" : [
+        {
+          "description" : "Unlocks the premium reward on all 30 festival tiers this season.",
+          "displayName" : "Carnival Pass",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fable.foodcourt.pack.festival",
+      "referenceName" : "Carnival Pass",
+      "type" : "NonConsumable"
+    },
+    {
       "displayPrice" : "9.99",
       "familyShareable" : true,
       "internalID" : "1000000006",

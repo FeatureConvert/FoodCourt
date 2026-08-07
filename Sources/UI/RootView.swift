@@ -1,8 +1,26 @@
 import SwiftUI
 
-enum ActiveSheet: String, Identifiable {
-    case shop, daily, venues, prestige, settings, debug, offline
-    var id: String { rawValue }
+enum ActiveSheet: Identifiable, Equatable {
+    case shop, venues, prestige, settings, debug, offline, collection, quests
+    case daily
+    case events(EventsView.Tab)
+    case perk(Int)
+
+    var id: String {
+        switch self {
+        case .shop: return "shop"
+        case .venues: return "venues"
+        case .prestige: return "prestige"
+        case .settings: return "settings"
+        case .debug: return "debug"
+        case .offline: return "offline"
+        case .collection: return "collection"
+        case .quests: return "quests"
+        case .daily: return "daily"
+        case .events(let tab): return "events-\(tab.rawValue)"
+        case .perk(let station): return "perk-\(station)"
+        }
+    }
 }
 
 struct RootView: View {
@@ -13,8 +31,7 @@ struct RootView: View {
     @State private var sheet: ActiveSheet?
     @State private var toast: String?
     @State private var toastTask: Task<Void, Never>?
-    @State private var hasOfferedDaily = false
-    /// `onDismiss` doesn't say which sheet closed, so remember the last one presented.
+    @State private var hasHandledLaunch = false
     @State private var lastPresented: ActiveSheet?
 
     private var palette: VenuePalette {
@@ -27,21 +44,40 @@ struct RootView: View {
                            startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
 
-            VStack(spacing: 10) {
-                HUDView(onDebug: { sheet = .debug }, onSettings: { sheet = .settings })
+            VStack(spacing: 8) {
+                HUDView(onDebug: { present(.debug) },
+                        onSettings: { present(.settings) },
+                        onStars: { present(.prestige) })
                     .padding(.horizontal, 14)
 
-                VenueStageView()
+                if engine.rushActive {
+                    RushBannerView()
+                        .padding(.horizontal, 14)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
+                ZStack(alignment: .topTrailing) {
+                    VenueStageView(onGolden: { amount in
+                        showToast("VIP tipped \(Format.currency(amount))!")
+                    })
+                    StageActionsView(onBoost: watchAd, onRush: startRush)
+                        .padding(.top, 10)
+                        .padding(.trailing, 10)
+                }
+                .padding(.horizontal, 14)
+
+                ComboMeterView()
                     .padding(.horizontal, 14)
 
-                StationListView(onToast: showToast)
+                StationListView(onToast: showToast,
+                                onChoosePerk: { present(.perk($0)) })
 
                 BottomBar(
-                    onShop: { sheet = .shop },
-                    onDaily: { sheet = .daily },
-                    onVenues: { sheet = .venues },
-                    onPrestige: { sheet = .prestige },
-                    onBoost: watchAd
+                    onVenues: { present(.venues) },
+                    onCollection: { present(.collection) },
+                    onQuests: { present(.quests) },
+                    onEvents: { present(.events(defaultEventsTab)) },
+                    onShop: { present(.shop) }
                 )
                 .padding(.horizontal, 14)
                 .padding(.bottom, 4)
@@ -60,37 +96,50 @@ struct RootView: View {
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: toast)
         .animation(.easeInOut(duration: 0.2), value: ads.isPlaying)
-        // One sheet modifier, one source of truth. Two competing `.sheet` modifiers race
-        // when one dismisses as the other presents, and SwiftUI silently drops the second.
+        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: engine.rushActive)
         .sheet(item: $sheet, onDismiss: handleSheetDismissed) { which in
             sheetContent(for: which)
-                .presentationDetents(which == .venues ? [.large] : [.medium, .large])
+                .presentationDetents(detents(for: which))
                 .presentationDragIndicator(.visible)
         }
-        .onChange(of: sheet) { _, new in
-            if let new { lastPresented = new }
-        }
+        .onChange(of: sheet) { _, new in if let new { lastPresented = new } }
         .onChange(of: engine.pendingOfflineReport) { _, report in
             if report != nil { present(.offline) }
         }
-        .onAppear(perform: handleLaunch)
+        .onChange(of: engine.pendingPerkStation) { _, station in
+            if let station { present(.perk(station)) }
+        }
+        .onChange(of: engine.pendingLeagueOutcome) { _, outcome in
+            if let outcome { showToast(outcome.headline) }
+        }
+        .onChange(of: engine.lastRecipeDrop) { _, drop in
+            if let drop { announce(drop) }
+        }
+        .onChange(of: engine.toast) { _, message in
+            if let message { showToast(message); engine.toast = nil }
+        }
         .onChange(of: store.lastGrant) { _, new in if let new { showToast(new) } }
         .onChange(of: store.errorMessage) { _, new in if let new { showToast(new) } }
         .onChange(of: ads.lastReward) { _, new in if let new { showToast(new) } }
+        .onAppear(perform: handleLaunch)
         .preferredColorScheme(.dark)
     }
 
-    // MARK: Pieces
+    // MARK: Sheets
 
     @ViewBuilder
     private func sheetContent(for which: ActiveSheet) -> some View {
         switch which {
         case .shop: ShopView(onToast: showToast)
-        case .daily: DailyRewardView(onToast: showToast)
         case .venues: VenueSelectView(onToast: showToast)
         case .prestige: PrestigeView(onToast: showToast)
         case .settings: SettingsView(onToast: showToast)
         case .debug: DebugMenuView(onToast: showToast)
+        case .collection: CollectionView(onToast: showToast)
+        case .quests: QuestsView(onToast: showToast)
+        case .daily: DailyRewardView(onToast: showToast)
+        case .events(let tab): EventsView(initialTab: tab, onToast: showToast)
+        case .perk(let station): PerkChoiceView(station: station, onToast: showToast)
         case .offline:
             if let report = engine.pendingOfflineReport {
                 OfflineEarningsView(report: report)
@@ -98,8 +147,16 @@ struct RootView: View {
         }
     }
 
-    /// Swaps sheets safely. Presenting while another sheet is still animating out gets
-    /// dropped, so anything already showing is dismissed first and the new one follows.
+    private func detents(for sheet: ActiveSheet) -> Set<PresentationDetent> {
+        switch sheet {
+        case .venues, .collection, .events: return [.large]
+        case .perk: return [.medium, .large]
+        default: return [.medium, .large]
+        }
+    }
+
+    /// Presenting while another sheet is still animating out gets dropped, so anything
+    /// already showing is dismissed first and the new one follows.
     private func present(_ next: ActiveSheet) {
         guard sheet != next else { return }
         if sheet == nil {
@@ -111,25 +168,29 @@ struct RootView: View {
     }
 
     private func handleSheetDismissed() {
-        // Only the welcome-back screen consumes the report. Clearing it on any dismissal
-        // would wipe a report that was raised while a different sheet happened to be open.
-        guard lastPresented == .offline else { return }
-        engine.pendingOfflineReport = nil
+        if lastPresented == .offline { engine.pendingOfflineReport = nil }
+        if case .perk = lastPresented { engine.pendingPerkStation = nil }
+    }
+
+    private var defaultEventsTab: EventsView.Tab {
+        if engine.dailyAvailable { return .daily }
+        if Festival.unclaimedCount(engine.state.festival) > 0 { return .festival }
+        return .league
     }
 
     private func handleLaunch() {
-        guard !hasOfferedDaily else { return }
-        hasOfferedDaily = true
+        guard !hasHandledLaunch else { return }
+        hasHandledLaunch = true
 
         if engine.pendingOfflineReport != nil {
             present(.offline)
             return
         }
-        // The calendar is the first thing a returning player should see, but not on top of
-        // a welcome-back payout.
         guard engine.dailyAvailable else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { present(.daily) }
     }
+
+    // MARK: Actions
 
     private func watchAd() {
         guard engine.adReady else {
@@ -138,6 +199,34 @@ struct RootView: View {
         }
         Haptics.tap()
         ads.play(engine: engine)
+    }
+
+    private func startRush() {
+        if engine.rushActive {
+            showToast("Rush Hour already running")
+        } else if engine.startRush() {
+            Haptics.success()
+            showToast("Rush Hour! ×\(Format.trim(ActivePlay.rushMultiplier)) for \(Format.duration(engine.state.rushDuration))")
+        } else if engine.spendGems(ActivePlay.rushGemCost) {
+            engine.startRush(force: true)
+            Haptics.success()
+            showToast("Rush Hour started early")
+        } else {
+            showToast("Ready in \(Format.clock(engine.rushCooldownRemaining)) · or \(ActivePlay.rushGemCost) gems")
+        }
+    }
+
+    private func announce(_ drop: Recipes.Drop) {
+        switch drop {
+        case .none: return
+        case .newCard(let venue, let station):
+            showToast("Recipe found: \(Balance.venue(venue).stations[station].name)")
+        case .upgraded(let venue, let station, let stars):
+            showToast("\(Balance.venue(venue).stations[station].name) recipe → \(stars)★")
+        case .duplicateGems(let gems):
+            showToast("Duplicate recipe → +\(gems) gems")
+        }
+        engine.objectWillChange.send()
     }
 
     private func showToast(_ message: String) {
@@ -155,24 +244,34 @@ struct RootView: View {
 private struct BottomBar: View {
     @EnvironmentObject private var engine: GameEngine
 
-    let onShop: () -> Void
-    let onDaily: () -> Void
     let onVenues: () -> Void
-    let onPrestige: () -> Void
-    let onBoost: () -> Void
+    let onCollection: () -> Void
+    let onQuests: () -> Void
+    let onEvents: () -> Void
+    let onShop: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
-            barButton("Venues", "map.fill", badge: engine.nextLockedVenue.map { engine.canUnlock($0) } == true,
+            barButton("Venues", "map.fill",
+                      badge: engine.nextLockedVenue.map { engine.canUnlock($0) } == true,
                       action: onVenues)
-            barButton("Boost", "bolt.fill", badge: engine.adReady, action: onBoost)
-            barButton("Daily", "gift.fill", badge: engine.dailyAvailable, action: onDaily)
+            barButton("Staff", "person.2.fill",
+                      badge: !engine.state.unassignedManagers.isEmpty,
+                      action: onCollection)
+            barButton("Goals", "checklist",
+                      badge: engine.claimableQuests > 0, action: onQuests)
+            barButton("Events", "calendar",
+                      badge: eventsBadge, action: onEvents)
             barButton("Shop", "cart.fill", badge: false, action: onShop)
-            barButton("Franchise", "star.fill", badge: engine.canPrestige, action: onPrestige)
         }
     }
 
-    private func barButton(_ title: String, _ symbol: String, badge: Bool, action: @escaping () -> Void) -> some View {
+    private var eventsBadge: Bool {
+        engine.dailyAvailable || Festival.unclaimedCount(engine.state.festival) > 0
+    }
+
+    private func barButton(_ title: String, _ symbol: String, badge: Bool,
+                           action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 3) {
                 ZStack(alignment: .topTrailing) {
@@ -180,16 +279,14 @@ private struct BottomBar: View {
                         .font(.system(size: 18, weight: .bold))
                         .frame(height: 22)
                     if badge {
-                        Circle()
-                            .fill(Theme.negative)
+                        Circle().fill(Theme.negative)
                             .frame(width: 9, height: 9)
                             .offset(x: 7, y: -3)
                     }
                 }
                 Text(title)
                     .font(Theme.body(10, weight: .bold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    .lineLimit(1).minimumScaleFactor(0.7)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
@@ -206,6 +303,7 @@ struct ToastView: View {
         Text(message)
             .font(Theme.body(14, weight: .bold))
             .foregroundStyle(Theme.text)
+            .multilineTextAlignment(.center)
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
             .panel(Theme.panelRaised, radius: 14)

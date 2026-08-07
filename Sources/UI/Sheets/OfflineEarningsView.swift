@@ -44,7 +44,7 @@ struct OfflineEarningsView: View {
                             .font(Theme.body(11, weight: .bold))
                             .foregroundStyle(Theme.textDim)
                         if !engine.state.entitlements.vip {
-                            Text("VIP Pass extends this to \(Format.trim(Balance.offlineCapHoursVIP)) hours")
+                            Text("VIP Pass and Night Shift research extend this")
                                 .font(Theme.body(11, weight: .bold))
                                 .foregroundStyle(Theme.gem)
                         }

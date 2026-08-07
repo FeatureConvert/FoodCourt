@@ -76,7 +76,7 @@ final class StoreTests: XCTestCase {
 
     func testVIPUnlocksProfitBonusAndLongerOfflineCap() async throws {
         XCTAssertFalse(engine.state.entitlements.vip)
-        XCTAssertEqual(engine.state.entitlements.offlineCapHours, Balance.offlineCapHours)
+        XCTAssertEqual(engine.state.offlineCapHours, Balance.offlineCapHours)
 
         guard let vip = ShopCatalog.offers.first(where: { $0.reward == .vip }) else {
             return XCTFail("missing VIP offer")
@@ -84,7 +84,7 @@ final class StoreTests: XCTestCase {
         await store.purchase(vip)
 
         XCTAssertTrue(engine.state.entitlements.vip)
-        XCTAssertEqual(engine.state.entitlements.offlineCapHours, Balance.offlineCapHoursVIP)
+        XCTAssertEqual(engine.state.offlineCapHours, Balance.offlineCapHoursVIP)
         XCTAssertEqual(engine.state.globalMultiplier, 1 + Balance.vipProfitBonus, accuracy: 1e-9)
         XCTAssertTrue(store.isOwned(vip))
     }
