@@ -75,6 +75,66 @@
       "type" : "Consumable"
     },
     {
+      "displayPrice" : "49.99",
+      "familyShareable" : false,
+      "internalID" : "1000000008",
+      "localizations" : [
+        {
+          "description" : "A hoard of gems for players building an empire fast.",
+          "displayName" : "Hoard of Gems",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fable.foodcourt.gems.hoard",
+      "referenceName" : "Hoard of Gems",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "99.99",
+      "familyShareable" : false,
+      "internalID" : "1000000009",
+      "localizations" : [
+        {
+          "description" : "The biggest gem pack. For the truly dedicated owner.",
+          "displayName" : "Empire of Gems",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fable.foodcourt.gems.empire",
+      "referenceName" : "Empire of Gems",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "1000000010",
+      "localizations" : [
+        {
+          "description" : "One guaranteed Legendary-rarity manager, instantly.",
+          "displayName" : "Legendary Chef Crate",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fable.foodcourt.pack.legendary",
+      "referenceName" : "Legendary Chef Crate",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "19.99",
+      "familyShareable" : false,
+      "internalID" : "1000000011",
+      "localizations" : [
+        {
+          "description" : "2,500 gems, 8 hours of income banked instantly, and double profit for 48 hours.",
+          "displayName" : "Franchise Accelerator",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fable.foodcourt.pack.accelerator",
+      "referenceName" : "Franchise Accelerator",
+      "type" : "Consumable"
+    },
+    {
       "displayPrice" : "4.99",
       "familyShareable" : false,
       "internalID" : "1000000005",

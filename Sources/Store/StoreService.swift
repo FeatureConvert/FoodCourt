@@ -7,6 +7,13 @@ enum ShopReward: Equatable {
     case starterPack
     case vip
     case festivalPass
+    /// One guaranteed random Legendary-rarity manager. Guaranteed rarity, not a gacha roll -
+    /// only which of the roster's legendaries shows up is random, matching how the free
+    /// festival/league legendary grants already work.
+    case legendaryManager
+    /// The whale bundle: gems + banked income + a long boost. See
+    /// `GameEngine.grantFranchiseAccelerator`.
+    case accelerator
 }
 
 struct ShopItem: Identifiable, Equatable {
@@ -24,7 +31,7 @@ struct ShopItem: Identifiable, Equatable {
     /// festival season, so restoring it would hand out every later season free.
     var isConsumable: Bool {
         switch reward {
-        case .gems, .festivalPass: return true
+        case .gems, .festivalPass, .legendaryManager, .accelerator: return true
         case .starterPack, .vip: return false
         }
     }
@@ -42,6 +49,10 @@ enum ShopCatalog {
                  reward: .gems(1200), fallbackPrice: "$9.99", badge: "+20%", magnitude: 3),
         ShopItem(id: prefix + "gems.vault", title: "Vault", subtitle: "3,300 gems",
                  reward: .gems(3300), fallbackPrice: "$24.99", badge: "+35%", magnitude: 4),
+        ShopItem(id: prefix + "gems.hoard", title: "Hoard", subtitle: "7,500 gems",
+                 reward: .gems(7500), fallbackPrice: "$49.99", badge: "+50%", magnitude: 4),
+        ShopItem(id: prefix + "gems.empire", title: "Empire", subtitle: "18,000 gems",
+                 reward: .gems(18000), fallbackPrice: "$99.99", badge: "+80%", magnitude: 4),
     ]
 
     static let offers: [ShopItem] = [
@@ -54,6 +65,12 @@ enum ShopCatalog {
         ShopItem(id: prefix + "pack.festival", title: "Carnival Pass",
                  subtitle: "Premium reward on all 30 tiers · this season only",
                  reward: .festivalPass, fallbackPrice: "$3.99", badge: "THIS SEASON", magnitude: 2),
+        ShopItem(id: prefix + "pack.legendary", title: "Legendary Chef Crate",
+                 subtitle: "One guaranteed Legendary manager, instantly",
+                 reward: .legendaryManager, fallbackPrice: "$9.99", badge: "GUARANTEED", magnitude: 4),
+        ShopItem(id: prefix + "pack.accelerator", title: "Franchise Accelerator",
+                 subtitle: "2,500 gems · 8 hours of income banked now · ×2 profit for 48h",
+                 reward: .accelerator, fallbackPrice: "$19.99", badge: "BUNDLE", magnitude: 4),
     ]
 
     static let all: [ShopItem] = offers + gemPacks
@@ -114,7 +131,7 @@ final class StoreService: ObservableObject {
     func isOwned(_ item: ShopItem) -> Bool {
         guard let engine else { return false }
         switch item.reward {
-        case .gems: return false
+        case .gems, .legendaryManager, .accelerator: return false
         case .starterPack: return engine.state.entitlements.starterPack
         case .vip: return engine.state.entitlements.vip
         // Per-season, so it stops reading as owned once the season rolls - unless the
@@ -221,6 +238,14 @@ final class StoreService: ObservableObject {
         case .festivalPass:
             engine.unlockFestivalPremium()
             if announce { lastGrant = "Carnival Pass unlocked" }
+
+        case .legendaryManager:
+            let spec = engine.grantManager(rarity: .legendary)
+            if announce { lastGrant = "\(spec.name) joins your roster!" }
+
+        case .accelerator:
+            let earned = engine.grantFranchiseAccelerator()
+            if announce { lastGrant = "+2,500 gems · \(Format.currency(earned)) coins · ×2 for 48h" }
         }
         engine.save()
     }

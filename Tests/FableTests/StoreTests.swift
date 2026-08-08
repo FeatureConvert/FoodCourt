@@ -138,6 +138,45 @@ final class StoreTests: XCTestCase {
                        "restoring must never re-grant spent consumables")
     }
 
+    func testBuyingTheBiggestGemPackCreditsCorrectly() async throws {
+        guard let empire = ShopCatalog.gemPacks.first(where: { $0.id.hasSuffix("gems.empire") }) else {
+            return XCTFail("missing the Empire gem pack")
+        }
+        let before = engine.state.gems
+        await store.purchase(empire)
+        XCTAssertEqual(engine.state.gems, before + 18_000)
+    }
+
+    func testLegendaryChefCrateGrantsALegendaryManagerAndIsRepeatable() async throws {
+        guard let crate = ShopCatalog.offers.first(where: { $0.reward == .legendaryManager }) else {
+            return XCTFail("missing the Legendary Chef Crate")
+        }
+        await store.purchase(crate)
+        XCTAssertEqual(engine.state.managers.count, 1)
+        XCTAssertEqual(engine.state.managers.first?.spec.rarity, .legendary)
+        XCTAssertFalse(store.isOwned(crate), "repeatable - must never lock as OWNED")
+
+        // Buying it again should recruit a second legendary, not silently no-op.
+        await store.purchase(crate)
+        XCTAssertEqual(engine.state.managers.count, 2)
+    }
+
+    func testFranchiseAcceleratorGrantsTheFullBundle() async throws {
+        engine.hireManager(for: 0, free: true)   // give automatedRate something to bank
+
+        guard let accelerator = ShopCatalog.offers.first(where: { $0.reward == .accelerator }) else {
+            return XCTFail("missing the Franchise Accelerator")
+        }
+        let gemsBefore = engine.state.gems
+        let coinsBefore = engine.state.coins
+
+        await store.purchase(accelerator)
+
+        XCTAssertEqual(engine.state.gems, gemsBefore + 2_500)
+        XCTAssertGreaterThan(engine.state.coins, coinsBefore)
+        XCTAssertEqual(engine.state.activeBoosts.first { $0.id == "accelerator" }?.multiplier, 2)
+    }
+
     func testFailedPurchaseGrantsNothing() async throws {
         // failTransactionsEnabled was deprecated in iOS 17 with no replacement property;
         // the modern equivalent targets a specific API and takes a real StoreKitError.

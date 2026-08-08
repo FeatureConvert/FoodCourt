@@ -672,6 +672,161 @@ final class FeatureTests: XCTestCase {
         XCTAssertFalse(fresh.tutorial.finished)
     }
 
+    // MARK: New gem sinks (Automate Venue, Chef's Reserve)
+
+    @MainActor
+    func testAutomateVenueStaffsEverythingAtOnce() {
+        var state = GameState.newGame()
+        state.gems = 1000
+        state.venues[0].stations[0].level = 5
+        state.venues[0].stations[1].level = 5
+        state.venues[0].stations[2].level = 5
+        let e = engine(state)
+        let offer = GemOffer.all.first { $0.id == "automate" }!
+
+        let before = e.state.gems
+        guard case .success = GemSpend.redeem(offer, engine: e) else {
+            return XCTFail("expected the sink to succeed with open stations to staff")
+        }
+        XCTAssertEqual(e.state.gems, before - offer.cost)
+        XCTAssertTrue(e.state.venues[0].stations[0].isStaffed)
+        XCTAssertTrue(e.state.venues[0].stations[1].isStaffed)
+        XCTAssertTrue(e.state.venues[0].stations[2].isStaffed)
+    }
+
+    @MainActor
+    func testAutomateVenueRefusesWhenNothingToDo() {
+        var state = GameState.newGame()
+        // Staff the only owned station directly (free), so there is nothing left to automate.
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        let e = engine(state)
+        e.addGems(1000)
+        let offer = GemOffer.all.first { $0.id == "automate" }!
+        let before = e.state.gems
+
+        guard case .nothingToDo = GemSpend.redeem(offer, engine: e) else {
+            return XCTFail("a fully staffed venue must refuse rather than charge for nothing")
+        }
+        XCTAssertEqual(e.state.gems, before, "a refused purchase must not spend gems")
+    }
+
+    @MainActor
+    func testAutomateVenueRefusesWithoutEnoughGems() {
+        var state = GameState.newGame()
+        state.venues[0].stations[1].level = 5
+        let e = engine(state)
+        XCTAssertEqual(GemSpend.redeem(GemOffer.all.first { $0.id == "automate" }!, engine: e),
+                       .insufficientGems)
+    }
+
+    @MainActor
+    func testChefsReserveGrantsATripleProfitBoost() {
+        let e = engine()
+        e.addGems(1000)
+        let offer = GemOffer.all.first { $0.id == "reserve" }!
+
+        guard case .success = GemSpend.redeem(offer, engine: e) else {
+            return XCTFail("expected the boost purchase to succeed")
+        }
+        let boost = e.state.activeBoosts.first { $0.id == "chefs-reserve" }
+        XCTAssertEqual(boost?.multiplier, 3)
+        XCTAssertEqual(boost?.remaining(at: e.state.now) ?? 0, 3*3600, accuracy: 2)
+    }
+
+    // MARK: New whale IAPs
+
+    func testWhaleCatalogIsPricedAsAnIncreasingCurve() {
+        // Every tier should offer a better gems-per-dollar rate than the one before it -
+        // otherwise a bigger spend is a worse deal, which defeats the point of a whale ladder.
+        func gemsPerDollar(_ item: ShopItem) -> Double? {
+            guard case .gems(let amount) = item.reward,
+                  let price = Double(item.fallbackPrice.trimmingCharacters(in: CharacterSet(charactersIn: "$")))
+            else { return nil }
+            return Double(amount) / price
+        }
+        let rates = ShopCatalog.gemPacks.compactMap(gemsPerDollar)
+        XCTAssertEqual(rates.count, ShopCatalog.gemPacks.count, "every gem pack must price cleanly")
+        for (a, b) in zip(rates, rates.dropFirst()) {
+            XCTAssertLessThan(a, b, "each bigger gem pack should beat the smaller one's rate")
+        }
+    }
+
+    @MainActor
+    func testLegendaryChefCrateGrantsAGuaranteedLegendary() {
+        let e = engine()
+        let store = StoreService(engine: e)
+        let item = ShopCatalog.offers.first { $0.reward == .legendaryManager }!
+
+        XCTAssertTrue(e.state.managers.isEmpty)
+        // grant() is private; exercise it the way a real purchase would via the public
+        // engine call it wraps, matching what StoreService.grant(_:announce:) does internally.
+        let spec = e.grantManager(rarity: .legendary)
+        XCTAssertEqual(spec.rarity, .legendary)
+        XCTAssertEqual(e.state.managers.count, 1)
+        XCTAssertEqual(e.state.managers.first?.specID, spec.id)
+        XCTAssertFalse(store.isOwned(item), "a repeatable consumable never reads as permanently owned")
+    }
+
+    @MainActor
+    func testFranchiseAcceleratorGrantsAllThreeRewards() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 10
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        let e = engine(state)
+
+        let gemsBefore = e.state.gems
+        let coinsBefore = e.state.coins
+        let expectedCoins = e.state.automatedRate * 8 * 3600
+
+        let earned = e.grantFranchiseAccelerator()
+
+        XCTAssertEqual(e.state.gems, gemsBefore + 2_500)
+        XCTAssertEqual(earned, expectedCoins, accuracy: max(1, expectedCoins * 1e-9))
+        XCTAssertEqual(e.state.coins, coinsBefore + expectedCoins, accuracy: max(1, expectedCoins * 1e-9))
+        XCTAssertEqual(e.state.activeBoosts.first { $0.id == "accelerator" }?.multiplier, 2)
+    }
+
+    func testNewIAPsAreAllRepeatableConsumables() {
+        for id: ShopReward in [.legendaryManager, .accelerator] {
+            let item = ShopCatalog.all.first { $0.reward == id }
+            XCTAssertNotNil(item, "\(id) must be in the catalog")
+            XCTAssertTrue(item?.isConsumable ?? false, "\(id) must be repeatable, not one-time")
+        }
+    }
+
+    // MARK: League - the one free route to Legendary rarity
+
+    @MainActor
+    func testToppingDiamondGrantsAFreeLegendaryManager() {
+        var state = GameState.newGame()
+        state.league = League.newWeek(tier: .diamond, playerRate: 10, now: Date(), seasonsPlayed: 0)
+        state.league.endsAt = Date().addingTimeInterval(-1)
+        state.league.rivals.indices.forEach { state.league.rivals[$0].score = 0 }
+        state.league.score = 1  // beats every zeroed rival -> rank 1
+
+        let e = engine(state)
+        XCTAssertTrue(e.state.managers.isEmpty)
+        e.settleLeagueIfFinished()
+
+        XCTAssertEqual(e.state.managers.count, 1, "rank 1 in Diamond is the one free path to Legendary")
+        XCTAssertEqual(e.state.managers.first?.spec.rarity, .legendary)
+    }
+
+    @MainActor
+    func testFinishingSecondInDiamondGrantsNoManager() {
+        var state = GameState.newGame()
+        state.league = League.newWeek(tier: .diamond, playerRate: 10, now: Date(), seasonsPlayed: 0)
+        state.league.endsAt = Date().addingTimeInterval(-1)
+        state.league.rivals.indices.forEach { state.league.rivals[$0].score = 0 }
+        state.league.rivals[0].score = 1_000_000  // one rival stays ahead -> player rank 2
+        state.league.score = 1
+
+        let e = engine(state)
+        e.settleLeagueIfFinished()
+
+        XCTAssertTrue(e.state.managers.isEmpty, "only rank 1 specifically grants the free legendary")
+    }
+
     // MARK: Prestige interaction
 
     @MainActor

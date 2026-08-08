@@ -684,6 +684,14 @@ final class GameEngine: ObservableObject {
         case .relegated:
             break
         }
+        // Legendary managers otherwise only come from a paid Carnival Pass / VIP reaching
+        // festival tier 30 - topping the whole ladder is the one purely free route to the
+        // top rarity. Deliberately rare (#1 in the hardest tier), so it never undercuts the
+        // paid path's convenience, but a dedicated free player is never permanently locked out.
+        if case .held(let tier, let rank, _) = outcome, tier == .diamond, rank == 1 {
+            let spec = grantManager(rarity: .legendary)
+            toast = "Diamond Champion! \(spec.name) joins your roster"
+        }
         let nextTier = League.nextTier(after: outcome, current: state.league.tier)
         state.league = League.newWeek(tier: nextTier,
                                       playerRate: Swift.max(state.automatedRate, 1),
@@ -761,6 +769,26 @@ final class GameEngine: ObservableObject {
             }
         }
         advanceQuests(kind: .hire, to: Double(state.assignedManagerCount))
+    }
+
+    /// True when a venue has at least one owned station still waiting on a manager - what
+    /// the "Automate Venue" gem sink and the Franchise Accelerator both check before selling
+    /// something that would do nothing.
+    func hasUnstaffedStation(venue id: Int) -> Bool {
+        Balance.venue(id).stations.contains { spec in
+            let station = state.venues[id].stations[spec.id]
+            return station.isOwned && !station.isStaffed
+        }
+    }
+
+    /// The whale bundle: a lump of gems, a chunk of banked income, and a long boost. Priced
+    /// as a mid-tier "get ahead fast" purchase between the Starter Pack and VIP.
+    @discardableResult
+    func grantFranchiseAccelerator() -> Double {
+        addGems(2_500)
+        let earned = timeWarp(hours: 8)
+        addBoost(id: "accelerator", label: "Accelerator ×2", multiplier: 2, hours: 48)
+        return earned
     }
 
     // MARK: Free boost (Coffee Break)

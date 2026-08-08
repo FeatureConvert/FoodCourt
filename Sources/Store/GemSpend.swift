@@ -21,6 +21,10 @@ struct GemOffer: Identifiable, Equatable {
         GemOffer(id: "rush", title: "Start Rush Hour",
                  subtitle: "Skip the cooldown and go again now",
                  cost: ActivePlay.rushGemCost, symbol: "timer"),
+        GemOffer(id: "automate", title: "Automate Venue",
+                 subtitle: "Staff every open station here at once", cost: 400, symbol: "person.3.fill"),
+        GemOffer(id: "reserve", title: "Chef's Reserve",
+                 subtitle: "×3 profit for 3 hours", cost: 300, symbol: "flame.fill"),
     ]
 }
 
@@ -68,6 +72,20 @@ enum GemSpend {
             guard engine.spendGems(offer.cost) else { return .insufficientGems }
             engine.startRush(force: true)
             return .success("Rush Hour started")
+
+        case "automate":
+            let venue = engine.state.currentVenue
+            guard engine.hasUnstaffedStation(venue: venue) else {
+                return .nothingToDo("This venue is already fully staffed")
+            }
+            guard engine.spendGems(offer.cost) else { return .insufficientGems }
+            engine.grantManagerPack(venue: venue)
+            return .success("Every station here is staffed")
+
+        case "reserve":
+            guard engine.spendGems(offer.cost) else { return .insufficientGems }
+            engine.addBoost(id: "chefs-reserve", label: "×3 Chef's Reserve", multiplier: 3, hours: 3)
+            return .success("Triple profit for 3 hours")
 
         default:
             return .nothingToDo("Unavailable")
