@@ -216,6 +216,12 @@ struct RootView: View {
     /// No ads in this game - the boost is simply free on a cooldown.
     private func takeCoffeeBreak() {
         guard engine.claimFreeBoost() else {
+            // A player who tapped this before the tutorial reached this step already showed
+            // they know it - the boost being on cooldown from that earlier tap shouldn't
+            // strand the tutorial for the rest of the wait.
+            if engine.state.tutorial.current == .coffeeBreak {
+                engine.completeTutorialStep(.coffeeBreak)
+            }
             showToast("Coffee Break ready in \(Format.clock(engine.boostCooldownRemaining))")
             return
         }

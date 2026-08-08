@@ -309,6 +309,19 @@ struct StationCardView: View {
             .font(Theme.body(10, weight: .black))
             .foregroundStyle(Theme.positive)
             .frame(width: 92, height: 26)
+        } else if engine.state.tutorial.current == .hireManager, spec.id == 0 {
+            Button(action: hire) {
+                HStack(spacing: 4) {
+                    Image(systemName: "person.fill.badge.plus")
+                        .font(.system(size: 10, weight: .black))
+                    Text("FREE")
+                        .font(Theme.body(10, weight: .black))
+                        .lineLimit(1).minimumScaleFactor(0.7)
+                }
+                .frame(width: 92, height: 26)
+            }
+            .buttonStyle(ChunkyButtonStyle(fill: Theme.gemDeep, shadow: Theme.ink, radius: 10))
+            .tutorialHighlight(.stationHire)
         } else {
             let cost = engine.managerCost(for: spec.id)
             let canHire = engine.state.coins >= cost
@@ -341,6 +354,19 @@ struct StationCardView: View {
     }
 
     private func hire() {
+        // The tutorial's guided first hire has to always be reachable - a new player only
+        // starts with 25 gems, well under the 100-gem instant-hire price, and may not have
+        // saved up the coin cost yet either after the previous step spent coins on a level.
+        // Route it through the same free-grant path debug tooling uses rather than ever
+        // charging for it.
+        if engine.state.tutorial.current == .hireManager, spec.id == 0 {
+            if engine.hireManager(for: spec.id, free: true) {
+                Haptics.success()
+                onToast("\(spec.name) is now staffed")
+            }
+            return
+        }
+
         let cost = engine.managerCost(for: spec.id)
         if engine.state.coins >= cost {
             if engine.hireManager(for: spec.id) {
