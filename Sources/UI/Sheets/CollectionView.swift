@@ -71,8 +71,7 @@ private struct StaffSection: View {
 
         return HStack(spacing: 12) {
             ZStack {
-                Circle().fill(rarity.opacity(0.22))
-                Circle().stroke(rarity, lineWidth: 2)
+                ManagerRarityFrame(rarity: spec.rarity)
                 CustomerSprite(seed: spec.portraitSeed)
                     .equatable()
                     .frame(width: 30, height: 42)
@@ -162,8 +161,7 @@ private struct StaffSection: View {
 
         return HStack(spacing: 12) {
             ZStack {
-                Circle().fill(rarity.opacity(0.22))
-                Circle().stroke(rarity, lineWidth: 2)
+                ManagerRarityFrame(rarity: spec.rarity)
                 CustomerSprite(seed: spec.portraitSeed)
                     .equatable()
                     .frame(width: 30, height: 42)
@@ -366,15 +364,18 @@ private struct ErrandsSection: View {
 
         return HStack(spacing: 12) {
             ZStack {
-                Circle().fill(Theme.ink.opacity(0.5))
                 if let spec = manager?.spec {
+                    ManagerRarityFrame(rarity: spec.rarity)
                     CustomerSprite(seed: spec.portraitSeed)
                         .equatable()
                         .frame(width: 26, height: 36)
                         .offset(y: 3)
+                } else {
+                    Circle().fill(Theme.ink.opacity(0.5))
                 }
             }
             .frame(width: 46, height: 46)
+            .clipShape(Circle())
             .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 3) {
