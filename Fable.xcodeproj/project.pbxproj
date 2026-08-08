@@ -147,6 +147,7 @@
 		E16825A1724A72F0030D40D1 /* SheetScaffold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SheetScaffold.swift; sourceTree = "<group>"; };
 		E42422329EB870BCE0F5CD48 /* Achievements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Achievements.swift; sourceTree = "<group>"; };
 		E6C690DF5FC87BAEDABD2B2B /* Perks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Perks.swift; sourceTree = "<group>"; };
+		E7A0D7BF8DD21A2D729B8AD2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E8A230F7E6FC4B1137C45619 /* Boosts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Boosts.swift; sourceTree = "<group>"; };
 		ED78409947694A96FF745DF8 /* ProgressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionTests.swift; sourceTree = "<group>"; };
 		FCCB4854B3C941890956BB3B /* RoadmapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadmapView.swift; sourceTree = "<group>"; };
@@ -201,6 +202,7 @@
 			children = (
 				AB9CDFE41E11F22B7F4BB70F /* Assets.xcassets */,
 				C1D05DA06D8F0FB494659C71 /* Fable.entitlements */,
+				E7A0D7BF8DD21A2D729B8AD2 /* Info.plist */,
 				D17556388182BC802A1D28A9 /* App */,
 				40ADE39A21A9FC6777460EA2 /* Core */,
 				CD2953EBA2A374C41A1DBCC4 /* Store */,
@@ -567,9 +569,9 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Food Court Tycoon";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -611,9 +613,9 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Food Court Tycoon";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;

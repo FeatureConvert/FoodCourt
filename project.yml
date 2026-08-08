@@ -28,8 +28,8 @@ targets:
         # ignores it and the game falls back to local-only storage.
         CODE_SIGN_ENTITLEMENTS: Sources/Fable.entitlements
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: Sources/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: Food Court Tycoon
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleLightContent
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         # iPad is in TARGETED_DEVICE_FAMILY below; Apple requires an app that restricts
