@@ -12,6 +12,8 @@ struct PerkChoiceView: View {
     private var spec: StationSpec { Balance.venue(venueID).stations[station] }
     private var level: Int? { engine.pendingPerkLevel(venue: venueID, station: station) }
 
+    @State private var celebratingIndex: Int?
+
     var body: some View {
         SheetScaffold(title: "Level \(level.map(String.init) ?? "") Perk",
                       subtitle: "\(spec.name) — pick one, it's permanent") {
@@ -38,7 +40,10 @@ struct PerkChoiceView: View {
                         engine.choosePerk(venue: venueID, station: station, level: level, index: perk.id)
                         Haptics.success()
                         onToast("\(spec.name): \(perk.title)")
-                        dismiss()
+                        celebratingIndex = perk.id
+                        // A beat to let the confetti actually play before the sheet closes,
+                        // matching DailyRewardView's own claim-then-dismiss timing.
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { dismiss() }
                     } label: {
                         HStack(spacing: 12) {
                             Image(systemName: perk.symbol)
@@ -63,6 +68,9 @@ struct PerkChoiceView: View {
                         .padding(12)
                     }
                     .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
+                    .overlay {
+                        if celebratingIndex == perk.id { ConfettiBurstView() }
+                    }
                 }
             }
 
