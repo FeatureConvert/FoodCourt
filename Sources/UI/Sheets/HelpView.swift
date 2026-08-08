@@ -119,9 +119,79 @@ struct HelpView: View {
         GuideSection(
             symbol: "calendar", title: "Events",
             text: """
-            The daily calendar runs on a seven-day streak; miss a day and it restarts. The \
-            festival is a weekly season with a 30-tier reward track, earned with tickets from \
-            playing. The league puts you on a weekly ladder — finish in the top seven to go up.
+            The festival is a weekly season with a 30-tier reward track, earned with tickets \
+            from playing. The league puts you on a weekly ladder — finish in the top seven to \
+            go up.
+            """),
+        GuideSection(
+            symbol: "trophy.fill", title: "Achievements",
+            text: """
+            The Goals tab has an Achievements page alongside Quests: one-time trophies for \
+            lifetime earnings, customers served, taps, staff owned, legendary staff, venues \
+            opened, league tier, and prestiges. Each pays gems once and stays claimed forever.
+            """),
+        GuideSection(
+            symbol: "flame.circle.fill", title: "Login streak",
+            text: """
+            Claiming a daily reward on consecutive days builds a streak on top of the 7-day \
+            cycle — it never resets to day 1, so a long streak keeps paying at 7, 14, 30, 60 \
+            and 100 days. A Streak Freeze, bought with gems, forgives exactly one missed day.
+            """),
+        GuideSection(
+            symbol: "map.fill", title: "Roadmap",
+            text: """
+            The Franchise sheet has a Map tab: one list of everything you're working toward — \
+            venues, league tiers, research branches, prestige count, and Legacy level — with \
+            what's already done checked off.
+            """),
+        GuideSection(
+            symbol: "briefcase.fill", title: "Manager errands",
+            text: """
+            Send an idle manager on an errand from the Staff tab's Errands page for 2, 6 or \
+            12 hours. They come back with gems and coins — roughly half what they'd have \
+            earned staffing a station, so it's a real tradeoff, not free money.
+            """),
+        GuideSection(
+            symbol: "bell.badge.fill", title: "Customer orders",
+            text: """
+            Sometimes a specific staffed station gets a pulsing "ORDER UP" ring. Serve it \
+            before the ring times out for a coin bonus. Miss it and nothing is lost — it just \
+            clears.
+            """),
+        GuideSection(
+            symbol: "paintbrush.fill", title: "Venue looks",
+            text: """
+            Tap a venue's hanging sign to open its look. A Neon reskin is available for coins \
+            — purely visual, it never touches profit.
+            """),
+        GuideSection(
+            symbol: "infinity", title: "Legacy",
+            text: """
+            Once you've prestiged enough to reach 500 lifetime stars, a Legacy option appears \
+            on the Franchise tab. It resets stars, lifetime stars and research — the things an \
+            ordinary franchise reset keeps — for a permanent multiplier stacked on top of the \
+            star bonus. A much bigger commitment than a regular reset.
+            """),
+        GuideSection(
+            symbol: "person.crop.circle.badge.star", title: "Guest Chef",
+            text: """
+            A rotating Legendary-tier manager is available each week from the Staff tab, \
+            priced in gems. The pick changes every week and is exclusive to that purchase — \
+            you won't find it from any other reward.
+            """),
+        GuideSection(
+            symbol: "bell.fill", title: "Reminders",
+            text: """
+            Turn on Reminders in Settings for a nudge when Rush Hour is ready, offline \
+            earnings are capped, or a festival or league deadline is close — only while the \
+            app is closed.
+            """),
+        GuideSection(
+            symbol: "gamecontroller.fill", title: "Game Center",
+            text: """
+            If Game Center is signed in, a Global Leaderboard button appears on the League tab \
+            for lifetime earnings — separate from the simulated league table, which stays \
+            exactly as private as before.
             """),
     ]
 
@@ -210,8 +280,25 @@ struct HelpView: View {
                 """),
         FAQItem(question: "Can I move my save to another device?",
                 answer: """
-                Not yet. Progress is stored on this device only, so deleting the app loses \
-                it. Cloud sync is planned.
+                Yes, if you're signed into iCloud. Settings shows your sync status, and Sync \
+                Now pushes the current save immediately. Without iCloud signed in, progress \
+                stays on this device only.
+                """),
+        FAQItem(question: "What's the difference between franchising and Legacy?",
+                answer: """
+                Franchising resets the board — coins, station levels, and every venue but the \
+                first — while keeping stars, staff, recipes and research. Legacy is separate \
+                and far rarer, unlocking once you've reached 500 lifetime stars, and resets \
+                stars, lifetime stars and research too, in exchange for a permanent \
+                multiplier stacked on top of the star bonus. Think of it as a second, much \
+                bigger reset for once the first one has run its course.
+                """),
+        FAQItem(question: "Do achievements, the streak, or any of the newer systems require spending money?",
+                answer: """
+                No — achievements, the login streak, errands, customer orders, the Roadmap, \
+                Reminders, and the Global Leaderboard are all entirely free. The only new paid \
+                items are the Streak Freeze and the weekly Guest Chef, both optional gem \
+                purchases — nothing new is gated behind them.
                 """),
         FAQItem(question: "I bought something and didn't get it.",
                 answer: """
