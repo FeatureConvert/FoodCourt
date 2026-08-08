@@ -259,6 +259,21 @@ final class ProgressionTests: XCTestCase {
     }
 
     @MainActor
+    func testCanPrestigeWithZeroLifetimeStarsStillSurfacesAWayIntoTheSheet() {
+        let engine = GameEngine(state: GameState.newGame(), startTimers: false, persistence: EphemeralPersistence())
+        engine.addCoins(Balance.minimumLifetimeForPrestige)
+
+        XCTAssertTrue(engine.canPrestige, "a fresh save that hit the threshold should be prestige-eligible")
+        XCTAssertEqual(engine.state.lifetimeStars, 0, "no franchise has happened yet")
+
+        // Mirrors the HUD's entry-point condition (HUDView.swift) - it must not depend on
+        // lifetimeStars alone, since that's the reward FOR prestiging, not a precondition.
+        let hudShowsFranchiseEntryPoint = engine.state.lifetimeStars > 0 || engine.canPrestige
+        XCTAssertTrue(hudShowsFranchiseEntryPoint,
+                      "first-time players need a way into the Franchise sheet before their first prestige")
+    }
+
+    @MainActor
     func testPrestigeIsRefusedBelowTheThreshold() {
         let engine = GameEngine(state: GameState.newGame(), startTimers: false, persistence: EphemeralPersistence())
         engine.addCoins(1_000)

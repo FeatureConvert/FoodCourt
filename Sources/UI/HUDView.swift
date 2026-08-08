@@ -35,8 +35,11 @@ struct HUDView: View {
                         .fixedSize()
                 }
 
-                if engine.state.lifetimeStars > 0 {
+                if engine.state.lifetimeStars > 0 || engine.canPrestige {
                     // Tapping the star pill is the way into Franchise and Research.
+                    // Must surface once canPrestige is true, even before the player's
+                    // first prestige (lifetimeStars == 0) - otherwise there is no
+                    // entry point into the sheet at all.
                     Button(action: onStars) {
                         currencyPill {
                             StarIcon().frame(width: 20, height: 20)
