@@ -107,9 +107,8 @@ struct GoldenCustomerView: View {
                     .equatable()
                     .frame(width: 46, height: 64)
                     .overlay(
-                        Image(systemName: "crown.fill")
-                            .font(.system(size: 13, weight: .black))
-                            .foregroundStyle(Theme.star)
+                        CrownIcon()
+                            .frame(width: 18, height: 18)
                             .shadow(color: .black.opacity(0.5), radius: 2)
                             .offset(y: -30)
                     )

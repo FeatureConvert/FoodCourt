@@ -33,6 +33,9 @@ struct FoodSprite: View, Equatable {
     }
 }
 
+/// Transcribed from the visual-refresh asset pack's `food-*.svg` set (100-unit viewBox,
+/// `PRIMARY`/`SECONDARY`/`ACCENT` fill slots, one shared `OUTLINE`). Every coordinate below
+/// is the SVG's own, divided by 100 into this file's existing 0...1 unit box.
 enum FoodArtRenderer {
 
     struct Palette {
@@ -46,10 +49,14 @@ enum FoodArtRenderer {
     }
 
     static func draw(_ art: FoodArt, in rect: CGRect, context: GraphicsContext, colors: Palette) {
-        let line = max(1.2, rect.width * 0.035)
-        let outline = Color.black.opacity(0.28)
+        // The asset pack's OUTLINE spec: a single solid dark line at ~4 units on the
+        // 100-unit box, not the softer partial-opacity line this file used before.
+        let line = max(1.2, rect.width * 0.045)
+        let outline = Color(hex: "#2B1D14")
+        let shade = outline.opacity(0.13)
+        let shadowColor = outline.opacity(0.18)
+        let gloss = Color.white
 
-        // Unit-space helpers: every shape below is authored in a 0...1 box and mapped once.
         func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
             CGPoint(x: rect.minX + x * rect.width, y: rect.minY + y * rect.height)
         }
@@ -57,6 +64,7 @@ enum FoodArtRenderer {
             CGRect(x: rect.minX + x * rect.width, y: rect.minY + y * rect.height,
                    width: w * rect.width, height: h * rect.height)
         }
+        func w(_ v: CGFloat) -> CGFloat { rect.width * v / 100 }
         func fill(_ path: Path, _ color: Color, stroked: Bool = true) {
             context.fill(path, with: .color(color))
             if stroked { context.stroke(path, with: .color(outline), lineWidth: line) }
@@ -67,147 +75,438 @@ enum FoodArtRenderer {
         func ellipse(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> Path {
             Path(ellipseIn: r(x, y, w, h))
         }
-        func polygon(_ points: [(CGFloat, CGFloat)]) -> Path {
+        func rotated(_ path: Path, _ angle: Double, _ ax: CGFloat, _ ay: CGFloat) -> Path {
+            let pivot = p(ax, ay)
+            var t = CGAffineTransform(translationX: pivot.x, y: pivot.y)
+            t = t.rotated(by: angle * .pi / 180)
+            t = t.translatedBy(x: -pivot.x, y: -pivot.y)
+            return path.applying(t)
+        }
+        func custom(_ build: (inout Path) -> Void) -> Path {
             var path = Path()
-            guard let first = points.first else { return path }
-            path.move(to: p(first.0, first.1))
-            for point in points.dropFirst() { path.addLine(to: p(point.0, point.1)) }
-            path.closeSubpath()
+            build(&path)
             return path
+        }
+        func groundShadow(_ cx: CGFloat, _ cy: CGFloat, _ rx: CGFloat, _ ry: CGFloat) {
+            context.fill(ellipse(cx - rx, cy - ry, rx * 2, ry * 2), with: .color(shadowColor))
+        }
+        func overlay(_ path: Path, _ color: Color) {
+            context.fill(path, with: .color(color))
+        }
+        func openStroke(_ color: Color, width: CGFloat, opacity: Double = 1,
+                        _ build: (inout Path) -> Void) {
+            context.stroke(custom(build), with: .color(color.opacity(opacity)), lineWidth: width)
         }
 
         switch art {
 
         case .fries:
-            // Sticks first so the carton overlaps them.
-            for (index, x) in [0.24, 0.38, 0.52, 0.66].enumerated() {
-                let height: CGFloat = index % 2 == 0 ? 0.34 : 0.44
-                fill(rounded(x, 0.52 - height, 0.11, height + 0.1, 0.03), colors.primary)
+            groundShadow(0.5, 0.93, 0.27, 0.05)
+            for (cx, cy, angle) in [(0.375, 0.48, -9.0), (0.445, 0.435, -3.0),
+                                    (0.565, 0.45, 4.0), (0.675, 0.50, 11.0)] {
+                fill(rotated(rounded(cx - 0.055, cy - 0.23, 0.11, 0.46, 0.03), angle, cx, cy),
+                     colors.primary)
             }
-            fill(polygon([(0.2, 0.46), (0.8, 0.46), (0.72, 0.94), (0.28, 0.94)]), colors.secondary)
-            fill(rounded(0.31, 0.56, 0.38, 0.1, 0.02), colors.accent, stroked: false)
+            fill(custom { path in
+                path.move(to: p(0.27, 0.50)); path.addLine(to: p(0.73, 0.50))
+                path.addLine(to: p(0.67, 0.86))
+                path.addQuadCurve(to: p(0.62, 0.90), control: p(0.66, 0.90))
+                path.addLine(to: p(0.38, 0.90))
+                path.addQuadCurve(to: p(0.33, 0.86), control: p(0.34, 0.90))
+                path.closeSubpath()
+            }, colors.secondary)
+            overlay(custom { path in
+                path.move(to: p(0.30, 0.62)); path.addLine(to: p(0.70, 0.62))
+                path.addLine(to: p(0.684, 0.75)); path.addLine(to: p(0.316, 0.75))
+                path.closeSubpath()
+            }, colors.accent)
+            overlay(custom { path in
+                path.move(to: p(0.64, 0.52)); path.addLine(to: p(0.69, 0.52))
+                path.addLine(to: p(0.64, 0.88))
+                path.addQuadCurve(to: p(0.62, 0.90), control: p(0.68, 0.90))
+                path.addLine(to: p(0.57, 0.90)); path.closeSubpath()
+            }, shade)
+            overlay(custom { path in
+                path.move(to: p(0.35, 0.54)); path.addLine(to: p(0.41, 0.54))
+                path.addLine(to: p(0.38, 0.85))
+                path.addQuadCurve(to: p(0.346, 0.81), control: p(0.35, 0.84))
+                path.closeSubpath()
+            }, gloss.opacity(0.28))
 
         case .bun:
-            fill(polygon([(0.14, 0.44), (0.86, 0.44), (0.8, 0.3), (0.2, 0.3)]), colors.primary) // top bun body
-            var dome = Path()
-            dome.move(to: p(0.14, 0.44))
-            dome.addQuadCurve(to: p(0.86, 0.44), control: p(0.5, 0.02))
-            dome.closeSubpath()
-            fill(dome, colors.primary)
-            fill(rounded(0.12, 0.44, 0.76, 0.09, 0.03), colors.accent)              // lettuce
-            fill(rounded(0.1, 0.52, 0.8, 0.13, 0.04), colors.secondary)             // patty
-            var bottom = Path()
-            bottom.move(to: p(0.14, 0.65))
-            bottom.addLine(to: p(0.86, 0.65))
-            bottom.addQuadCurve(to: p(0.14, 0.65), control: p(0.5, 0.98))
-            fill(bottom, colors.primary)
-            // Sesame seeds.
-            for point in [(0.34, 0.24), (0.5, 0.18), (0.64, 0.25)] {
-                context.fill(ellipse(point.0, point.1, 0.06, 0.04), with: .color(.white.opacity(0.8)))
+            groundShadow(0.5, 0.93, 0.31, 0.05)
+            fill(custom { path in
+                path.move(to: p(0.20, 0.74)); path.addLine(to: p(0.80, 0.74))
+                path.addLine(to: p(0.80, 0.80))
+                path.addQuadCurve(to: p(0.68, 0.90), control: p(0.80, 0.90))
+                path.addLine(to: p(0.32, 0.90))
+                path.addQuadCurve(to: p(0.20, 0.80), control: p(0.20, 0.90))
+                path.closeSubpath()
+            }, colors.primary)
+            fill(rounded(0.16, 0.61, 0.68, 0.15, 0.07), colors.secondary)
+            fill(custom { path in
+                path.move(to: p(0.15, 0.52)); path.addLine(to: p(0.85, 0.52))
+                path.addLine(to: p(0.85, 0.58))
+                path.addQuadCurve(to: p(0.73, 0.58), control: p(0.79, 0.67))
+                path.addQuadCurve(to: p(0.61, 0.58), control: p(0.67, 0.67))
+                path.addQuadCurve(to: p(0.49, 0.58), control: p(0.55, 0.67))
+                path.addQuadCurve(to: p(0.37, 0.58), control: p(0.43, 0.67))
+                path.addQuadCurve(to: p(0.25, 0.58), control: p(0.31, 0.67))
+                path.addQuadCurve(to: p(0.15, 0.58), control: p(0.17, 0.66))
+                path.closeSubpath()
+            }, colors.accent)
+            fill(custom { path in
+                path.move(to: p(0.18, 0.54))
+                path.addQuadCurve(to: p(0.50, 0.21), control: p(0.18, 0.21))
+                path.addQuadCurve(to: p(0.82, 0.54), control: p(0.82, 0.21))
+                path.closeSubpath()
+            }, colors.primary)
+            overlay(custom { path in
+                path.move(to: p(0.62, 0.24))
+                path.addQuadCurve(to: p(0.82, 0.54), control: p(0.82, 0.32))
+                path.addLine(to: p(0.70, 0.54))
+                path.addQuadCurve(to: p(0.58, 0.23), control: p(0.70, 0.32))
+                path.closeSubpath()
+            }, shade)
+            overlay(rotated(ellipse(0.245, 0.28, 0.26, 0.14), -28, 0.37, 0.35), gloss.opacity(0.3))
+            for (cx, cy, angle) in [(0.41, 0.33, -18.0), (0.53, 0.28, 6.0), (0.64, 0.36, 22.0)] {
+                overlay(rotated(ellipse(cx - 0.034, cy - 0.021, 0.068, 0.042), angle, cx, cy),
+                       gloss.opacity(0.75))
             }
+            overlay(custom { path in
+                path.move(to: p(0.24, 0.84))
+                path.addQuadCurve(to: p(0.76, 0.84), control: p(0.50, 0.90))
+                path.addQuadCurve(to: p(0.68, 0.90), control: p(0.74, 0.90))
+                path.addLine(to: p(0.32, 0.90))
+                path.addQuadCurve(to: p(0.24, 0.84), control: p(0.26, 0.90))
+                path.closeSubpath()
+            }, shade)
 
         case .cup:
-            fill(polygon([(0.26, 0.28), (0.74, 0.28), (0.66, 0.94), (0.34, 0.94)]), colors.primary)
-            fill(rounded(0.22, 0.2, 0.56, 0.1, 0.03), colors.secondary)             // lid
-            fill(rounded(0.56, 0.02, 0.07, 0.24, 0.03), colors.accent)              // straw
-            context.fill(polygon([(0.32, 0.46), (0.44, 0.46), (0.4, 0.86), (0.36, 0.86)]),
-                         with: .color(.white.opacity(0.28)))
+            groundShadow(0.5, 0.93, 0.24, 0.05)
+            fill(custom { path in
+                path.move(to: p(0.31, 0.40)); path.addLine(to: p(0.69, 0.40))
+                path.addLine(to: p(0.64, 0.86))
+                path.addQuadCurve(to: p(0.59, 0.90), control: p(0.63, 0.90))
+                path.addLine(to: p(0.41, 0.90))
+                path.addQuadCurve(to: p(0.36, 0.86), control: p(0.37, 0.90))
+                path.closeSubpath()
+            }, colors.primary)
+            overlay(custom { path in
+                path.move(to: p(0.55, 0.42)); path.addLine(to: p(0.64, 0.42))
+                path.addLine(to: p(0.59, 0.88))
+                path.addQuadCurve(to: p(0.59, 0.90), control: p(0.63, 0.90))
+                path.addLine(to: p(0.50, 0.90)); path.closeSubpath()
+            }, shade)
+            overlay(custom { path in
+                path.move(to: p(0.34, 0.58)); path.addLine(to: p(0.66, 0.58))
+                path.addLine(to: p(0.646, 0.70)); path.addLine(to: p(0.354, 0.70))
+                path.closeSubpath()
+            }, colors.accent)
+            fill(rotated(rounded(0.56, 0.06, 0.09, 0.27, 0.04), 16, 0.60, 0.20), colors.accent)
+            fill(rounded(0.26, 0.30, 0.48, 0.11, 0.05), colors.secondary)
+            overlay(custom { path in
+                path.move(to: p(0.40, 0.46)); path.addLine(to: p(0.46, 0.46))
+                path.addLine(to: p(0.42, 0.82))
+                path.addQuadCurve(to: p(0.385, 0.78), control: p(0.39, 0.81))
+                path.closeSubpath()
+            }, gloss.opacity(0.32))
 
         case .stick:
-            fill(rounded(0.44, 0.62, 0.12, 0.36, 0.04), colors.accent)              // handle
-            fill(rounded(0.14, 0.24, 0.72, 0.4, 0.18), colors.primary)              // body
-            var squiggle = Path()
-            squiggle.move(to: p(0.22, 0.44))
-            for i in 0..<5 {
-                let x = 0.22 + CGFloat(i) * 0.14
-                squiggle.addQuadCurve(to: p(x + 0.14, 0.44),
-                                      control: p(x + 0.07, i % 2 == 0 ? 0.32 : 0.56))
+            groundShadow(0.5, 0.95, 0.15, 0.04)
+            fill(rounded(0.45, 0.60, 0.10, 0.33, 0.05), colors.secondary)
+            fill(rounded(0.30, 0.10, 0.40, 0.58, 0.20), colors.primary)
+            overlay(custom { path in
+                path.move(to: p(0.58, 0.13))
+                path.addQuadCurve(to: p(0.70, 0.30), control: p(0.70, 0.20))
+                path.addLine(to: p(0.70, 0.48))
+                path.addQuadCurve(to: p(0.58, 0.65), control: p(0.70, 0.58))
+                path.addQuadCurve(to: p(0.66, 0.44), control: p(0.66, 0.56))
+                path.addLine(to: p(0.66, 0.30))
+                path.addQuadCurve(to: p(0.58, 0.13), control: p(0.66, 0.20))
+                path.closeSubpath()
+            }, shade)
+            for (fromY, toY) in [(0.25, 0.23), (0.39, 0.37), (0.53, 0.51)] {
+                openStroke(colors.accent, width: w(5)) { path in
+                    path.move(to: p(0.37, fromY))
+                    path.addQuadCurve(to: p(0.63, toY), control: p(0.50, fromY + 0.08))
+                }
             }
-            context.stroke(squiggle, with: .color(colors.secondary), lineWidth: line * 1.8)
+            overlay(rotated(ellipse(0.34, 0.17, 0.10, 0.26), -6, 0.39, 0.30), gloss.opacity(0.26))
 
         case .cone:
-            fill(polygon([(0.28, 0.5), (0.72, 0.5), (0.5, 0.97)]), colors.accent)   // cone
-            fill(ellipse(0.24, 0.28, 0.34, 0.32), colors.primary)                   // scoops
-            fill(ellipse(0.44, 0.24, 0.34, 0.32), colors.secondary)
-            fill(ellipse(0.34, 0.08, 0.32, 0.3), colors.primary)
+            groundShadow(0.5, 0.95, 0.16, 0.04)
+            fill(custom { path in
+                path.move(to: p(0.30, 0.50)); path.addLine(to: p(0.70, 0.50))
+                path.addLine(to: p(0.53, 0.90))
+                path.addQuadCurve(to: p(0.47, 0.90), control: p(0.50, 0.95))
+                path.closeSubpath()
+            }, colors.secondary)
+            overlay(custom { path in
+                path.move(to: p(0.56, 0.52)); path.addLine(to: p(0.70, 0.52))
+                path.addLine(to: p(0.53, 0.90))
+                path.addQuadCurve(to: p(0.47, 0.90), control: p(0.50, 0.95))
+                path.addLine(to: p(0.49, 0.86)); path.closeSubpath()
+            }, shade)
+            openStroke(gloss, width: w(2.4), opacity: 0.24) { path in
+                path.move(to: p(0.36, 0.60)); path.addLine(to: p(0.60, 0.53))
+            }
+            openStroke(gloss, width: w(2.4), opacity: 0.24) { path in
+                path.move(to: p(0.40, 0.71)); path.addLine(to: p(0.64, 0.62))
+            }
+            openStroke(gloss, width: w(2.4), opacity: 0.24) { path in
+                path.move(to: p(0.34, 0.55)); path.addLine(to: p(0.44, 0.78))
+            }
+            fill(ellipse(0.28, 0.25, 0.44, 0.44), colors.primary)
+            fill(ellipse(0.35, 0.09, 0.30, 0.30), colors.accent)
+            overlay(rotated(ellipse(0.30, 0.355, 0.16, 0.09), -28, 0.38, 0.40), gloss.opacity(0.3))
+            overlay(rotated(ellipse(0.36, 0.146, 0.12, 0.068), -32, 0.42, 0.18), gloss.opacity(0.34))
+            overlay(custom { path in
+                path.move(to: p(0.60, 0.12))
+                path.addQuadCurve(to: p(0.65, 0.27), control: p(0.66, 0.18))
+                path.addQuadCurve(to: p(0.63, 0.12), control: p(0.71, 0.20))
+                path.closeSubpath()
+            }, gloss.opacity(0.14))
 
         case .plate:
-            fill(ellipse(0.06, 0.6, 0.88, 0.3), Color.white.opacity(0.92))          // plate
-            fill(ellipse(0.16, 0.66, 0.68, 0.17), Color.black.opacity(0.08), stroked: false)
-            fill(ellipse(0.14, 0.34, 0.32, 0.32), colors.primary)                   // three items
-            fill(ellipse(0.38, 0.26, 0.3, 0.34), colors.secondary)
-            fill(ellipse(0.58, 0.36, 0.3, 0.3), colors.accent)
+            groundShadow(0.5, 0.90, 0.38, 0.06)
+            fill(ellipse(0.08, 0.61, 0.84, 0.26), colors.secondary)
+            overlay(ellipse(0.19, 0.65, 0.62, 0.16), gloss.opacity(0.18))
+            fill(custom { path in
+                path.move(to: p(0.19, 0.70))
+                path.addQuadCurve(to: p(0.32, 0.50), control: p(0.19, 0.50))
+                path.addQuadCurve(to: p(0.45, 0.70), control: p(0.45, 0.50))
+                path.closeSubpath()
+            }, colors.primary)
+            overlay(rounded(0.20, 0.60, 0.24, 0.07, 0.035), colors.accent)
+            fill(custom { path in
+                path.move(to: p(0.53, 0.70)); path.addLine(to: p(0.61, 0.46))
+                path.addQuadCurve(to: p(0.64, 0.46), control: p(0.625, 0.425))
+                path.addLine(to: p(0.73, 0.70)); path.closeSubpath()
+            }, colors.accent)
+            fill(ellipse(0.75, 0.57, 0.14, 0.14), colors.primary)
+            fill(ellipse(0.82, 0.64, 0.12, 0.12), colors.primary)
+            fill(custom { path in
+                path.move(to: p(0.09, 0.76))
+                path.addQuadCurve(to: p(0.91, 0.76), control: p(0.50, 0.92))
+                path.addQuadCurve(to: p(0.09, 0.76), control: p(0.50, 0.87))
+                path.closeSubpath()
+            }, colors.secondary)
+            overlay(custom { path in
+                path.move(to: p(0.20, 0.80))
+                path.addQuadCurve(to: p(0.80, 0.80), control: p(0.50, 0.90))
+                path.addQuadCurve(to: p(0.20, 0.80), control: p(0.50, 0.87))
+                path.closeSubpath()
+            }, shade)
+            overlay(rotated(ellipse(0.15, 0.728, 0.22, 0.064), -7, 0.26, 0.76), gloss.opacity(0.24))
+            overlay(rotated(ellipse(0.29, 0.54, 0.10, 0.06), -30, 0.34, 0.57), gloss.opacity(0.3))
 
         case .bowl:
-            fill(ellipse(0.12, 0.34, 0.76, 0.22), colors.secondary)                 // contents
-            var bowl = Path()
-            bowl.move(to: p(0.1, 0.44))
-            bowl.addQuadCurve(to: p(0.9, 0.44), control: p(0.5, 1.06))
-            bowl.closeSubpath()
-            fill(bowl, colors.primary)
-            fill(rounded(0.6, 0.06, 0.05, 0.42, 0.02), colors.accent)               // chopsticks
-            fill(rounded(0.7, 0.04, 0.05, 0.42, 0.02), colors.accent)
+            groundShadow(0.5, 0.93, 0.28, 0.05)
+            openStroke(gloss, width: w(4), opacity: 0.4) { path in
+                path.move(to: p(0.40, 0.32))
+                path.addQuadCurve(to: p(0.40, 0.16), control: p(0.47, 0.25))
+            }
+            openStroke(gloss, width: w(4), opacity: 0.4) { path in
+                path.move(to: p(0.58, 0.30))
+                path.addQuadCurve(to: p(0.58, 0.14), control: p(0.65, 0.23))
+            }
+            fill(ellipse(0.20, 0.41, 0.60, 0.18), colors.secondary)
+            fill(ellipse(0.32, 0.40, 0.12, 0.12), colors.accent)
+            fill(ellipse(0.53, 0.39, 0.12, 0.12), colors.accent)
+            fill(custom { path in
+                path.move(to: p(0.18, 0.48)); path.addLine(to: p(0.82, 0.48))
+                path.addQuadCurve(to: p(0.50, 0.86), control: p(0.80, 0.86))
+                path.addQuadCurve(to: p(0.18, 0.48), control: p(0.20, 0.86))
+                path.closeSubpath()
+            }, colors.primary)
+            overlay(custom { path in
+                path.move(to: p(0.64, 0.50)); path.addLine(to: p(0.82, 0.50))
+                path.addQuadCurve(to: p(0.50, 0.86), control: p(0.80, 0.86))
+                path.addQuadCurve(to: p(0.70, 0.50), control: p(0.68, 0.82))
+                path.closeSubpath()
+            }, shade)
+            overlay(custom { path in
+                path.move(to: p(0.18, 0.48)); path.addLine(to: p(0.82, 0.48))
+                path.addQuadCurve(to: p(0.81, 0.57), control: p(0.816, 0.53))
+                path.addLine(to: p(0.19, 0.57))
+                path.addQuadCurve(to: p(0.18, 0.48), control: p(0.184, 0.53))
+                path.closeSubpath()
+            }, gloss.opacity(0.18))
+            openStroke(gloss, width: w(6), opacity: 0.24) { path in
+                path.move(to: p(0.27, 0.58))
+                path.addQuadCurve(to: p(0.39, 0.81), control: p(0.30, 0.74))
+            }
+            fill(rotated(rounded(0.63, 0.12, 0.06, 0.50, 0.03), 17, 0.66, 0.37), colors.secondary)
+            fill(rotated(rounded(0.70, 0.12, 0.06, 0.50, 0.03), 26, 0.73, 0.37), colors.secondary)
 
         case .nigiri:
-            fill(rounded(0.16, 0.52, 0.68, 0.3, 0.14), Color(hex: "#FBF5EA"))       // rice
-            var fishTop = Path()
-            fishTop.move(to: p(0.12, 0.56))
-            fishTop.addQuadCurve(to: p(0.88, 0.56), control: p(0.5, 0.2))
-            fishTop.addLine(to: p(0.84, 0.62))
-            fishTop.addQuadCurve(to: p(0.16, 0.62), control: p(0.5, 0.32))
-            fishTop.closeSubpath()
-            fill(fishTop, colors.primary)
-            fill(rounded(0.42, 0.4, 0.16, 0.44, 0.03), colors.accent)               // nori band
+            groundShadow(0.5, 0.88, 0.32, 0.05)
+            fill(custom { path in
+                path.move(to: p(0.22, 0.58))
+                path.addQuadCurve(to: p(0.33, 0.48), control: p(0.22, 0.48))
+                path.addLine(to: p(0.67, 0.48))
+                path.addQuadCurve(to: p(0.78, 0.58), control: p(0.78, 0.48))
+                path.addLine(to: p(0.78, 0.68))
+                path.addQuadCurve(to: p(0.62, 0.82), control: p(0.78, 0.82))
+                path.addLine(to: p(0.38, 0.82))
+                path.addQuadCurve(to: p(0.22, 0.68), control: p(0.22, 0.82))
+                path.closeSubpath()
+            }, colors.primary)
+            overlay(custom { path in
+                path.move(to: p(0.66, 0.50))
+                path.addQuadCurve(to: p(0.78, 0.60), control: p(0.78, 0.52))
+                path.addLine(to: p(0.78, 0.68))
+                path.addQuadCurve(to: p(0.62, 0.82), control: p(0.78, 0.82))
+                path.addLine(to: p(0.50, 0.82))
+                path.addQuadCurve(to: p(0.68, 0.64), control: p(0.68, 0.78))
+                path.closeSubpath()
+            }, shade)
+            fill(custom { path in
+                path.move(to: p(0.16, 0.52))
+                path.addQuadCurve(to: p(0.50, 0.31), control: p(0.16, 0.33))
+                path.addQuadCurve(to: p(0.84, 0.52), control: p(0.84, 0.33))
+                path.addQuadCurve(to: p(0.76, 0.58), control: p(0.84, 0.58))
+                path.addLine(to: p(0.24, 0.58))
+                path.addQuadCurve(to: p(0.16, 0.52), control: p(0.16, 0.58))
+                path.closeSubpath()
+            }, colors.secondary)
+            openStroke(gloss, width: w(3.6), opacity: 0.3) { path in
+                path.move(to: p(0.25, 0.45))
+                path.addQuadCurve(to: p(0.75, 0.45), control: p(0.50, 0.39))
+            }
+            openStroke(gloss, width: w(3.6), opacity: 0.3) { path in
+                path.move(to: p(0.30, 0.53))
+                path.addQuadCurve(to: p(0.70, 0.53), control: p(0.50, 0.48))
+            }
+            fill(rounded(0.42, 0.30, 0.16, 0.54, 0.03), colors.accent)
+            overlay(rotated(ellipse(0.275, 0.40, 0.09, 0.04), -12, 0.32, 0.42), gloss.opacity(0.26))
 
         case .roll:
-            fill(ellipse(0.14, 0.18, 0.72, 0.72), colors.primary)                   // outer
-            fill(ellipse(0.24, 0.28, 0.52, 0.52), colors.secondary)                 // rice
-            fill(ellipse(0.38, 0.42, 0.24, 0.24), colors.accent)                    // centre
-            for angle in stride(from: 0.0, to: 360.0, by: 60.0) {
-                let rad = angle * .pi / 180
-                let cx = 0.5 + 0.19 * cos(rad)
-                let cy = 0.54 + 0.19 * sin(rad)
-                context.fill(ellipse(cx - 0.045, cy - 0.045, 0.09, 0.09),
-                             with: .color(colors.accent.opacity(0.55)))
-            }
+            groundShadow(0.5, 0.90, 0.30, 0.05)
+            fill(ellipse(0.16, 0.18, 0.68, 0.68), colors.accent)
+            fill(ellipse(0.25, 0.27, 0.50, 0.50), colors.primary)
+            fill(ellipse(0.35, 0.39, 0.18, 0.18), colors.secondary)
+            fill(ellipse(0.50, 0.51, 0.14, 0.14), colors.secondary)
+            fill(ellipse(0.51, 0.38, 0.10, 0.10), colors.accent)
+            overlay(custom { path in
+                path.move(to: p(0.20, 0.60))
+                path.addQuadCurve(to: p(0.50, 0.84), control: p(0.30, 0.84))
+                path.addQuadCurve(to: p(0.80, 0.60), control: p(0.72, 0.84))
+                path.addQuadCurve(to: p(0.50, 0.86), control: p(0.78, 0.86))
+                path.addQuadCurve(to: p(0.20, 0.60), control: p(0.22, 0.86))
+                path.closeSubpath()
+            }, shade)
+            overlay(rotated(ellipse(0.24, 0.28, 0.22, 0.12), -38, 0.35, 0.34), gloss.opacity(0.24))
 
         case .wedge:
-            fill(polygon([(0.5, 0.08), (0.94, 0.86), (0.06, 0.86)]), colors.primary)
-            var crust = Path()
-            crust.move(to: p(0.06, 0.86))
-            crust.addLine(to: p(0.94, 0.86))
-            crust.addQuadCurve(to: p(0.06, 0.86), control: p(0.5, 1.06))
-            fill(crust, colors.secondary)
-            for point in [(0.42, 0.38), (0.58, 0.55), (0.34, 0.64), (0.66, 0.7)] {
-                context.fill(ellipse(point.0, point.1, 0.13, 0.11), with: .color(colors.accent))
-            }
+            groundShadow(0.5, 0.93, 0.30, 0.05)
+            fill(custom { path in
+                path.move(to: p(0.48, 0.12))
+                path.addQuadCurve(to: p(0.52, 0.12), control: p(0.50, 0.08))
+                path.addLine(to: p(0.80, 0.76))
+                path.addQuadCurve(to: p(0.20, 0.76), control: p(0.50, 0.88))
+                path.closeSubpath()
+            }, colors.primary)
+            overlay(custom { path in
+                path.move(to: p(0.52, 0.12)); path.addLine(to: p(0.80, 0.76))
+                path.addQuadCurve(to: p(0.56, 0.826), control: p(0.66, 0.816))
+                path.addLine(to: p(0.52, 0.12)); path.closeSubpath()
+            }, shade)
+            fill(custom { path in
+                path.move(to: p(0.20, 0.76))
+                path.addQuadCurve(to: p(0.80, 0.76), control: p(0.50, 0.88))
+                path.addLine(to: p(0.77, 0.85))
+                path.addQuadCurve(to: p(0.23, 0.85), control: p(0.50, 0.97))
+                path.closeSubpath()
+            }, colors.secondary)
+            fill(ellipse(0.355, 0.395, 0.13, 0.13), colors.accent)
+            fill(ellipse(0.505, 0.525, 0.13, 0.13), colors.accent)
+            fill(ellipse(0.35, 0.61, 0.12, 0.12), colors.accent)
+            overlay(custom { path in
+                path.move(to: p(0.47, 0.22)); path.addLine(to: p(0.52, 0.22))
+                path.addLine(to: p(0.46, 0.46))
+                path.addQuadCurve(to: p(0.425, 0.40), control: p(0.425, 0.44))
+                path.closeSubpath()
+            }, gloss.opacity(0.26))
 
         case .wrap:
-            var shell = Path()
-            shell.move(to: p(0.08, 0.82))
-            shell.addQuadCurve(to: p(0.92, 0.82), control: p(0.5, 0.06))
-            shell.closeSubpath()
-            fill(shell, colors.primary)
-            var filling = Path()
-            filling.move(to: p(0.2, 0.7))
-            filling.addQuadCurve(to: p(0.8, 0.7), control: p(0.5, 0.36))
-            filling.closeSubpath()
-            fill(filling, colors.secondary, stroked: false)
-            for point in [(0.3, 0.62), (0.46, 0.55), (0.62, 0.62)] {
-                context.fill(ellipse(point.0, point.1, 0.12, 0.1), with: .color(colors.accent))
+            groundShadow(0.5, 0.90, 0.34, 0.045)
+            fill(custom { path in
+                path.move(to: p(0.14, 0.34))
+                path.addQuadCurve(to: p(0.28, 0.32), control: p(0.18, 0.26))
+                path.addQuadCurve(to: p(0.50, 0.27), control: p(0.38, 0.15))
+                path.addQuadCurve(to: p(0.72, 0.32), control: p(0.62, 0.15))
+                path.addQuadCurve(to: p(0.86, 0.34), control: p(0.82, 0.26))
+                path.addQuadCurve(to: p(0.50, 0.66), control: p(0.80, 0.66))
+                path.addQuadCurve(to: p(0.14, 0.34), control: p(0.20, 0.66))
+                path.closeSubpath()
+            }, colors.accent)
+            fill(ellipse(0.23, 0.27, 0.14, 0.14), colors.secondary)
+            fill(ellipse(0.43, 0.19, 0.14, 0.14), colors.secondary)
+            fill(ellipse(0.63, 0.27, 0.14, 0.14), colors.secondary)
+            fill(custom { path in
+                path.move(to: p(0.12, 0.32))
+                path.addQuadCurve(to: p(0.50, 0.86), control: p(0.16, 0.86))
+                path.addQuadCurve(to: p(0.88, 0.32), control: p(0.84, 0.86))
+                path.addQuadCurve(to: p(0.50, 0.68), control: p(0.84, 0.68))
+                path.addQuadCurve(to: p(0.12, 0.32), control: p(0.16, 0.68))
+                path.closeSubpath()
+            }, colors.primary)
+            overlay(custom { path in
+                path.move(to: p(0.14, 0.42))
+                path.addQuadCurve(to: p(0.50, 0.68), control: p(0.18, 0.68))
+                path.addQuadCurve(to: p(0.86, 0.42), control: p(0.82, 0.68))
+                path.addQuadCurve(to: p(0.50, 0.61), control: p(0.80, 0.61))
+                path.addQuadCurve(to: p(0.14, 0.42), control: p(0.20, 0.61))
+                path.closeSubpath()
+            }, colors.secondary)
+            overlay(custom { path in
+                path.move(to: p(0.88, 0.32))
+                path.addQuadCurve(to: p(0.50, 0.86), control: p(0.84, 0.86))
+                path.addQuadCurve(to: p(0.77, 0.44), control: p(0.72, 0.79))
+                path.closeSubpath()
+            }, shade)
+            openStroke(gloss, width: w(6), opacity: 0.26) { path in
+                path.move(to: p(0.20, 0.48))
+                path.addQuadCurve(to: p(0.38, 0.82), control: p(0.24, 0.74))
             }
 
         case .cupcake:
-            fill(polygon([(0.24, 0.52), (0.76, 0.52), (0.68, 0.94), (0.32, 0.94)]), colors.accent)
-            for x in stride(from: 0.3, to: 0.72, by: 0.1) {
-                context.stroke(Path { path in
-                    path.move(to: p(x, 0.54))
-                    path.addLine(to: p(x - 0.02, 0.92))
-                }, with: .color(.black.opacity(0.15)), lineWidth: line * 0.8)
+            groundShadow(0.5, 0.95, 0.26, 0.045)
+            fill(custom { path in
+                path.move(to: p(0.28, 0.52)); path.addLine(to: p(0.72, 0.52))
+                path.addLine(to: p(0.66, 0.88))
+                path.addQuadCurve(to: p(0.61, 0.92), control: p(0.65, 0.92))
+                path.addLine(to: p(0.39, 0.92))
+                path.addQuadCurve(to: p(0.34, 0.88), control: p(0.35, 0.92))
+                path.closeSubpath()
+            }, colors.secondary)
+            for x in stride(from: 0.42, through: 0.58, by: 0.08) {
+                openStroke(outline, width: w(3), opacity: 0.14) { path in
+                    path.move(to: p(x, 0.56))
+                    path.addLine(to: p(x - 0.01, 0.90))
+                }
             }
-            fill(ellipse(0.16, 0.3, 0.68, 0.3), colors.primary)                     // frosting
-            fill(ellipse(0.26, 0.14, 0.48, 0.26), colors.primary)
-            fill(ellipse(0.42, 0.02, 0.18, 0.16), colors.secondary)                 // cherry
+            overlay(custom { path in
+                path.move(to: p(0.62, 0.54)); path.addLine(to: p(0.72, 0.54))
+                path.addLine(to: p(0.66, 0.88))
+                path.addQuadCurve(to: p(0.61, 0.92), control: p(0.65, 0.92))
+                path.addLine(to: p(0.54, 0.92)); path.closeSubpath()
+            }, shade)
+            fill(custom { path in
+                path.move(to: p(0.22, 0.54))
+                path.addQuadCurve(to: p(0.32, 0.34), control: p(0.17, 0.38))
+                path.addQuadCurve(to: p(0.46, 0.22), control: p(0.30, 0.20))
+                path.addQuadCurve(to: p(0.62, 0.20), control: p(0.52, 0.10))
+                path.addQuadCurve(to: p(0.74, 0.34), control: p(0.62, 0.20))
+                path.addQuadCurve(to: p(0.78, 0.54), control: p(0.87, 0.41))
+                path.closeSubpath()
+            }, colors.primary)
+            fill(ellipse(0.455, 0.045, 0.13, 0.13), colors.accent)
+            overlay(rotated(ellipse(0.25, 0.34, 0.20, 0.10), -32, 0.35, 0.39), gloss.opacity(0.34))
+            overlay(rotated(ellipse(0.56, 0.26, 0.12, 0.06), -18, 0.62, 0.29), gloss.opacity(0.24))
+            overlay(ellipse(0.47, 0.06, 0.04, 0.04), gloss.opacity(0.55))
         }
     }
 }

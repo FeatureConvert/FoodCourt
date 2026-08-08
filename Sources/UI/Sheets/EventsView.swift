@@ -87,9 +87,8 @@ private struct FestivalSection: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     HStack(spacing: 4) {
-                        Image(systemName: "ticket.fill")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(Theme.coin)
+                        TicketIcon()
+                            .frame(width: 16, height: 16)
                         Text(Format.count(festival.tickets))
                             .font(Theme.numeric(16))
                             .foregroundStyle(Theme.text)
@@ -124,9 +123,8 @@ private struct FestivalSection: View {
             if let item { Task { await store.purchase(item) } }
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: "crown.fill")
-                    .font(.system(size: 20, weight: .black))
-                    .foregroundStyle(Theme.ink)
+                CrownIcon()
+                    .frame(width: 28, height: 28)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Carnival Pass")
                         .font(Theme.body(14, weight: .black))
@@ -292,7 +290,7 @@ private struct LeagueSection: View {
                 showingGameCenter = true
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "trophy.fill")
+                    TrophyIcon().frame(width: 16, height: 16)
                     Text("Global Leaderboard")
                 }
                 .font(Theme.body(13, weight: .black))
