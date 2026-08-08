@@ -202,6 +202,14 @@ struct GameState: Codable, Equatable {
         var state = GameState()
         state.venues = Balance.venues.map { VenueState.fresh(venue: $0, unlocked: $0.id == 0) }
         state.venues[0].stations[0].level = 1
+        // Coffee Break and Rush Hour otherwise default to instantly ready (the property
+        // declaration's .distantPast also serves as the decode-fallback for old saves, so it
+        // stays untouched) - a brand-new player stacking both plus max combo in the opening
+        // seconds is what let venue 2 fall in under a minute. Lock both out for the first 15
+        // minutes of a fresh save specifically.
+        let firstBoostAt = state.now.addingTimeInterval(15 * 60)
+        state.boostAvailableAt = firstBoostAt
+        state.rushAvailableAt = firstBoostAt
         return state
     }
 

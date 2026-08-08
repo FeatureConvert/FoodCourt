@@ -4,15 +4,17 @@ import Foundation
 /// the phone once managers have taken over the tapping.
 enum ActivePlay {
 
-    // Combo
+    // Combo. 10 steps x 0.4/step caps at a clean x5 rather than a stacking-friendly x10 -
+    // this multiplies with Coffee Break and Rush Hour on every station's automated income,
+    // not just a tapped one, so a lower cap matters more than it looks like it should.
     static let comboWindow: TimeInterval = 1.5
-    static let comboBaseSteps = 30
-    static let comboPerStep = 0.3
+    static let comboBaseSteps = 10
+    static let comboPerStep = 0.4
 
     // Rush Hour
     static let rushBaseSeconds: TimeInterval = 60
     static let rushMultiplier: Double = 5
-    static let rushCooldownMinutes: Double = 20
+    static let rushCooldownMinutes: Double = 30
     static let rushGemCost = 40
     static let rushBoostID = "rush-hour"
 
@@ -32,7 +34,7 @@ enum ActivePlay {
     // ad-free, so it is simply given away on a cooldown.
     static let freeBoostMultiplier: Double = 2
     static let freeBoostHours: Double = 0.25       // 15 minutes
-    static let freeBoostCooldownMinutes: Double = 20
+    static let freeBoostCooldownMinutes: Double = 30
     static let freeBoostID = "coffee-break"
 }
 

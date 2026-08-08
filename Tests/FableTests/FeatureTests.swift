@@ -72,7 +72,11 @@ final class FeatureTests: XCTestCase {
 
     @MainActor
     func testRushRunsThenGoesOnCooldown() {
-        let e = engine()
+        // newGame() locks Rush Hour out for a new player's first 15 minutes; this test is
+        // about the readiness/cooldown mechanic itself, not that onboarding gate.
+        var state = GameState.newGame()
+        state.rushAvailableAt = .distantPast
+        let e = engine(state)
         XCTAssertTrue(e.rushReady)
         XCTAssertTrue(e.startRush())
         XCTAssertTrue(e.rushActive)
@@ -83,7 +87,9 @@ final class FeatureTests: XCTestCase {
 
     @MainActor
     func testRushCompletionCountsTowardQuestsAndTickets() {
-        let e = engine()
+        var state = GameState.newGame()
+        state.rushAvailableAt = .distantPast
+        let e = engine(state)
         let ticketsBefore = e.state.festival.tickets
         e.startRush()
         // Jump past the end of the rush window.
@@ -356,7 +362,11 @@ final class FeatureTests: XCTestCase {
 
     @MainActor
     func testCoffeeBreakIsFreeAndGoesOnCooldown() {
-        let e = engine()
+        // newGame() locks Coffee Break out for a new player's first 15 minutes; this test is
+        // about the readiness/cooldown mechanic itself, not that onboarding gate.
+        var state = GameState.newGame()
+        state.boostAvailableAt = .distantPast
+        let e = engine(state)
         XCTAssertTrue(e.boostReady)
         XCTAssertTrue(e.claimFreeBoost(), "the boost costs nothing - there is no ad to watch")
 
@@ -654,7 +664,12 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(e.state.tutorial.current, .hireManager)
         e.hireManager(for: 0)
         XCTAssertEqual(e.state.tutorial.current, .coffeeBreak)
-        e.claimFreeBoost()
+        // A new save locks Coffee Break out for its first 15 minutes, so a real player
+        // reaches this step before it's ready - mirrors RootView.takeCoffeeBreak()'s
+        // fallback that advances the tutorial anyway rather than stranding it.
+        if !e.claimFreeBoost() {
+            e.completeTutorialStep(.coffeeBreak)
+        }
         XCTAssertEqual(e.state.tutorial.current, .openGoals)
         e.completeTutorialStep(.openGoals)
         XCTAssertNil(e.state.tutorial.current)
