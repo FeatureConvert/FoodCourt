@@ -54,9 +54,10 @@ struct ActiveQuest: Codable, Equatable, Identifiable {
     }
 
     var progressLabel: String {
+        let shown = min(progress, target)
         switch kind {
-        case .earn: return "\(Format.currency(progress)) / \(Format.currency(target))"
-        default:    return "\(Format.count(Int(progress))) / \(Format.count(Int(target)))"
+        case .earn: return "\(Format.currency(shown)) / \(Format.currency(target))"
+        default:    return "\(Format.count(Int(shown))) / \(Format.count(Int(target)))"
         }
     }
 }

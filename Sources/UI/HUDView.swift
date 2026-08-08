@@ -16,9 +16,13 @@ struct HUDView: View {
                         Text(Format.currency(engine.state.coins))
                             .font(Theme.numeric(19))
                             .foregroundStyle(Theme.text)
+                            .lineLimit(1)
+                            .fixedSize()
                         Text(Format.rate(engine.incomePerSecond))
                             .font(Theme.body(11, weight: .bold))
                             .foregroundStyle(Theme.positive)
+                            .lineLimit(1)
+                            .fixedSize()
                     }
                 }
 
@@ -27,6 +31,8 @@ struct HUDView: View {
                     Text(Format.count(engine.state.gems))
                         .font(Theme.numeric(17))
                         .foregroundStyle(Theme.text)
+                        .lineLimit(1)
+                        .fixedSize()
                 }
 
                 if engine.state.lifetimeStars > 0 {
@@ -38,9 +44,13 @@ struct HUDView: View {
                                 Text(Format.count(engine.state.stars))
                                     .font(Theme.numeric(16))
                                     .foregroundStyle(Theme.text)
+                                    .lineLimit(1)
+                                    .fixedSize()
                                 Text("+\(Int(Double(engine.state.lifetimeStars) * Balance.profitPerStar * 100))%")
                                     .font(Theme.body(10, weight: .bold))
                                     .foregroundStyle(Theme.star)
+                                    .lineLimit(1)
+                                    .fixedSize()
                             }
                         }
                     }

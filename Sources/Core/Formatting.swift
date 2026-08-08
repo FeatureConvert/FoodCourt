@@ -17,8 +17,16 @@ enum Format {
             return sign + String(Int(v))
         }
 
-        let tier = Int(floor(log10(v) / 3))
-        let scaled = v / pow(1000, Double(tier))
+        var tier = Int(floor(log10(v) / 3))
+        var scaled = v / pow(1000, Double(tier))
+
+        // Rounding near a tier boundary (e.g. 999.996B) can push the displayed mantissa to
+        // 1000; bump to the next tier rather than ever showing a 4-digit mantissa.
+        if scaled >= 999.995 {
+            tier += 1
+            scaled = v / pow(1000, Double(tier))
+        }
+
         let suffix = suffixForTier(tier)
 
         // Keep the mantissa three significant digits wide so the HUD never jitters in width.

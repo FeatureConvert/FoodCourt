@@ -173,7 +173,7 @@ struct HelpView: View {
             star bonus. A much bigger commitment than a regular reset.
             """),
         GuideSection(
-            symbol: "person.crop.circle.badge.star", title: "Guest Chef",
+            symbol: "star.circle.fill", title: "Guest Chef",
             text: """
             A rotating Legendary-tier manager is available each week from the Staff tab, \
             priced in gems. The pick changes every week and is exclusive to that purchase — \
