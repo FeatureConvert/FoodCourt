@@ -560,14 +560,27 @@ final class FeatureTests: XCTestCase {
     // MARK: 10 - League
 
     func testLeagueSeedsAFullTable() {
-        let state = League.newWeek(tier: .bronze, playerRate: 100, now: Date(), seasonsPlayed: 0)
+        let state = League.newWeek(tier: .bronze, now: Date(), seasonsPlayed: 0)
         XCTAssertEqual(state.rivals.count, League.size - 1)
         XCTAssertEqual(League.standings(state).count, League.size)
-        XCTAssertTrue(state.rivals.allSatisfy { $0.rate > 0 })
+        XCTAssertTrue(state.rivals.allSatisfy { $0.jitter > 0 })
+    }
+
+    func testRivalPaceTracksThePlayersCurrentRateNotAStaleSnapshot() {
+        var state = League.newWeek(tier: .bronze, now: Date(), seasonsPlayed: 0)
+        League.advanceRivals(&state, to: state.lastSettledAt.addingTimeInterval(3600), playerRate: 10)
+        let slowGain = state.rivals[0].score
+
+        var fast = League.newWeek(tier: .bronze, now: Date(), seasonsPlayed: 0)
+        League.advanceRivals(&fast, to: fast.lastSettledAt.addingTimeInterval(3600), playerRate: 10_000)
+        let fastGain = fast.rivals[0].score
+
+        XCTAssertGreaterThan(fastGain, slowGain * 100,
+                             "a rival's pace must scale with the player's current rate, not a rate frozen at week start")
     }
 
     func testStandingsRankByScoreAndIncludeThePlayer() {
-        var state = League.newWeek(tier: .bronze, playerRate: 10, now: Date(), seasonsPlayed: 0)
+        var state = League.newWeek(tier: .bronze, now: Date(), seasonsPlayed: 0)
         state.rivals.indices.forEach { state.rivals[$0].score = 0 }
         state.score = 1_000_000
 
@@ -578,7 +591,7 @@ final class FeatureTests: XCTestCase {
     }
 
     func testTopSevenPromoteAndBottomSevenRelegate() {
-        var state = League.newWeek(tier: .silver, playerRate: 10, now: Date(), seasonsPlayed: 0)
+        var state = League.newWeek(tier: .silver, now: Date(), seasonsPlayed: 0)
 
         state.rivals.indices.forEach { state.rivals[$0].score = 0 }
         state.score = 1_000
@@ -592,14 +605,14 @@ final class FeatureTests: XCTestCase {
     }
 
     func testBronzeCannotRelegateAndDiamondCannotPromote() {
-        var bottom = League.newWeek(tier: .bronze, playerRate: 10, now: Date(), seasonsPlayed: 0)
+        var bottom = League.newWeek(tier: .bronze, now: Date(), seasonsPlayed: 0)
         bottom.rivals.indices.forEach { bottom.rivals[$0].score = 1_000_000 }
         bottom.score = 0
         if case .relegated = League.settle(bottom) {
             XCTFail("bronze is the floor")
         }
 
-        var top = League.newWeek(tier: .diamond, playerRate: 10, now: Date(), seasonsPlayed: 0)
+        var top = League.newWeek(tier: .diamond, now: Date(), seasonsPlayed: 0)
         top.rivals.indices.forEach { top.rivals[$0].score = 0 }
         top.score = 1_000_000
         if case .promoted = League.settle(top) {
@@ -608,16 +621,16 @@ final class FeatureTests: XCTestCase {
     }
 
     func testRivalsEarnWhileTheAppIsClosed() {
-        var state = League.newWeek(tier: .bronze, playerRate: 100, now: Date(), seasonsPlayed: 0)
+        var state = League.newWeek(tier: .bronze, now: Date(), seasonsPlayed: 0)
         let before = state.rivals[0].score
-        League.advanceRivals(&state, to: state.lastSettledAt.addingTimeInterval(3600))
+        League.advanceRivals(&state, to: state.lastSettledAt.addingTimeInterval(3600), playerRate: 100)
         XCTAssertGreaterThan(state.rivals[0].score, before)
     }
 
     @MainActor
     func testFinishedWeekSettlesAndStartsAFreshOne() {
         var state = GameState.newGame()
-        state.league = League.newWeek(tier: .bronze, playerRate: 10, now: Date(), seasonsPlayed: 0)
+        state.league = League.newWeek(tier: .bronze, now: Date(), seasonsPlayed: 0)
         state.league.endsAt = Date().addingTimeInterval(-1)
         state.league.rivals.indices.forEach { state.league.rivals[$0].score = 0 }
         state.league.score = 10_000
@@ -940,7 +953,7 @@ final class FeatureTests: XCTestCase {
     @MainActor
     func testToppingDiamondGrantsAFreeLegendaryManager() {
         var state = GameState.newGame()
-        state.league = League.newWeek(tier: .diamond, playerRate: 10, now: Date(), seasonsPlayed: 0)
+        state.league = League.newWeek(tier: .diamond, now: Date(), seasonsPlayed: 0)
         state.league.endsAt = Date().addingTimeInterval(-1)
         state.league.rivals.indices.forEach { state.league.rivals[$0].score = 0 }
         state.league.score = 1  // beats every zeroed rival -> rank 1
@@ -956,7 +969,7 @@ final class FeatureTests: XCTestCase {
     @MainActor
     func testFinishingSecondInDiamondGrantsNoManager() {
         var state = GameState.newGame()
-        state.league = League.newWeek(tier: .diamond, playerRate: 10, now: Date(), seasonsPlayed: 0)
+        state.league = League.newWeek(tier: .diamond, now: Date(), seasonsPlayed: 0)
         state.league.endsAt = Date().addingTimeInterval(-1)
         state.league.rivals.indices.forEach { state.league.rivals[$0].score = 0 }
         state.league.rivals[0].score = 1_000_000  // one rival stays ahead -> player rank 2
@@ -1141,12 +1154,12 @@ final class FeatureTests: XCTestCase {
         let before = e.state.gems
         let claimed = e.claimAchievement(id: "serve_1")
         XCTAssertEqual(claimed?.id, "serve_1")
-        XCTAssertEqual(e.state.gems, before + 25)
+        XCTAssertEqual(e.state.gems, before + 15)
         XCTAssertTrue(e.state.claimedAchievements.contains("serve_1"))
 
         // Claiming again pays nothing a second time.
         XCTAssertNil(e.claimAchievement(id: "serve_1"))
-        XCTAssertEqual(e.state.gems, before + 25)
+        XCTAssertEqual(e.state.gems, before + 15)
         XCTAssertFalse(e.claimableAchievements.contains { $0.id == "serve_1" })
     }
 
@@ -1165,7 +1178,7 @@ final class FeatureTests: XCTestCase {
     @MainActor
     func testBestLeagueTierReachedOnlyEverIncreases() {
         var state = GameState.newGame()
-        state.league = League.newWeek(tier: .gold, playerRate: 100, now: Date(), seasonsPlayed: 3)
+        state.league = League.newWeek(tier: .gold, now: Date(), seasonsPlayed: 3)
         state.bestLeagueTierReached = .gold
         state.league.endsAt = Date().addingTimeInterval(-1) // force it finished
         state.league.score = -1 // guarantee last place so the outcome is a relegation

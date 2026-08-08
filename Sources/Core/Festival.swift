@@ -92,7 +92,9 @@ enum Festival {
         if index == tierCount { return .manager(.epic) }
         if index % 10 == 0 { return .manager(.rare) }
         if index % 5 == 0 { return .boost(multiplier: 2, hours: 1) }
-        if index % 2 == 0 { return .gems(10 + index) }
+        // Free-track gems, unlike the premium track, aren't paid for - cut by ~40% so the
+        // season's free gem total stops rivaling what quests alone were handing out.
+        if index % 2 == 0 { return .gems(6 + index * 6 / 10) }
         return .coinSeconds(Double(index) * 120)
     }
 

@@ -9,6 +9,7 @@ struct SettingsView: View {
     var onHelp: () -> Void = {}
 
     @State private var confirmingReset = false
+    @State private var resetConfirmationText = ""
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
 
     var body: some View {
@@ -33,8 +34,13 @@ struct SettingsView: View {
 
             if cloud.isAvailable {
                 Button {
-                    engine.pushToCloud()
-                    onToast("Saved to iCloud")
+                    if engine.pushToCloud() {
+                        Haptics.success()
+                        onToast("Synced to iCloud")
+                    } else {
+                        Haptics.error()
+                        onToast("Sync failed - check your iCloud connection and try again")
+                    }
                 } label: {
                     label("Sync now", system: "arrow.triangle.2.circlepath")
                 }
@@ -83,20 +89,65 @@ struct SettingsView: View {
             .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
 
             SectionLabel(text: "Danger zone")
-            Button {
-                if confirmingReset {
-                    engine.debugReset()
-                    onToast("Save wiped - fresh start")
-                    confirmingReset = false
-                } else {
-                    confirmingReset = true
+            if confirmingReset {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("This permanently erases every station, star, and gem on this device. There is no undo.")
+                        .font(Theme.body(11, weight: .medium))
+                        .foregroundStyle(Theme.textDim)
+
+                    Text("Type RESET to confirm")
+                        .font(Theme.body(11, weight: .bold))
+                        .foregroundStyle(Theme.text)
+                    TextField("RESET", text: $resetConfirmationText)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                        .font(Theme.numeric(15))
+                        .foregroundStyle(Theme.text)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Theme.ink.opacity(0.6)))
+                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(Theme.stroke, lineWidth: 1))
+
+                    HStack(spacing: 10) {
+                        Button {
+                            confirmingReset = false
+                            resetConfirmationText = ""
+                        } label: {
+                            Text("Cancel")
+                                .font(Theme.body(13, weight: .black))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
+
+                        Button {
+                            engine.debugReset()
+                            onToast("Save wiped - fresh start")
+                            confirmingReset = false
+                            resetConfirmationText = ""
+                        } label: {
+                            Text("Erase everything")
+                                .font(Theme.body(13, weight: .black))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(ChunkyButtonStyle(fill: Theme.negative, shadow: Theme.negative.opacity(0.5)))
+                        .disabled(resetConfirmationText.uppercased() != "RESET")
+                        .opacity(resetConfirmationText.uppercased() != "RESET" ? 0.5 : 1)
+                    }
                 }
-            } label: {
-                label(confirmingReset ? "Tap again to erase everything" : "Reset progress",
-                      system: "trash.fill")
+                .padding(12)
+                .panel(Theme.panel)
+            } else {
+                Button {
+                    confirmingReset = true
+                } label: {
+                    label("Reset progress", system: "trash.fill")
+                }
+                .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
             }
-            .buttonStyle(ChunkyButtonStyle(fill: confirmingReset ? Theme.negative : Theme.panelRaised,
-                                           shadow: Theme.ink))
 
             Text("Food Court Tycoon · v1.0")
                 .font(Theme.body(10, weight: .medium))

@@ -25,11 +25,8 @@ struct EventsView: View {
 
     var body: some View {
         SheetScaffold(title: "Events", subtitle: subtitle) {
-            Picker("", selection: $tab) {
-                ForEach(Tab.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .padding(.bottom, 4)
+            SegmentedTabs(selection: $tab) { $0.title }
+                .padding(.bottom, 4)
 
             switch tab {
             case .daily: DailyRewardSection(onToast: onToast)
@@ -117,33 +114,50 @@ private struct FestivalSection: View {
         .panel(Theme.panel)
     }
 
+    private func purchasePremiumPass() {
+        guard let item = ShopCatalog.item(for: Festival.premiumProductID) else { return }
+        Task { await store.purchase(item) }
+    }
+
     private var premiumPitch: some View {
         let item = ShopCatalog.item(for: Festival.premiumProductID)
-        return Button {
-            if let item { Task { await store.purchase(item) } }
-        } label: {
+        return Button(action: purchasePremiumPass) {
             HStack(spacing: 12) {
-                CrownIcon()
-                    .frame(width: 28, height: 28)
-                VStack(alignment: .leading, spacing: 2) {
+                ZStack {
+                    Circle().fill(Theme.ink.opacity(0.18))
+                    CrownIcon()
+                        .frame(width: 26, height: 26)
+                }
+                .frame(width: 44, height: 44)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("PREMIUM PASS")
+                        .font(Theme.body(9, weight: .black))
+                        .tracking(0.6)
+                        .foregroundStyle(Theme.ink.opacity(0.6))
                     Text("Carnival Pass")
-                        .font(Theme.body(14, weight: .black))
+                        .font(Theme.body(15, weight: .black))
                         .foregroundStyle(Theme.ink)
-                    Text("Unlocks the premium reward on all 30 tiers")
+                    Text("Unlocks a second, bigger reward on all 30 tiers")
                         .font(Theme.body(11, weight: .medium))
                         .foregroundStyle(Theme.ink.opacity(0.75))
                         .lineLimit(2).multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 0)
                 Text(item.map { store.displayPrice(for: $0) } ?? "$3.99")
-                    .font(Theme.numeric(14))
+                    .font(Theme.numeric(15))
                     .foregroundStyle(Theme.text)
-                    .padding(.horizontal, 12).padding(.vertical, 7)
+                    .padding(.horizontal, 13).padding(.vertical, 8)
                     .background(Capsule().fill(Theme.ink))
             }
-            .padding(12)
+            .padding(13)
         }
-        .buttonStyle(ChunkyButtonStyle(fill: Theme.coin, shadow: Theme.coinDeep))
+        .buttonStyle(ChunkyButtonStyle(fill: Theme.coin, shadow: Theme.coinDeep, radius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Theme.star, lineWidth: 2)
+        )
+        .shadow(color: Theme.coin.opacity(0.45), radius: 14, y: 4)
     }
 
     private func tierRow(_ tier: FestivalTier) -> some View {
@@ -171,10 +185,15 @@ private struct FestivalSection: View {
                 claim(tier: tier.index, premium: false)
             }
 
+            // A tier the player has actually reached but can't claim without the pass is the
+            // single most persuasive moment to pitch it - tapping it goes straight to
+            // purchase instead of just sitting there disabled and unexplained.
+            let needsPass = reached && !premiumActive
             rewardChip(tier.premium, claimable: premiumClaimable,
                        claimed: festival.claimedPremium.contains(tier.index),
-                       locked: !reached || !premiumActive, premium: true) {
-                claim(tier: tier.index, premium: true)
+                       locked: !reached || !premiumActive, premium: true,
+                       needsPass: needsPass) {
+                if needsPass { purchasePremiumPass() } else { claim(tier: tier.index, premium: true) }
             }
         }
         .padding(.vertical, 6)
@@ -183,7 +202,7 @@ private struct FestivalSection: View {
     }
 
     private func rewardChip(_ reward: FestivalReward, claimable: Bool, claimed: Bool,
-                            locked: Bool, premium: Bool,
+                            locked: Bool, premium: Bool, needsPass: Bool = false,
                             action: @escaping () -> Void) -> some View {
         let tint = chipForeground(claimable: claimable, claimed: claimed, locked: locked)
         return Button(action: action) {
@@ -208,12 +227,22 @@ private struct FestivalSection: View {
                     .fill(claimable ? (premium ? Theme.star : Theme.positive) : Theme.ink.opacity(0.45))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(premium ? Theme.star.opacity(0.6) : Theme.stroke, lineWidth: 1.2)
+                            .stroke(needsPass ? Theme.star : (premium ? Theme.star.opacity(0.6) : Theme.stroke),
+                                   lineWidth: needsPass ? 1.5 : 1.2)
                     )
             )
+            .overlay(alignment: .topTrailing) {
+                if needsPass {
+                    CrownIcon()
+                        .frame(width: 15, height: 15)
+                        .padding(3)
+                        .background(Circle().fill(Theme.ink))
+                        .offset(x: 5, y: -5)
+                }
+            }
         }
         .buttonStyle(.plain)
-        .disabled(!claimable)
+        .disabled(!claimable && !needsPass)
     }
 
     private func chipForeground(claimable: Bool, claimed: Bool, locked: Bool) -> Color {

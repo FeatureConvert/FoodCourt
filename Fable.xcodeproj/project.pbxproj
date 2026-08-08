@@ -24,6 +24,7 @@
 		312921B8E3AE9A57B3E6EBF4 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E8833189801270C6E78D286 /* RootView.swift */; };
 		46EF0E95E698953D1B5F9277 /* CustomerSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = B56026DD041F82FCAAF814D9 /* CustomerSprite.swift */; };
 		47C8E48D0CF365D21C3AF103 /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 90ADE33E20D3F2B41202C2A1 /* Products.storekit */; };
+		4BF88D6EA3891724BF93EF61 /* SegmentedTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11ACEF22BC7C73E72DBDB0A6 /* SegmentedTabs.swift */; };
 		56BD95ED366A8F35E3D7BDEF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F09D63C291B04A5F9057BC6 /* SettingsView.swift */; };
 		58B4D9A595DA981E15FFF05E /* CosmeticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B0191022A667BB5281A2549 /* CosmeticsView.swift */; };
 		62E6F3569791FF240B8F752A /* VenueStageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2532F7EDEF7C37C11C81E08C /* VenueStageView.swift */; };
@@ -86,6 +87,7 @@
 /* Begin PBXFileReference section */
 		043F653C507C5D4BF440FA54 /* TutorialOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialOverlay.swift; sourceTree = "<group>"; };
 		0586BCCDEDBDE702E5A8337E /* AdFreeBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdFreeBadge.swift; sourceTree = "<group>"; };
+		11ACEF22BC7C73E72DBDB0A6 /* SegmentedTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentedTabs.swift; sourceTree = "<group>"; };
 		11B682FDA317BA51DA412FEA /* Tutorial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tutorial.swift; sourceTree = "<group>"; };
 		125320FE8C0CD27DABD2E408 /* Managers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Managers.swift; sourceTree = "<group>"; };
 		14E9FBAB04997C010D88507E /* StoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreTests.swift; sourceTree = "<group>"; };
@@ -278,6 +280,7 @@
 				0586BCCDEDBDE702E5A8337E /* AdFreeBadge.swift */,
 				240578676C0B706FC34950F7 /* HUDView.swift */,
 				4E8833189801270C6E78D286 /* RootView.swift */,
+				11ACEF22BC7C73E72DBDB0A6 /* SegmentedTabs.swift */,
 				4FD24733F2D1BC1BBE3D6F0E /* StationListView.swift */,
 				8A26A43CF2C4D9BBECE52A00 /* Theme.swift */,
 				043F653C507C5D4BF440FA54 /* TutorialOverlay.swift */,
@@ -467,6 +470,7 @@
 				8D110146D9A89E45D5431CD0 /* RoadmapView.swift in Sources */,
 				312921B8E3AE9A57B3E6EBF4 /* RootView.swift in Sources */,
 				9359848A89A660E279F3DEAC /* SaveManager.swift in Sources */,
+				4BF88D6EA3891724BF93EF61 /* SegmentedTabs.swift in Sources */,
 				56BD95ED366A8F35E3D7BDEF /* SettingsView.swift in Sources */,
 				273B751043EDD9E4788F384D /* SheetScaffold.swift in Sources */,
 				DA7753FD7192F3A0D960C1A5 /* ShopView.swift in Sources */,

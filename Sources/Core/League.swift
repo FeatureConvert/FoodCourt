@@ -42,9 +42,36 @@ enum LeagueTier: Int, CaseIterable, Codable, Identifiable {
 struct LeagueRival: Codable, Equatable, Identifiable {
     var id: Int
     var name: String
-    /// Coins per second this rival "earns", fixed when the week is seeded.
-    var rate: Double
+    /// Ratio applied to the player's *current* rate each tick (see `League.advanceRivals`) -
+    /// fixed for the week so each rival has a consistent relative pace, but never a frozen
+    /// absolute number, so a rival can't fall arbitrarily far behind as the player grows.
+    var jitter: Double
     var score: Double
+
+    private enum CodingKeys: String, CodingKey { case id, name, jitter, score }
+
+    init(id: Int, name: String, jitter: Double, score: Double) {
+        self.id = id
+        self.name = name
+        self.jitter = jitter
+        self.score = score
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(Int.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        score = try c.decode(Double.self, forKey: .score)
+        // Saves from before rivals tracked the player's pace stored an absolute `rate`
+        // instead - there's nothing to convert, so reroll a stable jitter for this rival
+        // rather than losing the whole league (and the rest of the save) to a decode failure.
+        if let jitter = try c.decodeIfPresent(Double.self, forKey: .jitter) {
+            self.jitter = jitter
+        } else {
+            let rng = SeededRandom(seed: id &* 7919)
+            self.jitter = 0.35 + Double(rng.next(150)) / 100.0
+        }
+    }
 }
 
 struct LeagueEntry: Identifiable, Equatable {
@@ -102,10 +129,10 @@ enum League {
         return "\(firstNames[rng.next(firstNames.count)])'s \(surnames[rng.next(surnames.count)])"
     }
 
-    /// Seeds a fresh week. Rival rates are pinned to the player's own income so the table is
-    /// always competitive rather than trivially won or hopeless.
-    static func newWeek(tier: LeagueTier, playerRate: Double, now: Date, seasonsPlayed: Int) -> LeagueState {
-        let baseline = max(playerRate, 1)
+    /// Seeds a fresh week. Each rival gets a fixed jitter ratio around the player's pace -
+    /// the *effective* rate is recomputed every `advanceRivals` call against the player's
+    /// current income, so the table stays competitive all week instead of only at the start.
+    static func newWeek(tier: LeagueTier, now: Date, seasonsPlayed: Int) -> LeagueState {
         var rivals: [LeagueRival] = []
         for index in 0..<(size - 1) {
             let rng = SeededRandom(seed: index &* 7919 &+ Int(now.timeIntervalSince1970) &+ seasonsPlayed)
@@ -113,7 +140,7 @@ enum League {
             rivals.append(LeagueRival(
                 id: index,
                 name: name(seed: index &* 31 &+ seasonsPlayed &* 17),
-                rate: baseline * jitter * tier.rivalStrength,
+                jitter: jitter,
                 score: 0
             ))
         }
@@ -124,13 +151,19 @@ enum League {
 
     /// Advances rival scores for real elapsed time. Called on tick and on foreground, so
     /// rivals keep earning while the app is closed - as they should.
-    static func advanceRivals(_ state: inout LeagueState, to now: Date) {
+    ///
+    /// `playerRate` is the player's *current* income, not a value pinned when the week
+    /// started - an idle economy can grow the player's rate by orders of magnitude over a
+    /// single week, and a rival still earning at week-1 pace on week-7 isn't a rival anymore.
+    static func advanceRivals(_ state: inout LeagueState, to now: Date, playerRate: Double) {
         let elapsed = now.timeIntervalSince(state.lastSettledAt)
         guard elapsed > 0 else { return }
         state.lastSettledAt = now
         let capped = min(elapsed, weekLength)
+        let baseline = max(playerRate, 1)
         for index in state.rivals.indices {
-            state.rivals[index].score += state.rivals[index].rate * capped
+            let rate = baseline * state.rivals[index].jitter * state.tier.rivalStrength
+            state.rivals[index].score += rate * capped
         }
     }
 

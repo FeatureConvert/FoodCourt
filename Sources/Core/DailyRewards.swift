@@ -37,12 +37,12 @@ enum DailyRewards {
 
     static let calendar: [DailyRewardSpec] = [
         DailyRewardSpec(day: 1, kind: .coins(hours: 0.25)),
-        DailyRewardSpec(day: 2, kind: .gems(15)),
+        DailyRewardSpec(day: 2, kind: .gems(10)),
         DailyRewardSpec(day: 3, kind: .coins(hours: 0.5)),
-        DailyRewardSpec(day: 4, kind: .gems(25)),
+        DailyRewardSpec(day: 4, kind: .gems(16)),
         DailyRewardSpec(day: 5, kind: .coins(hours: 1)),
         DailyRewardSpec(day: 6, kind: .boost(multiplier: 2, hours: 1)),
-        DailyRewardSpec(day: 7, kind: .grand(gems: 100, hours: 4)),
+        DailyRewardSpec(day: 7, kind: .grand(gems: 65, hours: 4)),
     ]
 
     static let cycleLength = calendar.count

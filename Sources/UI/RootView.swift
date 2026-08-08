@@ -1,7 +1,8 @@
 import SwiftUI
 
 enum ActiveSheet: Identifiable, Equatable {
-    case shop, venues, prestige, settings, debug, offline, collection, quests, help
+    case shop, venues, prestige, settings, debug, offline, collection, help
+    case quests(QuestsView.Tab)
     case cloudConflict
     case daily
     case events(EventsView.Tab)
@@ -17,7 +18,7 @@ enum ActiveSheet: Identifiable, Equatable {
         case .debug: return "debug"
         case .offline: return "offline"
         case .collection: return "collection"
-        case .quests: return "quests"
+        case .quests(let tab): return "quests-\(tab.rawValue)"
         case .help: return "help"
         case .cloudConflict: return "cloud-conflict"
         case .daily: return "daily"
@@ -83,7 +84,14 @@ struct RootView: View {
                     onCollection: { present(.collection) },
                     onQuests: {
                         engine.completeTutorialStep(.openGoals)
-                        present(.quests)
+                        // The Goals badge can be lit by a claimable quest, a claimable
+                        // achievement, or both - open straight to whichever one is actually
+                        // waiting rather than always landing on Quests with no clue the
+                        // notification was really on the Achievements side.
+                        let initialTab: QuestsView.Tab =
+                            (engine.claimableQuests == 0 && !engine.claimableAchievements.isEmpty)
+                            ? .achievements : .quests
+                        present(.quests(initialTab))
                     },
                     onEvents: { present(.events(defaultEventsTab)) },
                     onShop: { present(.shop) }
@@ -146,7 +154,7 @@ struct RootView: View {
         case .settings: SettingsView(onToast: showToast, onHelp: { present(.help) })
         case .debug: DebugMenuView(onToast: showToast)
         case .collection: CollectionView(onToast: showToast)
-        case .quests: QuestsView(onToast: showToast)
+        case .quests(let tab): QuestsView(initialTab: tab, onToast: showToast)
         case .help: HelpView(onToast: showToast)
         case .cloudConflict:
             if let remote = cloud.conflict {
@@ -291,7 +299,7 @@ private struct BottomBar: View {
                       action: onCollection)
             barButton("Goals", "checklist",
                       badge: engine.claimableQuests > 0 || !engine.claimableAchievements.isEmpty,
-                      action: onQuests)
+                      target: .goalsTab, action: onQuests)
             barButton("Events", "calendar",
                       badge: eventsBadge, action: onEvents)
             barButton("Shop", "cart.fill", badge: false, action: onShop)
@@ -305,6 +313,7 @@ private struct BottomBar: View {
     }
 
     private func barButton(_ title: String, _ symbol: String, badge: Bool,
+                           target: TutorialTarget? = nil,
                            action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 3) {
@@ -326,6 +335,7 @@ private struct BottomBar: View {
             .padding(.vertical, 10)
         }
         .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
+        .tutorialHighlight(target)
     }
 }
 

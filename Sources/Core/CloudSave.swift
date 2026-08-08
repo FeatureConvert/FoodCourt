@@ -54,12 +54,13 @@ final class CloudSaveService: ObservableObject {
 
     // MARK: Push / pull
 
-    func push(_ state: GameState) {
-        guard isAvailable, let data = try? encoder.encode(state) else { return }
+    @discardableResult
+    func push(_ state: GameState) -> Bool {
+        guard isAvailable, let data = try? encoder.encode(state) else { return false }
         store.set(data, forKey: Self.key)
-        if store.synchronize() {
-            status = .synced(Date())
-        }
+        guard store.synchronize() else { return false }
+        status = .synced(Date())
+        return true
     }
 
     func pull() -> GameState? {

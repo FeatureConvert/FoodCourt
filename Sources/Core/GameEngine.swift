@@ -97,7 +97,6 @@ final class GameEngine: ObservableObject {
         Quests.refill(state: &state, incomePerSecond: state.automatedRate)
         if state.league.rivals.isEmpty {
             state.league = League.newWeek(tier: state.league.tier,
-                                          playerRate: max(state.automatedRate, 1),
                                           now: state.now,
                                           seasonsPlayed: state.league.seasonsPlayed)
         }
@@ -141,7 +140,7 @@ final class GameEngine: ObservableObject {
             pendingOfflineReport = report
         }
         Festival.rolloverIfNeeded(&state.festival, now: state.now)
-        League.advanceRivals(&state.league, to: state.now)
+        League.advanceRivals(&state.league, to: state.now, playerRate: state.automatedRate)
         settleLeagueIfFinished()
         state.lastSeen = state.now
         lastTickTime = CACurrentMediaTimeCompat()
@@ -175,7 +174,8 @@ final class GameEngine: ObservableObject {
         start()
     }
 
-    func pushToCloud() { cloud?.push(state) }
+    @discardableResult
+    func pushToCloud() -> Bool { cloud?.push(state) ?? false }
 
     // MARK: Tick
 
@@ -273,7 +273,7 @@ final class GameEngine: ObservableObject {
         }
         flushBursts()
 
-        League.advanceRivals(&state.league, to: now)
+        League.advanceRivals(&state.league, to: now, playerRate: state.automatedRate)
         // Both of these used to be checked only on foreground, so a season or a league week
         // that ended while the app was open just sat there until the next relaunch.
         settleLeagueIfFinished()
@@ -889,7 +889,6 @@ final class GameEngine: ObservableObject {
             state.bestLeagueTierReached = nextTier
         }
         state.league = League.newWeek(tier: nextTier,
-                                      playerRate: Swift.max(state.automatedRate, 1),
                                       now: state.now,
                                       seasonsPlayed: state.league.seasonsPlayed + 1)
         pendingLeagueOutcome = outcome

@@ -82,6 +82,10 @@ enum Quests {
         var gems: Int
         var seconds: Double
 
+        // Quests refill the instant one is claimed, so of every free gem source in the game
+        // this is the one a player can farm fastest - three slots cycling continuously add up
+        // to real money's worth of gems an hour at the original values. Halved across the
+        // board so the currency stays worth having without being a tap-and-collect faucet.
         switch kind {
         case .serve:
             // Scaled to current throughput like .earn is, rather than a flat count - a fixed
@@ -89,30 +93,30 @@ enum Quests {
             // and running fast, since it never accounted for how many dishes/second that is.
             let base = max(40, state.automatedServeRate * 90)
             target = (base * Double(1 + rng.next(3))).rounded()
-            gems = 10; seconds = 60
+            gems = 5; seconds = 60
         case .earn:
             // Relative to now, not to the run so far - progress counts from zero, so adding
             // runEarnings here would quietly demand the whole run again.
             let base = max(1_000, incomePerSecond * 120)
             target = base * Double(1 + rng.next(3))
-            gems = 15; seconds = 120
+            gems = 8; seconds = 120
         case .level:
             // Always a step beyond the current best, rounded to something legible.
             let step = [5, 10, 25].map { $0 }[rng.next(3)]
             target = Double(((bestLevel / step) + 1) * step)
-            gems = 20; seconds = 90
+            gems = 10; seconds = 90
         case .hire:
             target = Double(state.assignedManagerCount + 1 + rng.next(2))
-            gems = 25; seconds = 120
+            gems = 12; seconds = 120
         case .tap:
             target = Double(30 + rng.next(6) * 20)
-            gems = 8; seconds = 45
+            gems = 4; seconds = 45
         case .rush:
             target = Double(1 + rng.next(2))
-            gems = 30; seconds = 180
+            gems = 15; seconds = 180
         case .recipes:
             target = Double(totalCards + 1 + rng.next(2))
-            gems = 20; seconds = 90
+            gems = 10; seconds = 90
         }
 
         var quest = ActiveQuest(

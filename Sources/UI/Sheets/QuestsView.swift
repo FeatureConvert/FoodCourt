@@ -10,15 +10,17 @@ struct QuestsView: View {
         var title: String { self == .quests ? "Quests" : "Achievements" }
     }
 
-    @State private var tab: Tab = .quests
+    @State private var tab: Tab
+
+    init(initialTab: Tab = .quests, onToast: @escaping (String) -> Void) {
+        _tab = State(initialValue: initialTab)
+        self.onToast = onToast
+    }
 
     var body: some View {
         SheetScaffold(title: "Goals", subtitle: subtitle) {
-            Picker("", selection: $tab) {
-                ForEach(Tab.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .padding(.bottom, 4)
+            SegmentedTabs(selection: $tab) { $0.title }
+                .padding(.bottom, 4)
 
             switch tab {
             case .quests: QuestsSection(onToast: onToast)

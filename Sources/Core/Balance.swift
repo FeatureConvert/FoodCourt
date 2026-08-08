@@ -36,8 +36,16 @@ struct VenueSpec: Identifiable {
     let stations: [StationSpec]
 
     /// What it costs to open this venue's doors, in coins.
+    ///
+    /// 4_000 (the original value) put the Sushi Bar under 10 real minutes away even for a
+    /// player who was barely touching the game - the tutorial's first manager hire is free,
+    /// so a single continuously-reinvested station snowballs past the milestone speed/profit
+    /// multipliers fast enough that 4_000x undercut the ~20-30min target simulating that
+    /// exact "distracted, glances in every 15-120s" pattern against the real cost/revenue
+    /// curves. 8_000 lands that same simulation at ~22-29 minutes across that whole
+    /// engagement range instead.
     var unlockCost: Double {
-        id == 0 ? 0 : stations[0].baseCost * 4_000
+        id == 0 ? 0 : stations[0].baseCost * 8_000
     }
 
     /// Deeper venues pay far more and cost far more - this is what makes moving on feel

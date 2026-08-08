@@ -131,9 +131,9 @@ final class ProgressionTests: XCTestCase {
         let gemsBefore = state.gems
 
         let payout = DailyRewards.claim(state: &state, now: day(0), calendar: cal)
-        XCTAssertEqual(payout?.gems, 100)
+        XCTAssertEqual(payout?.gems, 65)
         XCTAssertGreaterThan(payout?.coins ?? 0, 0)
-        XCTAssertEqual(state.gems, gemsBefore + 100)
+        XCTAssertEqual(state.gems, gemsBefore + 65)
     }
 
     func testCoinRewardNeverFallsBelowTheFloor() {
