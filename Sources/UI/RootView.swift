@@ -165,7 +165,10 @@ struct RootView: View {
 
     private func detents(for sheet: ActiveSheet) -> Set<PresentationDetent> {
         switch sheet {
-        case .venues, .collection, .events, .cloudConflict: return [.large]
+        // .daily's content (7-day grid + claim button + streak explainer + streak row) is
+        // consistently taller than .medium, which left the claim button sitting at the fold
+        // with nothing below it hinting there was more to scroll to.
+        case .venues, .collection, .events, .cloudConflict, .daily: return [.large]
         case .perk: return [.medium, .large]
         default: return [.medium, .large]
         }

@@ -425,6 +425,12 @@ final class GameEngine: ObservableObject {
         state.hire(specID: ManagerCatalog.traineeID, venue: venue, station: index)
         advanceQuests(kind: .hire, to: Double(state.assignedManagerCount))
         state.tutorial.complete(.hireManager)
+        // A new save locks Coffee Break out for its first 15 minutes, so the very next
+        // tutorial step would instruct the player to tap something that's visibly disabled.
+        // Skip straight past it instead of ever showing a step that can't be followed.
+        if state.tutorial.current == .coffeeBreak, !boostReady {
+            state.tutorial.complete(.coffeeBreak)
+        }
         return true
     }
 

@@ -69,6 +69,21 @@ extension GameState {
             * researchEffects.profitMultiplier
     }
 
+    /// Dishes per second from staffed stations only - unlike automatedRate this is a pure
+    /// completion count, so it doesn't take the profit multipliers (stars/VIP/research
+    /// profit) that don't affect how fast a station actually cycles.
+    var automatedServeRate: Double {
+        var total: Double = 0
+        for venue in Balance.venues where venues[venue.id].unlocked {
+            for spec in venue.stations {
+                let station = venues[venue.id].stations[spec.id]
+                guard station.isStaffed, station.isOwned else { continue }
+                total += 1 / cycleTime(venue: venue.id, station: spec.id)
+            }
+        }
+        return total
+    }
+
     /// What a manual tap on a station is worth, including tap-value traits and research.
     func tapMultiplier(venue: Int) -> Double {
         venueManagerEffects(venue: venue).tapValue * researchEffects.tapMultiplier

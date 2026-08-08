@@ -52,8 +52,10 @@ struct ComboMeterView: View {
             .opacity(live ? 1 : 0)
             .scaleEffect(live ? 1 : 0.96, anchor: .top)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: live)
-            .frame(height: live ? nil : 0)
-            .clipped()
+            // Reserves its natural height whether live or not and only fades in place -
+            // collapsing to zero height here used to shift the station list up and down
+            // every time a combo started or expired, right under the player's thumb while
+            // they were actively tapping.
         }
         .allowsHitTesting(false)
     }

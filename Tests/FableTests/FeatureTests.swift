@@ -662,18 +662,33 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(e.state.tutorial.current, .buyLevel)
         e.buy(station: 0)
         XCTAssertEqual(e.state.tutorial.current, .hireManager)
+        // A new save locks Coffee Break out for its first 15 minutes, so hireManager skips
+        // straight past that tutorial step rather than instructing the player to tap
+        // something visibly disabled.
         e.hireManager(for: 0)
-        XCTAssertEqual(e.state.tutorial.current, .coffeeBreak)
-        // A new save locks Coffee Break out for its first 15 minutes, so a real player
-        // reaches this step before it's ready - mirrors RootView.takeCoffeeBreak()'s
-        // fallback that advances the tutorial anyway rather than stranding it.
-        if !e.claimFreeBoost() {
-            e.completeTutorialStep(.coffeeBreak)
-        }
         XCTAssertEqual(e.state.tutorial.current, .openGoals)
         e.completeTutorialStep(.openGoals)
         XCTAssertNil(e.state.tutorial.current)
         XCTAssertTrue(e.state.tutorial.finished)
+    }
+
+    @MainActor
+    func testTutorialShowsCoffeeBreakStepWhenTheBoostIsActuallyReady() {
+        // The skip in hireManager() is specifically about the boost not being ready - if it
+        // is (e.g. an old save, or the 15-minute gate has already passed), the step should
+        // still show and only complete once the player actually claims it.
+        var state = GameState.newGame()
+        state.boostAvailableAt = .distantPast
+        let e = engine(state)
+        e.addCoins(1_000)
+
+        e.tap(station: 0)
+        e.buy(station: 0)
+        e.hireManager(for: 0)
+        XCTAssertEqual(e.state.tutorial.current, .coffeeBreak)
+
+        XCTAssertTrue(e.claimFreeBoost())
+        XCTAssertEqual(e.state.tutorial.current, .openGoals)
     }
 
     func testTutorialIsSkippedForASaveWithHistory() {

@@ -84,7 +84,11 @@ enum Quests {
 
         switch kind {
         case .serve:
-            target = Double(40 + rng.next(5) * 30)
+            // Scaled to current throughput like .earn is, rather than a flat count - a fixed
+            // 40-190 target completed almost instantly once several stations were staffed
+            // and running fast, since it never accounted for how many dishes/second that is.
+            let base = max(40, state.automatedServeRate * 90)
+            target = (base * Double(1 + rng.next(3))).rounded()
             gems = 10; seconds = 60
         case .earn:
             // Relative to now, not to the run so far - progress counts from zero, so adding
