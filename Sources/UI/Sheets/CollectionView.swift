@@ -69,7 +69,6 @@ private struct StaffSection: View {
     private var guestChefBanner: some View {
         let spec = engine.currentGuestChef
         let owned = engine.guestChefAlreadyPurchasedThisWeek
-        let rarity = rarityColor(spec.rarity)
 
         return HStack(spacing: 12) {
             ZStack {
