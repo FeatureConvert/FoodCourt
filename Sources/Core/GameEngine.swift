@@ -150,9 +150,15 @@ final class GameEngine: ObservableObject {
         advance(by: delta)
     }
 
+    /// Wall clock of the last `advance`. Deliberately not `@Published`: views read it inside
+    /// a `TimelineView` to interpolate between ticks, so a progress ring animates at the
+    /// display's refresh rate instead of stepping at the engine's 20Hz.
+    private(set) var lastAdvanceAt = Date()
+
     /// Exposed for tests and the debug time-warp.
     func advance(by delta: TimeInterval) {
         let now = state.now
+        lastAdvanceAt = Date()
 
         if combo.prune(at: now) { objectWillChange.send() }
         expireGoldenIfNeeded(now: now)
@@ -318,6 +324,7 @@ final class GameEngine: ObservableObject {
         combo.register(at: state.now, windowBonus: state.comboWindowBonus(venue: venue))
         state.totalTaps += 1
         advanceQuests(kind: .tap, by: 1)
+        state.tutorial.complete(.tapStation)
 
         var station = state.venues[venue].stations[index]
         guard station.isOwned, !station.isStaffed, !station.isRunning else { return false }
@@ -354,6 +361,7 @@ final class GameEngine: ObservableObject {
         state.coins -= cost
         state.venues[venue].stations[index].level += amount
 
+        state.tutorial.complete(.buyLevel)
         rollRecipe(venue: venue, station: index, levels: amount)
         advanceQuests(kind: .level, to: Double(Quests.highestStationLevel(state)))
         checkPerkUnlock(venue: venue, station: index)
@@ -376,6 +384,7 @@ final class GameEngine: ObservableObject {
         }
         state.hire(specID: ManagerCatalog.traineeID, venue: venue, station: index)
         advanceQuests(kind: .hire, to: Double(state.assignedManagerCount))
+        state.tutorial.complete(.hireManager)
         return true
     }
 
@@ -745,6 +754,7 @@ final class GameEngine: ObservableObject {
                  hours: ActivePlay.freeBoostHours)
         state.boostAvailableAt = state.now
             .addingTimeInterval(ActivePlay.freeBoostCooldownMinutes * 60)
+        state.tutorial.complete(.coffeeBreak)
         save()
         return true
     }
@@ -783,6 +793,22 @@ final class GameEngine: ObservableObject {
             save()
         }
         return payout
+    }
+
+    // MARK: Tutorial
+
+    func completeTutorialStep(_ step: TutorialStep) {
+        state.tutorial.complete(step)
+    }
+
+    func skipTutorial() {
+        state.tutorial.skip()
+        save()
+    }
+
+    func restartTutorial() {
+        state.tutorial.restart()
+        save()
     }
 
     // MARK: Debug affordances

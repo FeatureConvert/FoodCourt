@@ -108,6 +108,7 @@ struct GameState: Codable, Equatable {
     var questsClaimed: Int = 0
     var festival = FestivalState()
     var league = LeagueState()
+    var tutorial = TutorialState()
 
     // Active play
     var rushEndsAt: Date = .distantPast
@@ -142,6 +143,10 @@ struct GameState: Codable, Equatable {
         venues[0].unlocked = true
 
         migrateLegacyManagers()
+
+        // A save with history belongs to someone who already knows how to play; only a
+        // genuinely fresh start should get the guided opening.
+        if lifetimeEarnings > 0 || lifetimeStars > 0 { tutorial.finished = true }
 
         // Pre-schema-2 saves earned stars before they were spendable, so seed both balances.
         if lifetimeStars < stars { lifetimeStars = stars }
@@ -284,7 +289,7 @@ struct GameState: Codable, Equatable {
         // so existing saves still decode.
         case boostAvailableAt = "adAvailableAt"
         case lastOfflineDoubleDay
-        case research, managers, recipeCards, quests, questsClaimed, festival, league
+        case research, managers, recipeCards, quests, questsClaimed, festival, league, tutorial
         case rushEndsAt, rushAvailableAt, rushesCompleted, totalTaps, totalServed
     }
 
@@ -319,6 +324,7 @@ struct GameState: Codable, Equatable {
         questsClaimed = try c.decodeIfPresent(Int.self, forKey: .questsClaimed) ?? 0
         festival = try c.decodeIfPresent(FestivalState.self, forKey: .festival) ?? FestivalState()
         league = try c.decodeIfPresent(LeagueState.self, forKey: .league) ?? LeagueState()
+        tutorial = try c.decodeIfPresent(TutorialState.self, forKey: .tutorial) ?? TutorialState()
 
         rushEndsAt = try c.decodeIfPresent(Date.self, forKey: .rushEndsAt) ?? .distantPast
         rushAvailableAt = try c.decodeIfPresent(Date.self, forKey: .rushAvailableAt) ?? .distantPast

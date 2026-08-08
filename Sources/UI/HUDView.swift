@@ -5,6 +5,7 @@ struct HUDView: View {
     let onDebug: () -> Void
     let onSettings: () -> Void
     let onStars: () -> Void
+    let onHelp: () -> Void
 
     var body: some View {
         VStack(spacing: 8) {
@@ -47,6 +48,15 @@ struct HUDView: View {
                 }
 
                 Spacer(minLength: 0)
+
+                Button(action: onHelp) {
+                    Image(systemName: "questionmark")
+                        .font(.system(size: 15, weight: .black))
+                        .foregroundStyle(Theme.textDim)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(Theme.panel.opacity(0.92)))
+                }
+                .buttonStyle(.plain)
 
                 Button(action: onSettings) {
                     Image(systemName: "gearshape.fill")

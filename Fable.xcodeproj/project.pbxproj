@@ -26,6 +26,7 @@
 		62E6F3569791FF240B8F752A /* VenueStageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2532F7EDEF7C37C11C81E08C /* VenueStageView.swift */; };
 		75321F06B4C9A848CBD2DC9B /* FoodSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2EE81608776E2BF273BBBD /* FoodSprite.swift */; };
 		79C4CA2410441F131686D40E /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A26A43CF2C4D9BBECE52A00 /* Theme.swift */; };
+		7D14D631059B4E9DBD2612F3 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7854B9B210EC3F33B4762987 /* HelpView.swift */; };
 		877B550408BB856B16FC8443 /* FableApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F55D1F4DA01CDB0A1E3FEE /* FableApp.swift */; };
 		8C31EA19716CB3E7952B8769 /* Managers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125320FE8C0CD27DABD2E408 /* Managers.swift */; };
 		91A5B84C81E8EB9D5B065519 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF0115CD9E38675947B4A523 /* GameState.swift */; };
@@ -35,6 +36,7 @@
 		9DFC77637C324CDD1AC8A9AD /* GemSpend.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6D9C15F5FAAEE676AFA42E6 /* GemSpend.swift */; };
 		AA4F7A9C8DF69657054AA551 /* QuestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0008725E6F430B76A24E5CA /* QuestsView.swift */; };
 		AA92E6FFD323932C7BFBCA41 /* PrestigeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D84AFD9A3A08F19C7440A7F9 /* PrestigeView.swift */; };
+		AE6D607423F0E3DCC735265B /* Tutorial.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B682FDA317BA51DA412FEA /* Tutorial.swift */; };
 		AF0FD8C199117D1A431555A2 /* ActivePlayViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C17466D04161D4F16C6110A /* ActivePlayViews.swift */; };
 		B3109EC527197FB0405AE433 /* FeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F2EB0B4C5701B9F89C4497 /* FeatureTests.swift */; };
 		BD63725F9DAA622F590E4F60 /* StoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C344A7F73D53DFFE26173A1 /* StoreService.swift */; };
@@ -51,6 +53,7 @@
 		E018DD2D1670A22E593B6962 /* Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B320AD114EF8759BA8EA4A0 /* Formatting.swift */; };
 		E7360EC0A6A0DD5B5A5E691B /* OfflineEarningsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE1EE843FA78D5CC2CCC947C /* OfflineEarningsView.swift */; };
 		EB6CA288EED7AAEE9C372B77 /* DailyRewards.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF0F3E61981543C34C90567C /* DailyRewards.swift */; };
+		ECC05541EDFB311DC4CD681E /* TutorialOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 043F653C507C5D4BF440FA54 /* TutorialOverlay.swift */; };
 		EDC2E9F49F724833352C78C3 /* StoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E9FBAB04997C010D88507E /* StoreTests.swift */; };
 		F3A571D29B7FC1381E1054FD /* VenueSelectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DC9C30BAAF4753AAF01055 /* VenueSelectView.swift */; };
 		F4F5E2480A8519A92F0C8507 /* AdFreeBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0586BCCDEDBDE702E5A8337E /* AdFreeBadge.swift */; };
@@ -70,7 +73,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		043F653C507C5D4BF440FA54 /* TutorialOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialOverlay.swift; sourceTree = "<group>"; };
 		0586BCCDEDBDE702E5A8337E /* AdFreeBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdFreeBadge.swift; sourceTree = "<group>"; };
+		11B682FDA317BA51DA412FEA /* Tutorial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tutorial.swift; sourceTree = "<group>"; };
 		125320FE8C0CD27DABD2E408 /* Managers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Managers.swift; sourceTree = "<group>"; };
 		14E9FBAB04997C010D88507E /* StoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreTests.swift; sourceTree = "<group>"; };
 		1B320AD114EF8759BA8EA4A0 /* Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatting.swift; sourceTree = "<group>"; };
@@ -96,6 +101,7 @@
 		6B5E019C15AA811DEA06C126 /* Festival.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Festival.swift; sourceTree = "<group>"; };
 		7222D4A6ECABE2F13FE32FAE /* OfflineEarnings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineEarnings.swift; sourceTree = "<group>"; };
 		75C207BD78124374F04BB52A /* Balance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Balance.swift; sourceTree = "<group>"; };
+		7854B9B210EC3F33B4762987 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 		7C344A7F73D53DFFE26173A1 /* StoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreService.swift; sourceTree = "<group>"; };
 		7EB9330C29FF462CFB68BA4C /* CoinBurst.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinBurst.swift; sourceTree = "<group>"; };
 		89F2E53AB8B4FAF1BD409A44 /* CollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionView.swift; sourceTree = "<group>"; };
@@ -155,6 +161,7 @@
 				46D1911EBB949FF72F6AB016 /* Research.swift */,
 				ADBF6FA651E23B2CE296686C /* SaveManager.swift */,
 				40A09664AFA96F68507B8608 /* StationMath.swift */,
+				11B682FDA317BA51DA412FEA /* Tutorial.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -196,6 +203,7 @@
 				5A00F2A8A161196B9066FFE9 /* DailyRewardView.swift */,
 				69FFAD265ADEF5481F857016 /* DebugMenuView.swift */,
 				37515A3266C48B43461F8FFF /* EventsView.swift */,
+				7854B9B210EC3F33B4762987 /* HelpView.swift */,
 				BE1EE843FA78D5CC2CCC947C /* OfflineEarningsView.swift */,
 				388AFC1D19065A136570A153 /* PerkChoiceView.swift */,
 				D84AFD9A3A08F19C7440A7F9 /* PrestigeView.swift */,
@@ -235,6 +243,7 @@
 				4E8833189801270C6E78D286 /* RootView.swift */,
 				4FD24733F2D1BC1BBE3D6F0E /* StationListView.swift */,
 				8A26A43CF2C4D9BBECE52A00 /* Theme.swift */,
+				043F653C507C5D4BF440FA54 /* TutorialOverlay.swift */,
 				2532F7EDEF7C37C11C81E08C /* VenueStageView.swift */,
 				3D59C8F9CECF31B0A58069FC /* Art */,
 				9DC4DC81BC1CB6163A43F7D2 /* Sheets */,
@@ -396,6 +405,7 @@
 				91A5B84C81E8EB9D5B065519 /* GameState.swift in Sources */,
 				9DFC77637C324CDD1AC8A9AD /* GemSpend.swift in Sources */,
 				94CD309B4984B1BAC6011F7B /* HUDView.swift in Sources */,
+				7D14D631059B4E9DBD2612F3 /* HelpView.swift in Sources */,
 				DAA618AE10CAE02924719006 /* Icons.swift in Sources */,
 				BF0DF4C8E17DA444E35B346C /* League.swift in Sources */,
 				8C31EA19716CB3E7952B8769 /* Managers.swift in Sources */,
@@ -417,6 +427,8 @@
 				9DF42692F52099B94D787E87 /* StationMath.swift in Sources */,
 				BD63725F9DAA622F590E4F60 /* StoreService.swift in Sources */,
 				79C4CA2410441F131686D40E /* Theme.swift in Sources */,
+				AE6D607423F0E3DCC735265B /* Tutorial.swift in Sources */,
+				ECC05541EDFB311DC4CD681E /* TutorialOverlay.swift in Sources */,
 				F3A571D29B7FC1381E1054FD /* VenueSelectView.swift in Sources */,
 				62E6F3569791FF240B8F752A /* VenueStageView.swift in Sources */,
 			);

@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum ActiveSheet: Identifiable, Equatable {
-    case shop, venues, prestige, settings, debug, offline, collection, quests
+    case shop, venues, prestige, settings, debug, offline, collection, quests, help
     case daily
     case events(EventsView.Tab)
     case perk(Int)
@@ -16,6 +16,7 @@ enum ActiveSheet: Identifiable, Equatable {
         case .offline: return "offline"
         case .collection: return "collection"
         case .quests: return "quests"
+        case .help: return "help"
         case .daily: return "daily"
         case .events(let tab): return "events-\(tab.rawValue)"
         case .perk(let station): return "perk-\(station)"
@@ -46,7 +47,8 @@ struct RootView: View {
             VStack(spacing: 8) {
                 HUDView(onDebug: { present(.debug) },
                         onSettings: { present(.settings) },
-                        onStars: { present(.prestige) })
+                        onStars: { present(.prestige) },
+                        onHelp: { present(.help) })
                     .padding(.horizontal, 14)
 
                 if engine.rushActive {
@@ -74,13 +76,18 @@ struct RootView: View {
                 BottomBar(
                     onVenues: { present(.venues) },
                     onCollection: { present(.collection) },
-                    onQuests: { present(.quests) },
+                    onQuests: {
+                        engine.completeTutorialStep(.openGoals)
+                        present(.quests)
+                    },
                     onEvents: { present(.events(defaultEventsTab)) },
                     onShop: { present(.shop) }
                 )
                 .padding(.horizontal, 14)
                 .padding(.bottom, 4)
             }
+
+            TutorialOverlay(onSkip: { engine.skipTutorial() })
 
             if let toast {
                 ToastView(message: toast)
@@ -90,6 +97,8 @@ struct RootView: View {
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: toast)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: engine.state.tutorial.step)
+        .animation(.easeInOut(duration: 0.25), value: engine.state.tutorial.finished)
         .animation(.spring(response: 0.3, dampingFraction: 0.85), value: engine.rushActive)
         .sheet(item: $sheet, onDismiss: handleSheetDismissed) { which in
             sheetContent(for: which)
@@ -126,10 +135,11 @@ struct RootView: View {
         case .shop: ShopView(onToast: showToast)
         case .venues: VenueSelectView(onToast: showToast)
         case .prestige: PrestigeView(onToast: showToast)
-        case .settings: SettingsView(onToast: showToast)
+        case .settings: SettingsView(onToast: showToast, onHelp: { present(.help) })
         case .debug: DebugMenuView(onToast: showToast)
         case .collection: CollectionView(onToast: showToast)
         case .quests: QuestsView(onToast: showToast)
+        case .help: HelpView(onToast: showToast)
         case .daily: DailyRewardView(onToast: showToast)
         case .events(let tab): EventsView(initialTab: tab, onToast: showToast)
         case .perk(let station): PerkChoiceView(station: station, onToast: showToast)

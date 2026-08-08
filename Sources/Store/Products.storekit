@@ -90,12 +90,12 @@
       "type" : "NonConsumable"
     },
     {
-      "displayPrice" : "7.99",
+      "displayPrice" : "3.99",
       "familyShareable" : false,
       "internalID" : "1000000007",
       "localizations" : [
         {
-          "description" : "Unlocks the premium reward on all 30 festival tiers this season.",
+          "description" : "Unlocks the premium reward on all 30 festival tiers for this season.",
           "displayName" : "Carnival Pass",
           "locale" : "en_US"
         }
@@ -105,7 +105,7 @@
       "type" : "Consumable"
     },
     {
-      "displayPrice" : "9.99",
+      "displayPrice" : "14.99",
       "familyShareable" : true,
       "internalID" : "1000000006",
       "localizations" : [

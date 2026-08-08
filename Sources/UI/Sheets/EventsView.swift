@@ -137,7 +137,7 @@ private struct FestivalSection: View {
                         .lineLimit(2).multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 0)
-                Text(item.map { store.displayPrice(for: $0) } ?? "$7.99")
+                Text(item.map { store.displayPrice(for: $0) } ?? "$3.99")
                     .font(Theme.numeric(14))
                     .foregroundStyle(Theme.text)
                     .padding(.horizontal, 12).padding(.vertical, 7)

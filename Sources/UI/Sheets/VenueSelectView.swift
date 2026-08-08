@@ -46,6 +46,7 @@ struct VenueSelectView: View {
                     // Station 1 is each venue's signature dish and reads far better at this
                     // size than the abstract capstone platter.
                     FoodSprite(art: venue.stations[1].art, colors: venue.stations[1].colors)
+                        .equatable()
                         .frame(width: 42, height: 42)
                         .saturation(unlocked ? 1 : 0)
                         .opacity(unlocked ? 1 : 0.5)

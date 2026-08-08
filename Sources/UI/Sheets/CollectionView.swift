@@ -89,6 +89,7 @@ private struct StaffSection: View {
                 Circle().fill(rarity.opacity(0.22))
                 Circle().stroke(rarity, lineWidth: 2)
                 CustomerSprite(seed: spec.portraitSeed)
+                    .equatable()
                     .frame(width: 30, height: 42)
                     .offset(y: 3)
             }
@@ -225,6 +226,7 @@ private struct RecipeSection: View {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(owned ? Theme.ink.opacity(0.55) : Theme.ink.opacity(0.3))
                 FoodSprite(art: spec.art, colors: spec.colors)
+                    .equatable()
                     .frame(width: 40, height: 40)
                     .saturation(owned ? 1 : 0)
                     .opacity(owned ? 1 : 0.25)

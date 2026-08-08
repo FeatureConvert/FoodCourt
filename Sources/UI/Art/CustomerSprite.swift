@@ -2,8 +2,10 @@ import SwiftUI
 
 /// A procedurally varied little person. One seed drives skin, hair, outfit, and hat so a
 /// queue of customers looks like a crowd instead of a row of clones.
-struct CustomerSprite: View {
+struct CustomerSprite: View, Equatable {
     let seed: Int
+
+    static func == (lhs: CustomerSprite, rhs: CustomerSprite) -> Bool { lhs.seed == rhs.seed }
 
     private static let skins = ["#F2C49B", "#D9A06B", "#A9714B", "#7A4E33", "#F7D9BE", "#5C3A24"]
     private static let hairs = ["#2E2A2B", "#5B3A20", "#C8873B", "#8E4A3C", "#3C4A6B", "#B8B2AD"]
@@ -71,7 +73,7 @@ struct CustomerSprite: View {
             smile.addQuadCurve(to: p(0.6, top + 0.31), control: p(0.5, top + 0.38))
             context.stroke(smile, with: .color(.black.opacity(0.6)), lineWidth: line)
         }
-        .drawingGroup()
+
         .accessibilityHidden(true)
     }
 }

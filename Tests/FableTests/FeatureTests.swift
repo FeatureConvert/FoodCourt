@@ -621,6 +621,57 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(e.state.league.seasonsPlayed, 1)
     }
 
+    @MainActor
+    func testFirstManagerIsAffordableToANewPlayer() {
+        // Automation is the idea the game most needs to teach early, so the opening hire
+        // must be reachable rather than a wall at minute one.
+        let first = Balance.venue(0).stations[0]
+        let second = Balance.venue(0).stations[1]
+        XCTAssertLessThan(Balance.managerCost(spec: first), 300)
+        XCTAssertEqual(Balance.managerCost(spec: second),
+                       second.baseCost * Balance.managerCostFactor,
+                       "only the first station of a venue is discounted")
+
+        // Reachable from the day-one daily plus a short spell of tapping.
+        let e = engine()
+        e.addCoins(DailyRewards.minimumCoins(day: 1) + 150)
+        XCTAssertTrue(e.hireManager(for: 0))
+    }
+
+    @MainActor
+    func testTutorialAdvancesOnlyByDoingTheAskedStep() {
+        let e = engine()
+        XCTAssertEqual(e.state.tutorial.current, .tapStation)
+
+        // Buying first must not skip the tap step.
+        e.addCoins(1_000)
+        e.buy(station: 0)
+        XCTAssertEqual(e.state.tutorial.current, .tapStation)
+
+        e.tap(station: 0)
+        XCTAssertEqual(e.state.tutorial.current, .buyLevel)
+        e.buy(station: 0)
+        XCTAssertEqual(e.state.tutorial.current, .hireManager)
+        e.hireManager(for: 0)
+        XCTAssertEqual(e.state.tutorial.current, .coffeeBreak)
+        e.claimFreeBoost()
+        XCTAssertEqual(e.state.tutorial.current, .openGoals)
+        e.completeTutorialStep(.openGoals)
+        XCTAssertNil(e.state.tutorial.current)
+        XCTAssertTrue(e.state.tutorial.finished)
+    }
+
+    func testTutorialIsSkippedForASaveWithHistory() {
+        var state = GameState.newGame()
+        state.lifetimeEarnings = 50_000
+        state.reconcileWithCatalog()
+        XCTAssertTrue(state.tutorial.finished, "an existing player is not a new player")
+
+        var fresh = GameState.newGame()
+        fresh.reconcileWithCatalog()
+        XCTAssertFalse(fresh.tutorial.finished)
+    }
+
     // MARK: Prestige interaction
 
     @MainActor

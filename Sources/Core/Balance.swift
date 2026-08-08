@@ -95,6 +95,11 @@ enum Balance {
     static let minimumCycle: TimeInterval = 0.05
 
     static let managerCostFactor: Double = 500
+    /// The first station in a venue is deliberately cheap to staff. At the full factor the
+    /// very first manager costs 2,000 against a starting balance of about 100, which put a
+    /// wall in front of the player one minute in - and automation is the idea the game most
+    /// needs to teach early. It also gets each new venue automating quickly.
+    static let firstStationManagerFactor: Double = 60
 
     // Offline / retention
     static let offlineEfficiency: Double = 0.5
@@ -208,7 +213,7 @@ enum Balance {
     }
 
     static func managerCost(spec: StationSpec) -> Double {
-        spec.baseCost * managerCostFactor
+        spec.baseCost * (spec.id == 0 ? firstStationManagerFactor : managerCostFactor)
     }
 
     // MARK: Milestones

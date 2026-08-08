@@ -72,7 +72,6 @@ struct StationCardView: View {
     private var state: StationState { engine.state.venues[venueID].stations[spec.id] }
     private var palette: VenuePalette { VenuePalette.of(Balance.venue(venueID).theme) }
     private var cycle: TimeInterval { engine.state.cycleTime(venue: venueID, station: spec.id) }
-    private var progress: Double { state.isRunning ? min(1, state.elapsed / cycle) : 0 }
     private var payout: Double {
         engine.state.baseRevenue(venue: venueID, station: spec.id) * engine.payoutMultiplier
     }
@@ -111,9 +110,11 @@ struct StationCardView: View {
         } label: {
             ZStack {
                 Circle().fill(Theme.ink.opacity(0.55))
-                CookerRing(progress: progress, cycle: cycle, accent: palette.accent)
+                CookerRing(elapsed: state.elapsed, isRunning: state.isRunning, cycle: cycle,
+                           accent: palette.accent, lastAdvanceAt: engine.lastAdvanceAt)
 
                 FoodSprite(art: spec.art, colors: spec.colors)
+                    .equatable()
                     .frame(width: 44, height: 44)
                     .saturation(state.isOwned ? 1 : 0)
                     .opacity(state.isOwned ? 1 : 0.45)
@@ -128,6 +129,7 @@ struct StationCardView: View {
             .frame(width: 66, height: 66)
         }
         .buttonStyle(.plain)
+        .tutorialHighlight(spec.id == 0 ? .stationCooker : nil)
         .scaleEffect(state.isRunning ? 0.96 : 1)
         .animation(.easeOut(duration: 0.12), value: state.isRunning)
     }
@@ -180,6 +182,7 @@ struct StationCardView: View {
         if let manager = engine.state.managerSpec(venue: venueID, station: spec.id) {
             HStack(spacing: 4) {
                 CustomerSprite(seed: manager.portraitSeed)
+                    .equatable()
                     .frame(width: 12, height: 17)
                 Text(manager.name)
                     .font(Theme.body(9, weight: .bold))
@@ -238,6 +241,7 @@ struct StationCardView: View {
                 radius: 12
             ))
             .disabled(!affordable)
+            .tutorialHighlight(spec.id == 0 ? .stationBuy : nil)
 
             secondaryButton
         }
@@ -291,6 +295,7 @@ struct StationCardView: View {
                 fill: canHire ? Theme.gemDeep : Theme.panelRaised,
                 shadow: Theme.ink, radius: 10
             ))
+            .tutorialHighlight(spec.id == 0 ? .stationHire : nil)
         }
     }
 
@@ -332,55 +337,64 @@ struct StationCardView: View {
 /// Below the threshold the ring locks to full and switches to a glow with a slow sweep, which
 /// says "running flat out" instead, and doubles as a reward for having got it that fast.
 private struct CookerRing: View {
-    let progress: Double
+    /// Elapsed as of the last engine tick; the view interpolates forward from there.
+    let elapsed: TimeInterval
+    let isRunning: Bool
     let cycle: TimeInterval
     let accent: Color
+    let lastAdvanceAt: Date
 
     /// A sweep is still legible at roughly three cycles a second; past that it is a blur.
     static let flatOutBelow: TimeInterval = 0.35
 
     private var isFlatOut: Bool { cycle < Self.flatOutBelow }
 
+    /// One timeline for both modes, running at the display's refresh rate. Sampling the
+    /// engine's `elapsed` directly gave a 0.6s cycle only twelve frames, which is what made
+    /// the ring look like it was running at a low frame rate.
     var body: some View {
-        ZStack {
-            Circle().stroke(Theme.stroke, lineWidth: 5)
+        TimelineView(.animation) { timeline in
+            ZStack {
+                Circle().stroke(Theme.stroke, lineWidth: 5)
 
-            if isFlatOut {
-                flatOut.transition(.opacity)
-            } else {
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .transition(.opacity)
+                if isFlatOut {
+                    flatOut(at: timeline.date)
+                } else {
+                    Circle()
+                        .trim(from: 0, to: interpolatedProgress(at: timeline.date))
+                        .stroke(accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                }
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: isFlatOut)
     }
 
-    /// Driven off the timeline rather than a `repeatForever` animation: this card re-renders
-    /// at the tick rate, which would keep restarting a state-driven animation.
-    private var flatOut: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
-            let t = timeline.date.timeIntervalSinceReferenceDate
-            let pulse = 0.5 + 0.5 * sin(t * 4.5)
-            let sweep = Angle.degrees((t * 400).truncatingRemainder(dividingBy: 360))
+    /// Carries the last sampled elapsed forward by however long it has been since that tick.
+    private func interpolatedProgress(at date: Date) -> Double {
+        guard isRunning, cycle > 0 else { return 0 }
+        let sinceTick = max(0, date.timeIntervalSince(lastAdvanceAt))
+        return min(1, (elapsed + sinceTick) / cycle)
+    }
 
-            ZStack {
-                Circle()
-                    .stroke(accent, lineWidth: 5)
-                    .shadow(color: accent.opacity(0.35 + 0.45 * pulse), radius: 4 + 5 * pulse)
-                Circle()
-                    .trim(from: 0, to: 0.2)
-                    .stroke(
-                        AngularGradient(
-                            gradient: Gradient(colors: [accent.opacity(0), .white.opacity(0.85)]),
-                            center: .center
-                        ),
-                        style: StrokeStyle(lineWidth: 5, lineCap: .round)
-                    )
-                    .rotationEffect(sweep)
-            }
+    private func flatOut(at date: Date) -> some View {
+        let t = date.timeIntervalSinceReferenceDate
+        let pulse = 0.5 + 0.5 * sin(t * 4.5)
+        let sweep = Angle.degrees((t * 400).truncatingRemainder(dividingBy: 360))
+
+        return ZStack {
+            Circle()
+                .stroke(accent, lineWidth: 5)
+                .shadow(color: accent.opacity(0.35 + 0.45 * pulse), radius: 4 + 5 * pulse)
+            Circle()
+                .trim(from: 0, to: 0.2)
+                .stroke(
+                    AngularGradient(
+                        gradient: Gradient(colors: [accent.opacity(0), .white.opacity(0.85)]),
+                        center: .center
+                    ),
+                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                )
+                .rotationEffect(sweep)
         }
     }
 }
@@ -407,6 +421,7 @@ struct NextVenueTeaser: View {
                 ZStack {
                     Circle().fill(palette.counter)
                     FoodSprite(art: venue.stations[1].art, colors: venue.stations[1].colors)
+                        .equatable()
                         .frame(width: 40, height: 40)
                         .saturation(affordable ? 1 : 0.2)
                 }

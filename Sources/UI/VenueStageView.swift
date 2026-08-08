@@ -95,6 +95,7 @@ struct CustomerQueueView: View {
         HStack(alignment: .bottom, spacing: 6) {
             ForEach(seeds, id: \.self) { seed in
                 CustomerSprite(seed: seed)
+                    .equatable()
                     .frame(width: 44, height: 62)
                     .transition(.asymmetric(
                         insertion: .move(edge: .leading).combined(with: .opacity),

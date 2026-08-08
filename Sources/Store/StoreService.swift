@@ -50,10 +50,10 @@ enum ShopCatalog {
                  reward: .starterPack, fallbackPrice: "$4.99", badge: "ONE TIME", magnitude: 3),
         ShopItem(id: prefix + "vip.pass", title: "VIP Pass",
                  subtitle: "+25% profit forever · 12h offline earnings · Carnival Pass every season",
-                 reward: .vip, fallbackPrice: "$9.99", badge: "BEST VALUE", magnitude: 4),
+                 reward: .vip, fallbackPrice: "$14.99", badge: "BEST VALUE", magnitude: 4),
         ShopItem(id: prefix + "pack.festival", title: "Carnival Pass",
-                 subtitle: "Unlocks the premium reward on all 30 festival tiers",
-                 reward: .festivalPass, fallbackPrice: "$7.99", badge: "SEASON", magnitude: 3),
+                 subtitle: "Premium reward on all 30 tiers · this season only",
+                 reward: .festivalPass, fallbackPrice: "$3.99", badge: "THIS SEASON", magnitude: 2),
     ]
 
     static let all: [ShopItem] = offers + gemPacks

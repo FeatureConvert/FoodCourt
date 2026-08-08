@@ -49,7 +49,8 @@ struct FestivalState: Codable, Equatable {
 enum Festival {
 
     static let tierCount = 30
-    static let seasonLength: TimeInterval = 3 * 24 * 3600
+    /// A week, matching the league. Three days was too short to sell a pass for.
+    static let seasonLength: TimeInterval = 7 * 24 * 3600
     static let premiumProductID = "com.fable.foodcourt.pack.festival"
 
     // Ticket sources.
@@ -73,7 +74,7 @@ enum Festival {
 
     static func ticketsRequired(forTier tier: Int) -> Int {
         guard tier > 0 else { return 0 }
-        return Int((30 * pow(Double(tier), 1.35)).rounded())
+        return Int((70 * pow(Double(tier), 1.35)).rounded())
     }
 
     static func tier(_ index: Int) -> FestivalTier {

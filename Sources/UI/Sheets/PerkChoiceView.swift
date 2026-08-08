@@ -17,6 +17,7 @@ struct PerkChoiceView: View {
                       subtitle: "\(spec.name) — pick one, it's permanent") {
             HStack(spacing: 10) {
                 FoodSprite(art: spec.art, colors: spec.colors)
+                    .equatable()
                     .frame(width: 46, height: 46)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(spec.name)

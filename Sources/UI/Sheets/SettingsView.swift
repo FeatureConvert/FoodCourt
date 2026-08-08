@@ -4,6 +4,7 @@ struct SettingsView: View {
     @EnvironmentObject private var engine: GameEngine
     @EnvironmentObject private var store: StoreService
     let onToast: (String) -> Void
+    var onHelp: () -> Void = {}
 
     @State private var confirmingReset = false
 
@@ -20,6 +21,14 @@ struct SettingsView: View {
                 row("Ads shown", "0")
             }
             .panel(Theme.panel)
+
+            SectionLabel(text: "Help")
+            Button {
+                onHelp()
+            } label: {
+                label("Guide & FAQ", system: "questionmark.circle.fill")
+            }
+            .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
 
             SectionLabel(text: "Purchases")
             Button {

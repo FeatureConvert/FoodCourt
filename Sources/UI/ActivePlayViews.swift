@@ -104,6 +104,7 @@ struct GoldenCustomerView: View {
                     .scaleEffect(pulse ? 1.15 : 0.9)
 
                 CustomerSprite(seed: seed)
+                    .equatable()
                     .frame(width: 46, height: 64)
                     .overlay(
                         Image(systemName: "crown.fill")
@@ -136,6 +137,7 @@ struct StageActionsView: View {
                          tint: engine.boostReady ? Theme.positive : Theme.locked,
                          badge: engine.boostReady,
                          action: onBoost)
+                .tutorialHighlight(.coffeeButton)
 
             circleButton(symbol: "timer",
                          tint: engine.rushActive ? Theme.negative

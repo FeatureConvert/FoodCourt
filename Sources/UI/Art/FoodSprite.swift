@@ -2,9 +2,17 @@ import SwiftUI
 
 /// Draws a station's food using only vector paths, so every item is crisp at any size and
 /// the whole art set is editable code rather than binary assets.
-struct FoodSprite: View {
+///
+/// `Equatable` matters here: the card that hosts this re-renders at the engine's 20Hz tick,
+/// and without it SwiftUI re-ran the whole canvas every time for art that never changes.
+/// `.drawingGroup()` made that worse by forcing an offscreen pass on each one.
+struct FoodSprite: View, Equatable {
     let art: FoodArt
     let colors: [String]
+
+    static func == (lhs: FoodSprite, rhs: FoodSprite) -> Bool {
+        lhs.art == rhs.art && lhs.colors == rhs.colors
+    }
 
     var body: some View {
         Canvas { context, size in
@@ -12,7 +20,6 @@ struct FoodSprite: View {
                                                                  dy: size.height * 0.06)
             FoodArtRenderer.draw(art, in: rect, context: context, colors: resolved)
         }
-        .drawingGroup()
         .accessibilityHidden(true)
     }
 
