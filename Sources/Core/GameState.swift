@@ -82,6 +82,20 @@ struct Entitlements: Codable, Equatable {
 }
 
 /// Login calendar progress. Tracked by calendar day, not by a rolling 24h timer.
+/// The second, much rarer prestige layer. See `GameEngine.legacyReset`.
+struct LegacyState: Codable, Equatable {
+    var level: Int = 0
+
+    enum CodingKeys: String, CodingKey { case level }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        level = try c.decodeIfPresent(Int.self, forKey: .level) ?? 0
+    }
+}
+
 struct DailyRewardState: Codable, Equatable {
     var currentDay: Int = 1
     var lastClaimedDay: Date? = nil
@@ -159,6 +173,18 @@ struct GameState: Codable, Equatable {
     // Achievements
     var errands: [ActiveErrand] = []
 
+    /// Venue id -> equipped skin id. A venue with no entry shows "classic", which is always
+    /// free and never needs to appear in `unlockedSkins`.
+    var venueSkins: [Int: String] = [:]
+    /// Venue id -> non-classic skin ids that venue has paid to unlock.
+    var unlockedSkins: [Int: Set<String>] = [:]
+
+    var legacy = LegacyState()
+
+    /// `GuestChef.weekKey` of the last successful purchase, so a repurchase can't happen
+    /// twice in the same week. Nil for a player who has never bought one.
+    var lastGuestChefPurchaseWeek: Int? = nil
+
     var claimedAchievements: Set<String> = []
     var prestigeCount: Int = 0
     /// Kept separately from `league.tier` because `league` is replaced wholesale every time
@@ -233,6 +259,7 @@ struct GameState: Codable, Equatable {
         let boost = activeBoosts.reduce(1.0) { $0 * $1.multiplier }
         return boost
             * Balance.starMultiplier(stars: lifetimeStars)
+            * Balance.legacyMultiplier(level: legacy.level)
             * entitlements.profitMultiplier
             * researchEffects.profitMultiplier
     }
@@ -248,6 +275,14 @@ struct GameState: Codable, Equatable {
 
     func station(_ venue: Int, _ station: Int) -> StationState {
         venues[venue].stations[station]
+    }
+
+    // MARK: Cosmetics
+
+    func skin(venue: Int) -> String { venueSkins[venue] ?? "classic" }
+
+    func hasUnlockedSkin(venue: Int, skin: String) -> Bool {
+        skin == "classic" || (unlockedSkins[venue]?.contains(skin) ?? false)
     }
 
     // MARK: Managers
@@ -346,6 +381,9 @@ struct GameState: Codable, Equatable {
         case rushEndsAt, rushAvailableAt, rushesCompleted, totalTaps, totalServed
         case claimedAchievements, prestigeCount, bestLeagueTierReached
         case errands
+        case venueSkins, unlockedSkins
+        case legacy
+        case lastGuestChefPurchaseWeek
     }
 
     init() {}
@@ -392,5 +430,11 @@ struct GameState: Codable, Equatable {
         bestLeagueTierReached = try c.decodeIfPresent(LeagueTier.self, forKey: .bestLeagueTierReached) ?? .bronze
 
         errands = try c.decodeIfPresent([ActiveErrand].self, forKey: .errands) ?? []
+
+        venueSkins = try c.decodeIfPresent([Int: String].self, forKey: .venueSkins) ?? [:]
+        unlockedSkins = try c.decodeIfPresent([Int: Set<String>].self, forKey: .unlockedSkins) ?? [:]
+
+        legacy = try c.decodeIfPresent(LegacyState.self, forKey: .legacy) ?? LegacyState()
+        lastGuestChefPurchaseWeek = try c.decodeIfPresent(Int.self, forKey: .lastGuestChefPurchaseWeek)
     }
 }

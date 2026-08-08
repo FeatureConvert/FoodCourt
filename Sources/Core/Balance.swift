@@ -266,6 +266,17 @@ enum Balance {
     static func starMultiplier(stars: Int) -> Double {
         1 + Double(stars) * profitPerStar
     }
+
+    // MARK: Legacy (second prestige layer)
+
+    /// Reachable only after repeatedly prestiging in the ordinary sense - a first prestige at
+    /// the minimum lifetime earnings yields roughly 47 stars, so 500 lifetime stars takes
+    /// several trips through the regular loop.
+    static let legacyUnlockLifetimeStars = 500
+
+    static func legacyMultiplier(level: Int) -> Double {
+        1 + Double(level) * 0.05
+    }
 }
 
 extension Format {

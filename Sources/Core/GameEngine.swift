@@ -441,6 +441,25 @@ final class GameEngine: ObservableObject {
         return spec
     }
 
+    // MARK: Guest Chef
+
+    var currentGuestChef: ManagerSpec { GuestChef.current(now: state.now) }
+
+    var guestChefAlreadyPurchasedThisWeek: Bool {
+        state.lastGuestChefPurchaseWeek == GuestChef.weekKey(now: state.now)
+    }
+
+    @discardableResult
+    func purchaseGuestChef() -> ManagerSpec? {
+        guard !guestChefAlreadyPurchasedThisWeek else { return nil }
+        guard spendGems(GuestChef.gemPrice) else { return nil }
+        let spec = currentGuestChef
+        state.recruit(specID: spec.id)
+        state.lastGuestChefPurchaseWeek = GuestChef.weekKey(now: state.now)
+        save()
+        return spec
+    }
+
     // MARK: Perks
 
     private func checkPerkUnlock(venue: Int, station: Int) {
@@ -591,6 +610,35 @@ final class GameEngine: ObservableObject {
         activeOrder = nil
     }
 
+    // MARK: Cosmetics
+
+    /// Purely visual, so priced in coins rather than gems - it can't cut against the "never
+    /// sell power" line the rest of the shop holds to.
+    func skinPrice(venue: Int) -> Double {
+        Balance.venue(venue).stations[0].baseCost * 500
+    }
+
+    @discardableResult
+    func unlockSkin(venue: Int, skin: String) -> Bool {
+        guard skin != "classic", !state.hasUnlockedSkin(venue: venue, skin: skin) else { return false }
+        let price = skinPrice(venue: venue)
+        guard state.coins >= price else { return false }
+        state.coins -= price
+        state.unlockedSkins[venue, default: []].insert(skin)
+        state.venueSkins[venue] = skin
+        save()
+        return true
+    }
+
+    /// Re-equips an already-unlocked skin for free - only the first unlock costs coins.
+    @discardableResult
+    func setSkin(venue: Int, skin: String) -> Bool {
+        guard state.hasUnlockedSkin(venue: venue, skin: skin) else { return false }
+        state.venueSkins[venue] = skin
+        save()
+        return true
+    }
+
     // MARK: Prestige
 
     var pendingStars: Int {
@@ -622,6 +670,37 @@ final class GameEngine: ObservableObject {
         combo.reset()
         save()
         return award
+    }
+
+    // MARK: Legacy (second prestige layer)
+
+    var canLegacyReset: Bool {
+        state.lifetimeStars >= Balance.legacyUnlockLifetimeStars
+    }
+
+    /// Trades away the accumulated star multiplier for a permanently bigger one. Unlike
+    /// `prestige()`, this also clears stars/lifetimeStars/research - the very things regular
+    /// prestige is careful to keep - since giving those up is the entire point. Managers,
+    /// recipes, achievements, errands, festival and league are left untouched: they are
+    /// collections and accomplishments, not run progress.
+    @discardableResult
+    func legacyReset() -> Int {
+        guard canLegacyReset else { return state.legacy.level }
+        state.legacy.level += 1
+        state.coins = 0
+        state.runEarnings = 0
+        state.stars = 0
+        state.lifetimeStars = 0
+        state.research = [:]
+        state.venues = Balance.venues.map { VenueState.fresh(venue: $0, unlocked: $0.id == 0) }
+        state.venues[0].stations[0].level = 1
+        state.currentVenue = 0
+        lastServe.removeAll()
+        pendingBursts.removeAll()
+        lastBurstAt.removeAll()
+        combo.reset()
+        save()
+        return state.legacy.level
     }
 
     // MARK: Research

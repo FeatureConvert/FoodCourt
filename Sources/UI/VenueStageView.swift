@@ -5,9 +5,12 @@ import SwiftUI
 struct VenueStageView: View {
     @EnvironmentObject private var engine: GameEngine
     let onGolden: (Double) -> Void
+    var onCustomize: (() -> Void)? = nil
 
     private var venue: VenueSpec { Balance.venue(engine.state.currentVenue) }
-    private var palette: VenuePalette { VenuePalette.of(venue.theme) }
+    private var palette: VenuePalette {
+        VenuePalette.of(venue.theme, skin: engine.state.skin(venue: venue.id))
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -45,6 +48,8 @@ struct VenueStageView: View {
                 )
                 .frame(maxHeight: .infinity, alignment: .top)
                 .padding(.top, 12)
+                .contentShape(Rectangle())
+                .onTapGesture { onCustomize?() }
 
                 CustomerQueueView(width: w)
                     .frame(height: h * 0.46)

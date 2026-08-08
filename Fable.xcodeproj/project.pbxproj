@@ -24,11 +24,13 @@
 		46EF0E95E698953D1B5F9277 /* CustomerSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = B56026DD041F82FCAAF814D9 /* CustomerSprite.swift */; };
 		47C8E48D0CF365D21C3AF103 /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 90ADE33E20D3F2B41202C2A1 /* Products.storekit */; };
 		56BD95ED366A8F35E3D7BDEF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F09D63C291B04A5F9057BC6 /* SettingsView.swift */; };
+		58B4D9A595DA981E15FFF05E /* CosmeticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B0191022A667BB5281A2549 /* CosmeticsView.swift */; };
 		62E6F3569791FF240B8F752A /* VenueStageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2532F7EDEF7C37C11C81E08C /* VenueStageView.swift */; };
 		6A49BCD2BCFB42F041347BC0 /* Achievements.swift in Sources */ = {isa = PBXBuildFile; fileRef = E42422329EB870BCE0F5CD48 /* Achievements.swift */; };
 		75321F06B4C9A848CBD2DC9B /* FoodSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2EE81608776E2BF273BBBD /* FoodSprite.swift */; };
 		79C4CA2410441F131686D40E /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A26A43CF2C4D9BBECE52A00 /* Theme.swift */; };
 		7D14D631059B4E9DBD2612F3 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7854B9B210EC3F33B4762987 /* HelpView.swift */; };
+		8551FD91817332203E83BBFE /* GuestChef.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91FAA9E9B4F61C58F14C0EF5 /* GuestChef.swift */; };
 		877B550408BB856B16FC8443 /* FableApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F55D1F4DA01CDB0A1E3FEE /* FableApp.swift */; };
 		8C31EA19716CB3E7952B8769 /* Managers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125320FE8C0CD27DABD2E408 /* Managers.swift */; };
 		8D110146D9A89E45D5431CD0 /* RoadmapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCCB4854B3C941890956BB3B /* RoadmapView.swift */; };
@@ -114,7 +116,9 @@
 		7EB9330C29FF462CFB68BA4C /* CoinBurst.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinBurst.swift; sourceTree = "<group>"; };
 		89F2E53AB8B4FAF1BD409A44 /* CollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionView.swift; sourceTree = "<group>"; };
 		8A26A43CF2C4D9BBECE52A00 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		8B0191022A667BB5281A2549 /* CosmeticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CosmeticsView.swift; sourceTree = "<group>"; };
 		90ADE33E20D3F2B41202C2A1 /* Products.storekit */ = {isa = PBXFileReference; path = Products.storekit; sourceTree = "<group>"; };
+		91FAA9E9B4F61C58F14C0EF5 /* GuestChef.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestChef.swift; sourceTree = "<group>"; };
 		97F978F2657BFE1A5089482A /* GameEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngine.swift; sourceTree = "<group>"; };
 		A6D9C15F5FAAEE676AFA42E6 /* GemSpend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GemSpend.swift; sourceTree = "<group>"; };
 		AB9CDFE41E11F22B7F4BB70F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -166,6 +170,7 @@
 				1B320AD114EF8759BA8EA4A0 /* Formatting.swift */,
 				97F978F2657BFE1A5089482A /* GameEngine.swift */,
 				BF0115CD9E38675947B4A523 /* GameState.swift */,
+				91FAA9E9B4F61C58F14C0EF5 /* GuestChef.swift */,
 				B558697084816A04F76970C6 /* League.swift */,
 				125320FE8C0CD27DABD2E408 /* Managers.swift */,
 				7222D4A6ECABE2F13FE32FAE /* OfflineEarnings.swift */,
@@ -216,6 +221,7 @@
 			children = (
 				40C66A8940881741C7577CF4 /* CloudConflictView.swift */,
 				89F2E53AB8B4FAF1BD409A44 /* CollectionView.swift */,
+				8B0191022A667BB5281A2549 /* CosmeticsView.swift */,
 				5A00F2A8A161196B9066FFE9 /* DailyRewardView.swift */,
 				69FFAD265ADEF5481F857016 /* DebugMenuView.swift */,
 				37515A3266C48B43461F8FFF /* EventsView.swift */,
@@ -412,6 +418,7 @@
 				2EB53E40C1F48100422B9C33 /* CoinBurst.swift in Sources */,
 				D08D9543ECB9B90210EFBFCE /* CollectionView.swift in Sources */,
 				C16A5659DD105E55069E0C52 /* Combo.swift in Sources */,
+				58B4D9A595DA981E15FFF05E /* CosmeticsView.swift in Sources */,
 				46EF0E95E698953D1B5F9277 /* CustomerSprite.swift in Sources */,
 				F9A2797441C4E4BE694E2ECB /* DailyRewardView.swift in Sources */,
 				EB6CA288EED7AAEE9C372B77 /* DailyRewards.swift in Sources */,
@@ -425,6 +432,7 @@
 				D4E84DE511EB946EE745296D /* GameEngine.swift in Sources */,
 				91A5B84C81E8EB9D5B065519 /* GameState.swift in Sources */,
 				9DFC77637C324CDD1AC8A9AD /* GemSpend.swift in Sources */,
+				8551FD91817332203E83BBFE /* GuestChef.swift in Sources */,
 				94CD309B4984B1BAC6011F7B /* HUDView.swift in Sources */,
 				7D14D631059B4E9DBD2612F3 /* HelpView.swift in Sources */,
 				DAA618AE10CAE02924719006 /* Icons.swift in Sources */,

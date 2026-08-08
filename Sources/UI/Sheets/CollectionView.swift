@@ -53,6 +53,8 @@ private struct StaffSection: View {
     let onToast: (String) -> Void
 
     var body: some View {
+        guestChefBanner
+
         if engine.state.managers.isEmpty {
             emptyState
         } else {
@@ -60,6 +62,71 @@ private struct StaffSection: View {
                 row(manager)
             }
         }
+    }
+
+    private var guestChefBanner: some View {
+        let spec = engine.currentGuestChef
+        let owned = engine.guestChefAlreadyPurchasedThisWeek
+        let rarity = rarityColor(spec.rarity)
+
+        return HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(rarity.opacity(0.22))
+                Circle().stroke(rarity, lineWidth: 2)
+                CustomerSprite(seed: spec.portraitSeed)
+                    .equatable()
+                    .frame(width: 30, height: 42)
+                    .offset(y: 3)
+            }
+            .frame(width: 52, height: 52)
+            .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(spec.name)
+                        .font(Theme.body(13, weight: .black))
+                        .foregroundStyle(Theme.text)
+                    Text("THIS WEEK")
+                        .font(Theme.body(9, weight: .black))
+                        .foregroundStyle(Theme.ink)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Capsule().fill(Theme.star))
+                }
+                Text(spec.trait.detail)
+                    .font(Theme.body(11, weight: .bold))
+                    .foregroundStyle(Theme.positive)
+            }
+            Spacer(minLength: 0)
+
+            Button {
+                if let hired = engine.purchaseGuestChef() {
+                    Haptics.success()
+                    onToast("\(hired.name) joins your roster!")
+                }
+            } label: {
+                if owned {
+                    Text("Hired")
+                        .font(Theme.body(12, weight: .black))
+                        .frame(width: 74)
+                        .padding(.vertical, 10)
+                } else {
+                    HStack(spacing: 3) {
+                        GemIcon().frame(width: 12, height: 12)
+                        Text("\(GuestChef.gemPrice)")
+                    }
+                    .font(Theme.numeric(13))
+                    .frame(width: 74)
+                    .padding(.vertical, 10)
+                }
+            }
+            .buttonStyle(ChunkyButtonStyle(fill: owned ? Theme.locked : Theme.star,
+                                           shadow: owned ? Theme.ink : Theme.star.opacity(0.5),
+                                           disabled: owned))
+            .disabled(owned)
+        }
+        .padding(12)
+        .panel(Theme.panelRaised)
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.star, lineWidth: 1.5))
     }
 
     /// Best staff first - the player cares about their legendaries, not their trainees.

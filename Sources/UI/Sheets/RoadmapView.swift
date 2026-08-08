@@ -19,6 +19,7 @@ struct RoadmapSection: View {
             group("League", items: leagueItems)
             group("Research", items: researchItems)
             group("Prestige", items: prestigeItems)
+            group("Legacy", items: legacyItems)
         }
     }
 
@@ -54,6 +55,17 @@ struct RoadmapSection: View {
                 detail: "\(engine.state.prestigeCount) / \(n)",
                 done: engine.state.prestigeCount >= n)
         }
+    }
+
+    private var legacyItems: [Item] {
+        let level = engine.state.legacy.level
+        return [
+            Item(id: "legacy-unlock", title: "Unlock Legacy",
+                detail: "\(engine.state.lifetimeStars) / \(Balance.legacyUnlockLifetimeStars) lifetime stars",
+                done: engine.canLegacyReset || level > 0),
+            Item(id: "legacy-1", title: "Reach Legacy 1", detail: "Level \(level) / 1", done: level >= 1),
+            Item(id: "legacy-3", title: "Reach Legacy 3", detail: "Level \(level) / 3", done: level >= 3),
+        ]
     }
 
     private func group(_ title: String, items: [Item]) -> some View {

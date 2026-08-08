@@ -6,6 +6,7 @@ enum ActiveSheet: Identifiable, Equatable {
     case daily
     case events(EventsView.Tab)
     case perk(Int)
+    case cosmetics(Int)
 
     var id: String {
         switch self {
@@ -22,6 +23,7 @@ enum ActiveSheet: Identifiable, Equatable {
         case .daily: return "daily"
         case .events(let tab): return "events-\(tab.rawValue)"
         case .perk(let station): return "perk-\(station)"
+        case .cosmetics(let venue): return "cosmetics-\(venue)"
         }
     }
 }
@@ -63,7 +65,7 @@ struct RootView: View {
                 ZStack(alignment: .topTrailing) {
                     VenueStageView(onGolden: { amount in
                         showToast("VIP tipped \(Format.currency(amount))!")
-                    })
+                    }, onCustomize: { present(.cosmetics(engine.state.currentVenue)) })
                     StageActionsView(onBoost: takeCoffeeBreak, onRush: startRush)
                         .padding(.top, 10)
                         .padding(.trailing, 10)
@@ -157,6 +159,7 @@ struct RootView: View {
             if let report = engine.pendingOfflineReport {
                 OfflineEarningsView(report: report)
             }
+        case .cosmetics(let venue): CosmeticsView(venue: venue, onToast: showToast)
         }
     }
 

@@ -68,7 +68,7 @@ enum ManagerCatalog {
     /// old saves migrate onto it cleanly.
     static let traineeID = "trainee"
 
-    static let all: [ManagerSpec] = [
+    static let baseRoster: [ManagerSpec] = [
         ManagerSpec(id: traineeID, name: "Trainee", role: "Eager and cheap",
                     rarity: .common, trait: .stationSpeed(1.0), portraitSeed: 11),
         ManagerSpec(id: "sam", name: "Speedy Sam", role: "Never stops moving",
@@ -102,6 +102,22 @@ enum ManagerCatalog {
                     rarity: .legendary, trait: .offlineBonus(2.0), portraitSeed: 182),
     ]
 
+    /// This week's rotating hire - see `GuestChef`. Kept out of `random(rarity:)`'s pool so
+    /// they stay exclusive to the weekly purchase rather than leaking into ordinary legendary
+    /// grants, but still listed in `all` so an owned guest manager resolves normally.
+    static let guestSpecs: [ManagerSpec] = [
+        ManagerSpec(id: "guest-remy", name: "Guest Chef Remy", role: "This week only",
+                    rarity: .legendary, trait: .venueProfit(1.8), portraitSeed: 210),
+        ManagerSpec(id: "guest-mika", name: "Guest Chef Mika", role: "This week only",
+                    rarity: .legendary, trait: .stationProfit(2.2), portraitSeed: 224),
+        ManagerSpec(id: "guest-theo", name: "Guest Chef Theo", role: "This week only",
+                    rarity: .legendary, trait: .stationSpeed(2.0), portraitSeed: 238),
+        ManagerSpec(id: "guest-ines", name: "Guest Chef Inès", role: "This week only",
+                    rarity: .legendary, trait: .tapValue(2.5), portraitSeed: 252),
+    ]
+
+    static let all: [ManagerSpec] = baseRoster + guestSpecs
+
     private static let index: [String: ManagerSpec] =
         Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
 
@@ -110,13 +126,13 @@ enum ManagerCatalog {
     }
 
     static func specs(rarity: ManagerRarity) -> [ManagerSpec] {
-        all.filter { $0.rarity == rarity }
+        baseRoster.filter { $0.rarity == rarity }
     }
 
     /// Used by quest, festival, and league rewards to hand out staff of a given quality.
     static func random(rarity: ManagerRarity, seed: Int) -> ManagerSpec {
         let pool = specs(rarity: rarity)
-        guard !pool.isEmpty else { return all[0] }
+        guard !pool.isEmpty else { return baseRoster[0] }
         return pool[abs(seed) % pool.count]
     }
 }

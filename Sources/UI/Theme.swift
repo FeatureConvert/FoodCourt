@@ -37,7 +37,15 @@ struct VenuePalette {
     let accent: Color
     let sign: Color
 
-    static func of(_ theme: VenueTheme) -> VenuePalette {
+    /// Cosmetic skins are purely visual - coin-priced, never gem or power, so they can't cut
+    /// against the "never sell power" line the rest of the shop holds to.
+    static let skinIDs = ["classic", "neon"]
+
+    static func of(_ theme: VenueTheme, skin: String = "classic") -> VenuePalette {
+        skin == "neon" ? neon(theme) : classic(theme)
+    }
+
+    private static func classic(_ theme: VenueTheme) -> VenuePalette {
         switch theme {
         case .burger:
             return VenuePalette(wallTop: Color(hex: "#2B4E6B"), wallBottom: Color(hex: "#1B3348"),
@@ -64,6 +72,38 @@ struct VenuePalette {
                                 floor: Color(hex: "#E8D3C4"), counter: Color(hex: "#E88AA8"),
                                 counterEdge: Color(hex: "#B45E7C"), accent: Color(hex: "#9BD4C8"),
                                 sign: Color(hex: "#FFE7F0"))
+        }
+    }
+
+    /// A punchier, more saturated recolor of each room - same hue family as the classic skin
+    /// so a venue stays recognizable by color, just turned up.
+    private static func neon(_ theme: VenueTheme) -> VenuePalette {
+        switch theme {
+        case .burger:
+            return VenuePalette(wallTop: Color(hex: "#3D2A6B"), wallBottom: Color(hex: "#241847"),
+                                floor: Color(hex: "#F2D9A6"), counter: Color(hex: "#FF3B6B"),
+                                counterEdge: Color(hex: "#B3123F"), accent: Color(hex: "#3BFFD1"),
+                                sign: Color(hex: "#FFF3B0"))
+        case .sushi:
+            return VenuePalette(wallTop: Color(hex: "#1B4A52"), wallBottom: Color(hex: "#0D2B30"),
+                                floor: Color(hex: "#E8D9B8"), counter: Color(hex: "#00C2A8"),
+                                counterEdge: Color(hex: "#00786A"), accent: Color(hex: "#FF6FA5"),
+                                sign: Color(hex: "#EFFFF6"))
+        case .pizza:
+            return VenuePalette(wallTop: Color(hex: "#4A1E5C"), wallBottom: Color(hex: "#2A0F38"),
+                                floor: Color(hex: "#E8D2B0"), counter: Color(hex: "#FF4747"),
+                                counterEdge: Color(hex: "#A31D1D"), accent: Color(hex: "#FFD23B"),
+                                sign: Color(hex: "#FFF0C2"))
+        case .taco:
+            return VenuePalette(wallTop: Color(hex: "#0F5C52"), wallBottom: Color(hex: "#083631"),
+                                floor: Color(hex: "#F0D9A0"), counter: Color(hex: "#FF7A29"),
+                                counterEdge: Color(hex: "#B34C0F"), accent: Color(hex: "#3BFF8F"),
+                                sign: Color(hex: "#FFF5D1"))
+        case .dessert:
+            return VenuePalette(wallTop: Color(hex: "#5C2A6B"), wallBottom: Color(hex: "#37173F"),
+                                floor: Color(hex: "#F5E0EC"), counter: Color(hex: "#FF5FA0"),
+                                counterEdge: Color(hex: "#C22E70"), accent: Color(hex: "#5FE8D8"),
+                                sign: Color(hex: "#FFEAF5"))
         }
     }
 }

@@ -1373,6 +1373,201 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(e.activeOrder, first, "a live order must not be clobbered by later rolls")
     }
 
+    // MARK: 15 - Venue cosmetics
+
+    func testClassicSkinIsAlwaysUnlocked() {
+        let state = GameState.newGame()
+        XCTAssertTrue(state.hasUnlockedSkin(venue: 0, skin: "classic"))
+        XCTAssertEqual(state.skin(venue: 0), "classic", "the default with no purchase yet")
+    }
+
+    func testVenuePaletteDiffersBetweenSkins() {
+        let classic = VenuePalette.of(.burger, skin: "classic")
+        let neon = VenuePalette.of(.burger, skin: "neon")
+        XCTAssertNotEqual(classic.counter, neon.counter)
+    }
+
+    @MainActor
+    func testUnlockingASkinSpendsCoinsOnceAndEquipsIt() {
+        let e = engine()
+        let price = e.skinPrice(venue: 0)
+        e.addCoins(price + 100)
+        let before = e.state.coins
+
+        XCTAssertTrue(e.unlockSkin(venue: 0, skin: "neon"))
+        XCTAssertEqual(e.state.coins, before - price, accuracy: 1)
+        XCTAssertEqual(e.state.skin(venue: 0), "neon")
+        XCTAssertTrue(e.state.hasUnlockedSkin(venue: 0, skin: "neon"))
+
+        // A second "unlock" of the same skin is a no-op, not a double charge.
+        let afterFirst = e.state.coins
+        XCTAssertFalse(e.unlockSkin(venue: 0, skin: "neon"))
+        XCTAssertEqual(e.state.coins, afterFirst)
+    }
+
+    @MainActor
+    func testCannotUnlockASkinWithoutEnoughCoins() {
+        let e = engine()
+        XCTAssertFalse(e.unlockSkin(venue: 0, skin: "neon"))
+        XCTAssertFalse(e.state.hasUnlockedSkin(venue: 0, skin: "neon"))
+    }
+
+    @MainActor
+    func testReEquippingAnUnlockedSkinIsFree() {
+        let e = engine()
+        e.addCoins(e.skinPrice(venue: 0) + 100)
+        XCTAssertTrue(e.unlockSkin(venue: 0, skin: "neon"))
+        XCTAssertTrue(e.setSkin(venue: 0, skin: "classic"))
+        XCTAssertEqual(e.state.skin(venue: 0), "classic")
+
+        let before = e.state.coins
+        XCTAssertTrue(e.setSkin(venue: 0, skin: "neon"), "already unlocked, so this must not need coins")
+        XCTAssertEqual(e.state.coins, before)
+        XCTAssertEqual(e.state.skin(venue: 0), "neon")
+    }
+
+    // MARK: 16 - Legacy (second prestige layer)
+
+    func testLegacyMultiplierIsReflectedInGlobalMultiplier() {
+        var state = GameState.newGame()
+        state.legacy.level = 2
+        // Isolate the legacy term: zero out every other multiplicative contributor.
+        XCTAssertEqual(state.globalMultiplier, Balance.legacyMultiplier(level: 2), accuracy: 0.0001)
+        XCTAssertEqual(Balance.legacyMultiplier(level: 2), 1.10, accuracy: 0.0001)
+    }
+
+    @MainActor
+    func testLegacyResetIsGatedBelowTheStarThreshold() {
+        var state = GameState.newGame()
+        state.lifetimeStars = Balance.legacyUnlockLifetimeStars - 1
+        let e = engine(state)
+        XCTAssertFalse(e.canLegacyReset)
+
+        let levelBefore = e.state.legacy.level
+        XCTAssertEqual(e.legacyReset(), levelBefore, "a gated reset must be a no-op")
+        XCTAssertEqual(e.state.legacy.level, levelBefore)
+        XCTAssertEqual(e.state.lifetimeStars, Balance.legacyUnlockLifetimeStars - 1, "untouched by the no-op")
+    }
+
+    @MainActor
+    func testLegacyResetZeroesRunProgressButKeepsCollections() {
+        var state = GameState.newGame()
+        state.lifetimeStars = Balance.legacyUnlockLifetimeStars
+        state.stars = 200
+        state.coins = 5_000
+        state.runEarnings = 5_000
+        state.research["prep"] = 4
+        state.managers.append(OwnedManager.make("dex"))
+        state.recipeCards[Recipes.key(venue: 0, station: 0)] = 2
+        state.claimedAchievements = ["serve_1"]
+        let festivalTicketsBefore = state.festival.tickets
+        let e = engine(state)
+        XCTAssertTrue(e.canLegacyReset)
+
+        let newLevel = e.legacyReset()
+        XCTAssertEqual(newLevel, 1)
+        XCTAssertEqual(e.state.legacy.level, 1)
+
+        // Run progress and the star multiplier are what got traded away.
+        XCTAssertEqual(e.state.coins, 0)
+        XCTAssertEqual(e.state.runEarnings, 0)
+        XCTAssertEqual(e.state.stars, 0)
+        XCTAssertEqual(e.state.lifetimeStars, 0)
+        XCTAssertTrue(e.state.research.isEmpty)
+        XCTAssertEqual(e.state.venues[0].stations[0].level, 1)
+
+        // Collections and accomplishments are not run progress - they survive.
+        XCTAssertEqual(e.state.managers.count, 1)
+        XCTAssertEqual(e.state.recipeCards[Recipes.key(venue: 0, station: 0)], 2)
+        XCTAssertTrue(e.state.claimedAchievements.contains("serve_1"))
+        XCTAssertEqual(e.state.festival.tickets, festivalTicketsBefore)
+    }
+
+    @MainActor
+    func testLegacyMultiplierStacksWithRegularPrestigeAfterwards() {
+        var state = GameState.newGame()
+        state.lifetimeStars = Balance.legacyUnlockLifetimeStars
+        // legacyReset() never touches lifetimeEarnings (same as prestige()), so seeding it
+        // up front means canPrestige is already satisfied immediately afterward.
+        state.lifetimeEarnings = Balance.minimumLifetimeForPrestige
+        let e = engine(state)
+        e.legacyReset()
+        XCTAssertEqual(e.state.legacy.level, 1)
+        XCTAssertEqual(e.state.lifetimeStars, 0, "legacy must not leave stale stars for the next prestige math to trip on")
+
+        // A fresh prestige after a legacy reset should behave exactly like any other -
+        // legacy level is a separate multiplicative term, not folded into lifetimeStars.
+        XCTAssertTrue(e.canPrestige)
+        let awarded = e.prestige()
+        XCTAssertGreaterThan(awarded, 0)
+        XCTAssertEqual(e.state.lifetimeStars, awarded)
+
+        let expected = Balance.starMultiplier(stars: awarded) * Balance.legacyMultiplier(level: 1)
+        XCTAssertEqual(e.state.globalMultiplier, expected, accuracy: 0.0001)
+    }
+
+    func testLegacyStateDecodesFineWithoutFutureFields() throws {
+        let legacyJSON = "{}".data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(LegacyState.self, from: legacyJSON)
+        XCTAssertEqual(decoded.level, 0)
+    }
+
+    // MARK: 17 - Guest Chef
+
+    func testGuestChefPickIsDeterministicForAGivenDate() {
+        let date = Date(timeIntervalSince1970: 1_700_000_000)
+        let a = GuestChef.current(now: date)
+        let b = GuestChef.current(now: date)
+        XCTAssertEqual(a.id, b.id)
+    }
+
+    func testGuestChefChangesFromOneWeekToTheNext() {
+        let week1 = Date(timeIntervalSince1970: 1_700_000_000)
+        let week2 = week1.addingTimeInterval(7 * 24 * 3600)
+        XCTAssertNotEqual(GuestChef.current(now: week1).id, GuestChef.current(now: week2).id)
+    }
+
+    func testGuestSpecsAreExcludedFromTheRandomLegendaryPool() {
+        for seed in 0..<200 {
+            let spec = ManagerCatalog.random(rarity: .legendary, seed: seed)
+            XCTAssertFalse(spec.id.hasPrefix("guest-"),
+                          "guest chefs must only be obtainable through the weekly purchase")
+        }
+    }
+
+    @MainActor
+    func testPurchasingGuestChefGrantsTheWeeklySpecAndSpendsGems() {
+        var state = GameState.newGame()
+        state.gems = 1000
+        let e = engine(state)
+        let expected = e.currentGuestChef
+        let before = e.state.gems
+
+        let hired = e.purchaseGuestChef()
+        XCTAssertEqual(hired?.id, expected.id)
+        XCTAssertEqual(e.state.gems, before - GuestChef.gemPrice)
+        XCTAssertTrue(e.state.managers.contains { $0.specID == expected.id })
+    }
+
+    @MainActor
+    func testCannotPurchaseGuestChefTwiceInTheSameWeek() {
+        var state = GameState.newGame()
+        state.gems = 1000
+        let e = engine(state)
+        XCTAssertNotNil(e.purchaseGuestChef())
+        XCTAssertTrue(e.guestChefAlreadyPurchasedThisWeek)
+        XCTAssertNil(e.purchaseGuestChef(), "already hired this week's chef")
+    }
+
+    @MainActor
+    func testCannotPurchaseGuestChefWithoutEnoughGems() {
+        var state = GameState.newGame()
+        state.gems = 0
+        let e = engine(state)
+        XCTAssertNil(e.purchaseGuestChef())
+        XCTAssertFalse(e.guestChefAlreadyPurchasedThisWeek)
+    }
+
     func testActiveErrandDecodesFineWithoutNewerFields() throws {
         let legacyJSON = """
         {"managerID": "dex", "startedAt": "2026-01-01T00:00:00Z", "duration": 7200}

@@ -122,6 +122,52 @@ private struct FranchiseSection: View {
                 .foregroundStyle(Theme.textDim)
                 .multilineTextAlignment(.center)
         }
+
+        if engine.canLegacyReset { legacyCard }
+    }
+
+    // MARK: Legacy
+
+    @State private var confirmingLegacy = false
+
+    private var legacyCard: some View {
+        VStack(spacing: 10) {
+            Text("LEGACY")
+                .font(Theme.body(11, weight: .black))
+                .foregroundStyle(Theme.textDim)
+
+            Text("Level \(engine.state.legacy.level) → \(engine.state.legacy.level + 1)")
+                .font(Theme.numeric(20))
+                .foregroundStyle(Theme.text)
+
+            Text("Give up your \(Int((Balance.starMultiplier(stars: engine.state.lifetimeStars) - 1) * 100))% star bonus and every research rank, permanently, for +\(Int(Balance.legacyMultiplier(level: 1) * 100 - 100))% more forever.")
+                .font(Theme.body(11, weight: .medium))
+                .foregroundStyle(Theme.textDim)
+                .multilineTextAlignment(.center)
+
+            Button {
+                if confirmingLegacy {
+                    let level = engine.legacyReset()
+                    Haptics.success()
+                    onToast("Legacy Level \(level)")
+                    confirmingLegacy = false
+                    dismiss()
+                } else {
+                    confirmingLegacy = true
+                }
+            } label: {
+                Text(confirmingLegacy ? "Tap again to confirm" : "Start a new Legacy")
+                    .font(Theme.body(14, weight: .black))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+            }
+            .buttonStyle(ChunkyButtonStyle(fill: confirmingLegacy ? Theme.negative : Theme.gemDeep,
+                                           shadow: Theme.ink))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(14)
+        .panel(Theme.panelRaised)
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.star, lineWidth: 1.5))
     }
 
     private var buttonTitle: String {
