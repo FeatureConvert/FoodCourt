@@ -99,12 +99,16 @@ enum Format {
         "\(self.count(count)) " + (count == 1 ? singular : (plural ?? singular + "s"))
     }
 
-    /// `9014` -> `2h 30m`. Used for boost timers and offline windows.
+    /// `9014` -> `2h 30m`, `603247` -> `6d 23h`. Used for boost timers, offline windows, and
+    /// week-long countdowns (festival/league) - those otherwise printed as a raw hour count
+    /// like "167h 47m", which nobody reads faster than "6d 23h".
     static func duration(_ seconds: TimeInterval) -> String {
         let s = max(0, Int(seconds.rounded()))
-        let h = s / 3600
+        let d = s / 86_400
+        let h = (s % 86_400) / 3600
         let m = (s % 3600) / 60
         let sec = s % 60
+        if d > 0 { return "\(d)d \(h)h" }
         if h > 0 { return "\(h)h \(m)m" }
         if m > 0 { return "\(m)m \(sec)s" }
         return "\(sec)s"

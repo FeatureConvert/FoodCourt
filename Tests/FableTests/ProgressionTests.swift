@@ -274,6 +274,57 @@ final class ProgressionTests: XCTestCase {
     }
 
     @MainActor
+    func testShouldNudgePrestigeFiresForAFirstTimeEligiblePlayerRegardlessOfBoardState() {
+        let engine = GameEngine(state: GameState.newGame(), startTimers: false, persistence: EphemeralPersistence())
+        engine.addCoins(Balance.minimumLifetimeForPrestige)
+
+        XCTAssertEqual(engine.state.prestigeCount, 0)
+        XCTAssertFalse(engine.boardIsFullyBuiltOut, "a single fresh station isn't a built-out board")
+        XCTAssertTrue(engine.shouldNudgePrestige,
+                      "first-time eligibility should nudge on its own, independent of the board")
+    }
+
+    @MainActor
+    func testShouldNudgePrestigeClearsRightAfterPrestigingAndReturnsOncePlateauedAgain() {
+        let engine = GameEngine(state: GameState.newGame(), startTimers: false, persistence: EphemeralPersistence())
+        engine.addCoins(Balance.minimumLifetimeForPrestige)
+        engine.prestige()
+
+        XCTAssertFalse(engine.canPrestige, "no new stars have accrued since the prestige that just happened")
+        XCTAssertFalse(engine.shouldNudgePrestige)
+
+        // Earn enough again post-prestige to become eligible a second time, and fully build
+        // out the reset board - a repeat player who plateaus again should be re-nudged.
+        engine.addCoins(Balance.minimumLifetimeForPrestige * 4)
+        engine.buyQuantity = .x1
+        for spec in Balance.venue(0).stations {
+            engine.buy(station: spec.id)
+            engine.hireManager(for: spec.id, free: true)
+        }
+        // Spend the rest of the windfall down so the next venue is genuinely unaffordable -
+        // otherwise the board reads as "built out" but there's still an obvious next move. A
+        // MAX buy on each station in turn drains the pile close enough to zero that what's
+        // left can't cover venue 2's unlock cost.
+        engine.buyQuantity = .max
+        for spec in Balance.venue(0).stations {
+            engine.buy(station: spec.id)
+        }
+
+        XCTAssertTrue(engine.canPrestige)
+        XCTAssertTrue(engine.boardIsFullyBuiltOut)
+        XCTAssertTrue(engine.shouldNudgePrestige, "plateauing again after a first prestige should re-nudge")
+    }
+
+    @MainActor
+    func testBoardIsFullyBuiltOutRequiresEveryOwnedStationStaffed() {
+        let engine = GameEngine(state: GameState.newGame(), startTimers: false, persistence: EphemeralPersistence())
+        XCTAssertFalse(engine.boardIsFullyBuiltOut, "station 0 is owned but unstaffed on a fresh save")
+
+        engine.hireManager(for: 0, free: true)
+        XCTAssertFalse(engine.boardIsFullyBuiltOut, "stations 1-5 aren't even owned yet")
+    }
+
+    @MainActor
     func testPrestigeIsRefusedBelowTheThreshold() {
         let engine = GameEngine(state: GameState.newGame(), startTimers: false, persistence: EphemeralPersistence())
         engine.addCoins(1_000)

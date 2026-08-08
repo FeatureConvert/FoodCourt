@@ -666,6 +666,29 @@ final class GameEngine: ObservableObject {
         pendingStars > 0 && state.lifetimeEarnings >= Balance.minimumLifetimeForPrestige
     }
 
+    /// Every unlocked venue fully built out - staffed on every station - with nowhere left
+    /// to spend coins: either every venue is open, or the next one is unaffordable. A player
+    /// in this state has nothing actionable left on the board itself; prestige is the only
+    /// remaining move.
+    var boardIsFullyBuiltOut: Bool {
+        let unlocked = Balance.venues.filter { state.venues[$0.id].unlocked }
+        guard !unlocked.isEmpty else { return false }
+        let allStaffed = unlocked.allSatisfy { venue in
+            state.venues[venue.id].stations.allSatisfy { $0.isOwned && $0.isStaffed }
+        }
+        guard allStaffed else { return false }
+        guard let next = nextLockedVenue else { return true }
+        return !canUnlock(next)
+    }
+
+    /// Surfaces the prestige entry point beyond just the HUD pill being visible: either this
+    /// is the player's first time being eligible, or they've plateaued on the current board
+    /// with nothing left to build - both are moments a player can plausibly not know
+    /// prestige exists, or forget it does.
+    var shouldNudgePrestige: Bool {
+        canPrestige && (state.prestigeCount == 0 || boardIsFullyBuiltOut)
+    }
+
     @discardableResult
     func prestige() -> Int {
         let award = pendingStars

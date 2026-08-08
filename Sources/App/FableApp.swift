@@ -10,29 +10,46 @@ struct FableApp: App {
 
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
+    @State private var isReady = false
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environmentObject(engine)
-                .environmentObject(store)
-                .environmentObject(cloud)
-                .environmentObject(notifications)
-                .environmentObject(gameCenter)
-                .task {
-                    // The store needs the engine to grant rewards, and the engine is only
-                    // available once both objects exist.
-                    store.attach(engine: engine)
-                    engine.attachCloud(cloud)
-                    // A reinstall adopts the cloud save silently; a played save asks first.
-                    if let remote = cloud.reconcileOnLaunch(local: engine.state) {
-                        engine.adoptCloudSave(remote)
-                    }
-                    await store.loadProducts()
-                    await store.refreshEntitlements()
-                    engine.handleForeground()
-                    gameCenter.authenticate()
+            ZStack {
+                RootView()
+                    .environmentObject(engine)
+                    .environmentObject(store)
+                    .environmentObject(cloud)
+                    .environmentObject(notifications)
+                    .environmentObject(gameCenter)
+
+                if !isReady {
+                    SplashView()
                 }
+            }
+            .task {
+                let startedAt = Date()
+                // The store needs the engine to grant rewards, and the engine is only
+                // available once both objects exist.
+                store.attach(engine: engine)
+                engine.attachCloud(cloud)
+                // A reinstall adopts the cloud save silently; a played save asks first.
+                if let remote = cloud.reconcileOnLaunch(local: engine.state) {
+                    engine.adoptCloudSave(remote)
+                }
+                await store.loadProducts()
+                await store.refreshEntitlements()
+                engine.handleForeground()
+                gameCenter.authenticate()
+
+                // Hold the splash up for a minimum stretch so the branding always reads as a
+                // deliberate beat rather than a flash that only shows up on a slow connection.
+                let elapsed = Date().timeIntervalSince(startedAt)
+                let minimumDisplay = 0.6
+                if elapsed < minimumDisplay {
+                    try? await Task.sleep(nanoseconds: UInt64((minimumDisplay - elapsed) * 1_000_000_000))
+                }
+                withAnimation(.easeInOut(duration: 0.3)) { isReady = true }
+            }
         }
         .onChange(of: scenePhase) { _, phase in
             switch phase {

@@ -58,6 +58,7 @@ struct HUDView: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    .pulsingHighlight(engine.shouldNudgePrestige, cornerRadius: 14)
                 }
 
                 Spacer(minLength: 0)

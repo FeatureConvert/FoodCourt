@@ -79,12 +79,24 @@ struct TutorialHighlight: ViewModifier {
     }
 
     func body(content: Content) -> some View {
+        content.modifier(PulsingHighlight(active: isActive))
+    }
+}
+
+/// The pulsing-ring effect on its own, driven by a plain condition rather than tutorial
+/// state - used to nudge attention toward a control outside the guided opening (e.g. the
+/// prestige star pill once it becomes worth tapping).
+struct PulsingHighlight: ViewModifier {
+    let active: Bool
+    var cornerRadius: CGFloat = 14
+
+    func body(content: Content) -> some View {
         content.overlay {
-            if isActive {
+            if active {
                 TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
                     let t = timeline.date.timeIntervalSinceReferenceDate
                     let pulse = 0.5 + 0.5 * sin(t * 4)
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .stroke(Theme.coin, lineWidth: 2 + 1.5 * pulse)
                         .opacity(0.55 + 0.45 * pulse)
                         .padding(-4)
@@ -98,5 +110,9 @@ struct TutorialHighlight: ViewModifier {
 extension View {
     func tutorialHighlight(_ target: TutorialTarget?) -> some View {
         modifier(TutorialHighlight(target: target))
+    }
+
+    func pulsingHighlight(_ active: Bool, cornerRadius: CGFloat = 14) -> some View {
+        modifier(PulsingHighlight(active: active, cornerRadius: cornerRadius))
     }
 }

@@ -139,6 +139,9 @@ struct RootView: View {
         }
         .onChange(of: store.lastGrant) { _, new in if let new { showToast(new) } }
         .onChange(of: store.errorMessage) { _, new in if let new { showToast(new) } }
+        .onChange(of: engine.shouldNudgePrestige) { _, nudge in
+            if nudge { announcePrestigeNudge() }
+        }
         .onAppear(perform: handleLaunch)
         .preferredColorScheme(.dark)
     }
@@ -218,8 +221,27 @@ struct RootView: View {
             present(.offline)
             return
         }
-        guard engine.dailyAvailable else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { present(.daily) }
+        if engine.dailyAvailable {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { present(.daily) }
+        } else if engine.shouldNudgePrestige {
+            // Only when there's no daily-reward sheet also queued up for this launch - two
+            // attention-grabbers landing on top of each other is worse than just letting the
+            // star pill's persistent highlight (HUDView) do the reminding this time.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { announcePrestigeNudge() }
+        }
+    }
+
+    /// A player can plausibly not know prestige exists the first time they're eligible, or
+    /// forget it does once they've plateaued on a fully-built board again later - `engine.
+    /// shouldNudgePrestige` (GameEngine.swift) covers both. The star pill's pulsing ring
+    /// (HUDView) is the persistent version of this; the toast is the one-shot version fired
+    /// only on the moment it becomes true.
+    private func announcePrestigeNudge() {
+        if engine.state.prestigeCount == 0 {
+            showToast("You've earned enough to prestige! Tap the star for a permanent profit boost.")
+        } else {
+            showToast("Nothing left to build here — prestige again for another permanent boost.")
+        }
     }
 
     // MARK: Actions
