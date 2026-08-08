@@ -27,6 +27,8 @@ struct GemOffer: Identifiable, Equatable {
                  subtitle: "×3 profit for 3 hours", cost: 300, symbol: "flame.fill"),
         GemOffer(id: "tickets", title: "Ticket Bundle",
                  subtitle: "+500 festival tickets", cost: 150, symbol: "ticket.fill"),
+        GemOffer(id: "freeze", title: "Streak Freeze",
+                 subtitle: "Protects your login streak for one missed day", cost: 60, symbol: "snowflake"),
     ]
 
     /// What the shop actually displays - cheapest first, so the list reads as a ladder
@@ -102,6 +104,11 @@ enum GemSpend {
             guard engine.spendGems(offer.cost) else { return .insufficientGems }
             engine.awardTickets(500)
             return .success("+500 festival tickets")
+
+        case "freeze":
+            guard engine.spendGems(offer.cost) else { return .insufficientGems }
+            engine.addStreakFreeze()
+            return .success("Streak Freeze ready")
 
         default:
             return .nothingToDo("Unavailable")

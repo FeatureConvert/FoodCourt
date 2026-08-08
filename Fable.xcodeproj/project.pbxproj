@@ -25,11 +25,13 @@
 		47C8E48D0CF365D21C3AF103 /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 90ADE33E20D3F2B41202C2A1 /* Products.storekit */; };
 		56BD95ED366A8F35E3D7BDEF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F09D63C291B04A5F9057BC6 /* SettingsView.swift */; };
 		62E6F3569791FF240B8F752A /* VenueStageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2532F7EDEF7C37C11C81E08C /* VenueStageView.swift */; };
+		6A49BCD2BCFB42F041347BC0 /* Achievements.swift in Sources */ = {isa = PBXBuildFile; fileRef = E42422329EB870BCE0F5CD48 /* Achievements.swift */; };
 		75321F06B4C9A848CBD2DC9B /* FoodSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2EE81608776E2BF273BBBD /* FoodSprite.swift */; };
 		79C4CA2410441F131686D40E /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A26A43CF2C4D9BBECE52A00 /* Theme.swift */; };
 		7D14D631059B4E9DBD2612F3 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7854B9B210EC3F33B4762987 /* HelpView.swift */; };
 		877B550408BB856B16FC8443 /* FableApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F55D1F4DA01CDB0A1E3FEE /* FableApp.swift */; };
 		8C31EA19716CB3E7952B8769 /* Managers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125320FE8C0CD27DABD2E408 /* Managers.swift */; };
+		8D110146D9A89E45D5431CD0 /* RoadmapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCCB4854B3C941890956BB3B /* RoadmapView.swift */; };
 		91A5B84C81E8EB9D5B065519 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF0115CD9E38675947B4A523 /* GameState.swift */; };
 		9359848A89A660E279F3DEAC /* SaveManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADBF6FA651E23B2CE296686C /* SaveManager.swift */; };
 		94CD309B4984B1BAC6011F7B /* HUDView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 240578676C0B706FC34950F7 /* HUDView.swift */; };
@@ -129,9 +131,11 @@
 		DE6D5A0B2036FDDD38704950 /* Fable.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Fable.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E0008725E6F430B76A24E5CA /* QuestsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestsView.swift; sourceTree = "<group>"; };
 		E16825A1724A72F0030D40D1 /* SheetScaffold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SheetScaffold.swift; sourceTree = "<group>"; };
+		E42422329EB870BCE0F5CD48 /* Achievements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Achievements.swift; sourceTree = "<group>"; };
 		E6C690DF5FC87BAEDABD2B2B /* Perks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Perks.swift; sourceTree = "<group>"; };
 		E8A230F7E6FC4B1137C45619 /* Boosts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Boosts.swift; sourceTree = "<group>"; };
 		ED78409947694A96FF745DF8 /* ProgressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionTests.swift; sourceTree = "<group>"; };
+		FCCB4854B3C941890956BB3B /* RoadmapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadmapView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -149,6 +153,7 @@
 		40ADE39A21A9FC6777460EA2 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				E42422329EB870BCE0F5CD48 /* Achievements.swift */,
 				75C207BD78124374F04BB52A /* Balance.swift */,
 				E8A230F7E6FC4B1137C45619 /* Boosts.swift */,
 				49106EDE90721B0A6B9DC939 /* CloudSave.swift */,
@@ -216,6 +221,7 @@
 				388AFC1D19065A136570A153 /* PerkChoiceView.swift */,
 				D84AFD9A3A08F19C7440A7F9 /* PrestigeView.swift */,
 				E0008725E6F430B76A24E5CA /* QuestsView.swift */,
+				FCCB4854B3C941890956BB3B /* RoadmapView.swift */,
 				4F09D63C291B04A5F9057BC6 /* SettingsView.swift */,
 				E16825A1724A72F0030D40D1 /* SheetScaffold.swift */,
 				D6110EAE66DAA23544163D60 /* ShopView.swift */,
@@ -393,6 +399,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6A49BCD2BCFB42F041347BC0 /* Achievements.swift in Sources */,
 				AF0FD8C199117D1A431555A2 /* ActivePlayViews.swift in Sources */,
 				F4F5E2480A8519A92F0C8507 /* AdFreeBadge.swift in Sources */,
 				228B89D93E112BDF014988A5 /* Balance.swift in Sources */,
@@ -428,6 +435,7 @@
 				AA4F7A9C8DF69657054AA551 /* QuestsView.swift in Sources */,
 				BE90C20938EA3102514A2634 /* Recipes.swift in Sources */,
 				BE87AD91F6BF12E8283E507E /* Research.swift in Sources */,
+				8D110146D9A89E45D5431CD0 /* RoadmapView.swift in Sources */,
 				312921B8E3AE9A57B3E6EBF4 /* RootView.swift in Sources */,
 				9359848A89A660E279F3DEAC /* SaveManager.swift in Sources */,
 				56BD95ED366A8F35E3D7BDEF /* SettingsView.swift in Sources */,

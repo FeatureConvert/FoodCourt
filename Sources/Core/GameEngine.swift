@@ -562,6 +562,7 @@ final class GameEngine: ObservableObject {
 
         state.stars += award            // spendable
         state.lifetimeStars += award    // permanent multiplier
+        state.prestigeCount += 1
         state.coins = 0
         state.runEarnings = 0
         state.venues = Balance.venues.map { VenueState.fresh(venue: $0, unlocked: $0.id == 0) }
@@ -630,6 +631,25 @@ final class GameEngine: ObservableObject {
         return quest
     }
 
+    // MARK: Achievements
+
+    var claimableAchievements: [AchievementSpec] {
+        AchievementCatalog.all.filter {
+            !state.claimedAchievements.contains($0.id) && Achievements.isComplete($0, state: state)
+        }
+    }
+
+    @discardableResult
+    func claimAchievement(id: String) -> AchievementSpec? {
+        guard let spec = AchievementCatalog.spec(id),
+              !state.claimedAchievements.contains(id),
+              Achievements.isComplete(spec, state: state) else { return nil }
+        state.claimedAchievements.insert(id)
+        state.gems += spec.rewardGems
+        save()
+        return spec
+    }
+
     // MARK: Festival
 
     func awardTickets(_ amount: Int) {
@@ -693,6 +713,9 @@ final class GameEngine: ObservableObject {
             toast = "Diamond Champion! \(spec.name) joins your roster"
         }
         let nextTier = League.nextTier(after: outcome, current: state.league.tier)
+        if nextTier.rawValue > state.bestLeagueTierReached.rawValue {
+            state.bestLeagueTierReached = nextTier
+        }
         state.league = League.newWeek(tier: nextTier,
                                       playerRate: Swift.max(state.automatedRate, 1),
                                       now: state.now,
@@ -861,6 +884,30 @@ final class GameEngine: ObservableObject {
             save()
         }
         return payout
+    }
+
+    // MARK: Login streak
+
+    func addStreakFreeze() {
+        state.daily.streakFreezes += 1
+        save()
+    }
+
+    var claimableStreakMilestones: [(day: Int, gems: Int)] {
+        DailyRewards.streakMilestones.filter {
+            state.daily.streakLength >= $0.day && !state.daily.claimedStreakMilestones.contains($0.day)
+        }
+    }
+
+    @discardableResult
+    func claimStreakMilestone(day: Int) -> Int? {
+        guard let milestone = DailyRewards.streakMilestones.first(where: { $0.day == day }),
+              state.daily.streakLength >= day,
+              !state.daily.claimedStreakMilestones.contains(day) else { return nil }
+        state.daily.claimedStreakMilestones.insert(day)
+        state.gems += milestone.gems
+        save()
+        return milestone.gems
     }
 
     // MARK: Tutorial

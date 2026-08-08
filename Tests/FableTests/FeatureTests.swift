@@ -1085,4 +1085,149 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(restored.league.score, 12_345)
         XCTAssertEqual(restored.totalTaps, 99)
     }
+
+    // MARK: 11 - Achievements
+
+    func testAchievementCatalogHasUniqueIDs() {
+        let ids = AchievementCatalog.all.map(\.id)
+        XCTAssertEqual(Set(ids).count, ids.count)
+    }
+
+    @MainActor
+    func testAchievementIsNotClaimableBelowThreshold() {
+        let e = engine()
+        XCTAssertFalse(Achievements.isComplete(AchievementCatalog.spec("serve_1")!, state: e.state))
+        XCTAssertNil(e.claimAchievement(id: "serve_1"))
+        XCTAssertTrue(e.claimableAchievements.isEmpty)
+    }
+
+    @MainActor
+    func testAchievementClaimsOncePastThresholdAndPaysGems() {
+        var state = GameState.newGame()
+        state.totalServed = 10_000
+        let e = engine(state)
+        XCTAssertTrue(e.claimableAchievements.contains { $0.id == "serve_1" })
+
+        let before = e.state.gems
+        let claimed = e.claimAchievement(id: "serve_1")
+        XCTAssertEqual(claimed?.id, "serve_1")
+        XCTAssertEqual(e.state.gems, before + 25)
+        XCTAssertTrue(e.state.claimedAchievements.contains("serve_1"))
+
+        // Claiming again pays nothing a second time.
+        XCTAssertNil(e.claimAchievement(id: "serve_1"))
+        XCTAssertEqual(e.state.gems, before + 25)
+        XCTAssertFalse(e.claimableAchievements.contains { $0.id == "serve_1" })
+    }
+
+    @MainActor
+    func testPrestigeCountDrivesThePrestigeAchievements() {
+        var state = GameState.newGame()
+        state.lifetimeEarnings = Balance.minimumLifetimeForPrestige
+        let e = engine(state)
+        XCTAssertTrue(e.canPrestige, "the seeded lifetime earnings must clear the prestige gate")
+        XCTAssertEqual(e.state.prestigeCount, 0)
+        e.prestige()
+        XCTAssertEqual(e.state.prestigeCount, 1)
+        XCTAssertTrue(Achievements.isComplete(AchievementCatalog.spec("prestige_1")!, state: e.state))
+    }
+
+    @MainActor
+    func testBestLeagueTierReachedOnlyEverIncreases() {
+        var state = GameState.newGame()
+        state.league = League.newWeek(tier: .gold, playerRate: 100, now: Date(), seasonsPlayed: 3)
+        state.bestLeagueTierReached = .gold
+        state.league.endsAt = Date().addingTimeInterval(-1) // force it finished
+        state.league.score = -1 // guarantee last place so the outcome is a relegation
+        let e = engine(state)
+
+        e.settleLeagueIfFinished()
+
+        // Relegated out of Gold, but the best-ever tier must not regress.
+        XCTAssertEqual(e.state.bestLeagueTierReached, .gold)
+    }
+
+    func testAchievementFractionClampsAtOne() {
+        var state = GameState.newGame()
+        state.totalServed = 999_999_999
+        let spec = AchievementCatalog.spec("serve_1")!
+        XCTAssertEqual(Achievements.fraction(spec, state: state), 1)
+    }
+
+    // MARK: 12 - Login streak
+
+    func testFirstClaimStartsStreakAtOne() {
+        var state = GameState.newGame()
+        _ = DailyRewards.claim(state: &state, now: Date())
+        XCTAssertEqual(state.daily.streakLength, 1)
+    }
+
+    func testConsecutiveDayClaimIncrementsStreak() {
+        var state = GameState.newGame()
+        let day1 = Date()
+        _ = DailyRewards.claim(state: &state, now: day1)
+        let day2 = Calendar.current.date(byAdding: .day, value: 1, to: day1)!
+        _ = DailyRewards.claim(state: &state, now: day2)
+        XCTAssertEqual(state.daily.streakLength, 2)
+    }
+
+    func testMissedDayWithoutFreezeResetsStreak() {
+        var state = GameState.newGame()
+        let day1 = Date()
+        _ = DailyRewards.claim(state: &state, now: day1)
+        let day3 = Calendar.current.date(byAdding: .day, value: 2, to: day1)! // day 2 skipped
+        _ = DailyRewards.claim(state: &state, now: day3)
+        XCTAssertEqual(state.daily.streakLength, 1)
+    }
+
+    func testMissedDayWithFreezeConsumesItAndPreservesStreak() {
+        var state = GameState.newGame()
+        state.daily.streakFreezes = 1
+        let day1 = Date()
+        _ = DailyRewards.claim(state: &state, now: day1)
+        let day3 = Calendar.current.date(byAdding: .day, value: 2, to: day1)!
+        _ = DailyRewards.claim(state: &state, now: day3)
+        XCTAssertEqual(state.daily.streakLength, 2, "the freeze should absorb the missed day")
+        XCTAssertEqual(state.daily.streakFreezes, 0, "and be consumed in the process")
+    }
+
+    @MainActor
+    func testStreakMilestoneClaimsOncePastLength() {
+        var state = GameState.newGame()
+        state.daily.streakLength = 7
+        let e = engine(state)
+        XCTAssertTrue(e.claimableStreakMilestones.contains { $0.day == 7 })
+
+        let before = e.state.gems
+        let gems = e.claimStreakMilestone(day: 7)
+        XCTAssertEqual(gems, 50)
+        XCTAssertEqual(e.state.gems, before + 50)
+
+        XCTAssertNil(e.claimStreakMilestone(day: 7))
+        XCTAssertEqual(e.state.gems, before + 50)
+        XCTAssertFalse(e.claimableStreakMilestones.contains { $0.day == 7 })
+    }
+
+    @MainActor
+    func testStreakFreezeGemSinkAddsAFreeze() {
+        var state = GameState.newGame()
+        state.gems = 1000
+        let e = engine(state)
+        let offer = GemOffer.all.first { $0.id == "freeze" }!
+        guard case .success = GemSpend.redeem(offer, engine: e) else {
+            return XCTFail("a streak freeze purchase should succeed with enough gems")
+        }
+        XCTAssertEqual(e.state.daily.streakFreezes, 1)
+    }
+
+    func testDailyRewardStateDecodesFineWithoutStreakFields() throws {
+        let legacyJSON = """
+        {"currentDay": 3, "lastClaimedDay": null}
+        """.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(DailyRewardState.self, from: legacyJSON)
+        XCTAssertEqual(decoded.currentDay, 3)
+        XCTAssertEqual(decoded.streakLength, 0)
+        XCTAssertEqual(decoded.streakFreezes, 0)
+        XCTAssertTrue(decoded.claimedStreakMilestones.isEmpty)
+    }
 }

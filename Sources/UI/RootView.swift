@@ -278,7 +278,8 @@ private struct BottomBar: View {
                       badge: !engine.state.unassignedManagers.isEmpty,
                       action: onCollection)
             barButton("Goals", "checklist",
-                      badge: engine.claimableQuests > 0, action: onQuests)
+                      badge: engine.claimableQuests > 0 || !engine.claimableAchievements.isEmpty,
+                      action: onQuests)
             barButton("Events", "calendar",
                       badge: eventsBadge, action: onEvents)
             barButton("Shop", "cart.fill", badge: false, action: onShop)

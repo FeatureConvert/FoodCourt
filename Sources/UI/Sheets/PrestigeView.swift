@@ -5,9 +5,15 @@ struct PrestigeView: View {
     let onToast: (String) -> Void
 
     enum Tab: String, CaseIterable, Identifiable {
-        case franchise, research
+        case franchise, research, roadmap
         var id: String { rawValue }
-        var title: String { self == .franchise ? "Franchise" : "Research" }
+        var title: String {
+            switch self {
+            case .franchise: return "Franchise"
+            case .research: return "Research"
+            case .roadmap: return "Map"
+            }
+        }
     }
 
     @State private var tab: Tab = .franchise
@@ -23,6 +29,7 @@ struct PrestigeView: View {
             switch tab {
             case .franchise: FranchiseSection(onToast: onToast)
             case .research: ResearchSection(onToast: onToast)
+            case .roadmap: RoadmapSection()
             }
         }
     }
@@ -31,6 +38,7 @@ struct PrestigeView: View {
         switch tab {
         case .franchise: return "Sell up, start again, keep the multiplier"
         case .research: return "\(Format.count(engine.state.stars)) stars to spend"
+        case .roadmap: return "Everything you're working toward, in one place"
         }
     }
 }

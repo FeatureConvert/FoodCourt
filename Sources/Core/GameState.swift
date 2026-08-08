@@ -85,6 +85,30 @@ struct Entitlements: Codable, Equatable {
 struct DailyRewardState: Codable, Equatable {
     var currentDay: Int = 1
     var lastClaimedDay: Date? = nil
+    /// Consecutive claim days, independent of the 7-day reward cycle above - it never wraps
+    /// back to 1, so long-run milestones (30, 60, 100 days) have something to measure.
+    var streakLength: Int = 0
+    var claimedStreakMilestones: Set<Int> = []
+    /// Spent automatically the next time a day would otherwise be missed.
+    var streakFreezes: Int = 0
+
+    enum CodingKeys: String, CodingKey {
+        case currentDay, lastClaimedDay, streakLength, claimedStreakMilestones, streakFreezes
+    }
+
+    init() {}
+
+    /// Hand-written for the same reason as `GameState`'s: a synthesized decoder throws on
+    /// any key an older save doesn't have yet, which would fail decoding this whole struct -
+    /// and with it the save's entire `daily` field - the moment a new streak field is added.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        currentDay = try c.decodeIfPresent(Int.self, forKey: .currentDay) ?? 1
+        lastClaimedDay = try c.decodeIfPresent(Date.self, forKey: .lastClaimedDay)
+        streakLength = try c.decodeIfPresent(Int.self, forKey: .streakLength) ?? 0
+        claimedStreakMilestones = try c.decodeIfPresent(Set<Int>.self, forKey: .claimedStreakMilestones) ?? []
+        streakFreezes = try c.decodeIfPresent(Int.self, forKey: .streakFreezes) ?? 0
+    }
 }
 
 struct GameState: Codable, Equatable {
@@ -131,6 +155,13 @@ struct GameState: Codable, Equatable {
     var rushesCompleted: Int = 0
     var totalTaps: Int = 0
     var totalServed: Int = 0
+
+    // Achievements
+    var claimedAchievements: Set<String> = []
+    var prestigeCount: Int = 0
+    /// Kept separately from `league.tier` because `league` is replaced wholesale every time
+    /// a season settles - this is the one thing that has to survive that reassignment.
+    var bestLeagueTierReached: LeagueTier = .bronze
 
     // MARK: New game
 
@@ -306,6 +337,7 @@ struct GameState: Codable, Equatable {
         case lastOfflineDoubleDay
         case research, managers, recipeCards, quests, questsClaimed, festival, league, tutorial
         case rushEndsAt, rushAvailableAt, rushesCompleted, totalTaps, totalServed
+        case claimedAchievements, prestigeCount, bestLeagueTierReached
     }
 
     init() {}
@@ -346,5 +378,9 @@ struct GameState: Codable, Equatable {
         rushesCompleted = try c.decodeIfPresent(Int.self, forKey: .rushesCompleted) ?? 0
         totalTaps = try c.decodeIfPresent(Int.self, forKey: .totalTaps) ?? 0
         totalServed = try c.decodeIfPresent(Int.self, forKey: .totalServed) ?? 0
+
+        claimedAchievements = try c.decodeIfPresent(Set<String>.self, forKey: .claimedAchievements) ?? []
+        prestigeCount = try c.decodeIfPresent(Int.self, forKey: .prestigeCount) ?? 0
+        bestLeagueTierReached = try c.decodeIfPresent(LeagueTier.self, forKey: .bestLeagueTierReached) ?? .bronze
     }
 }

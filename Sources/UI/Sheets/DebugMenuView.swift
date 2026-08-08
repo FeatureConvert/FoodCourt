@@ -45,6 +45,9 @@ struct DebugMenuView: View {
                 grantButton("Epic staff") { _ = engine.grantManager(rarity: .epic) }
                 grantButton("Legend staff") { _ = engine.grantManager(rarity: .legendary) }
             }
+            HStack(spacing: 8) {
+                grantButton("Force prestige") { _ = engine.prestige() }
+            }
 
             SectionLabel(text: "State")
             Button {

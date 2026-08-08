@@ -134,8 +134,40 @@ enum DailyRewards {
             Boosts.add(boost, to: &state)
         }
 
+        updateStreak(state: &state, now: now, calendar: cal)
+
         state.daily.lastClaimedDay = cal.startOfDay(for: now)
         state.daily.currentDay = day >= cycleLength ? 1 : day + 1
         return payout
+    }
+
+    // MARK: Login streak
+
+    /// (day, gems) milestones, uncapped and separate from the 7-day reward cycle - a long
+    /// streak keeps paying out well past day 7 instead of just looping the same rewards.
+    static let streakMilestones: [(day: Int, gems: Int)] = [
+        (7, 50), (14, 100), (30, 250), (60, 500), (100, 1000),
+    ]
+
+    /// Advances or resets `streakLength` based on the same calendar-day gap `status(...)`
+    /// already computed to decide the 7-day cycle. A single missed day is forgiven if a
+    /// freeze is in stock; anything longer than that resets the streak to 1.
+    private static func updateStreak(state: inout GameState, now: Date, calendar cal: Calendar) {
+        let today = cal.startOfDay(for: now)
+        guard let last = state.daily.lastClaimedDay else {
+            state.daily.streakLength = 1
+            return
+        }
+        let lastDay = cal.startOfDay(for: last)
+        let gap = cal.dateComponents([.day], from: lastDay, to: today).day ?? 0
+
+        if gap == 1 {
+            state.daily.streakLength += 1
+        } else if gap == 2, state.daily.streakFreezes > 0 {
+            state.daily.streakFreezes -= 1
+            state.daily.streakLength += 1
+        } else {
+            state.daily.streakLength = 1
+        }
     }
 }

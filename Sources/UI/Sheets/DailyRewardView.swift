@@ -52,6 +52,54 @@ struct DailyRewardSection: View {
             .font(Theme.body(11, weight: .medium))
             .foregroundStyle(Theme.textDim)
             .multilineTextAlignment(.center)
+
+        streakRow
+    }
+
+    private var streakRow: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "flame.fill")
+                    .foregroundStyle(Theme.coin)
+                Text("\(Format.plural(engine.state.daily.streakLength, "day")) streak")
+                    .font(Theme.body(13, weight: .black))
+                    .foregroundStyle(Theme.text)
+                if engine.state.daily.streakFreezes > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "snowflake")
+                        Text("×\(engine.state.daily.streakFreezes)")
+                    }
+                    .font(Theme.body(11, weight: .bold))
+                    .foregroundStyle(Theme.textDim)
+                }
+                Spacer(minLength: 0)
+            }
+
+            ForEach(engine.claimableStreakMilestones, id: \.day) { milestone in
+                Button {
+                    if let gems = engine.claimStreakMilestone(day: milestone.day) {
+                        Haptics.success()
+                        onToast("\(milestone.day)-day streak: +\(gems) gems")
+                    }
+                } label: {
+                    HStack {
+                        Text("\(milestone.day)-day streak reward")
+                            .font(Theme.body(12, weight: .bold))
+                        Spacer()
+                        HStack(spacing: 3) {
+                            GemIcon().frame(width: 12, height: 12)
+                            Text("\(milestone.gems)")
+                        }
+                        .font(Theme.numeric(12))
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(ChunkyButtonStyle(fill: Theme.positive,
+                                               shadow: Theme.positive.opacity(0.5), radius: 10))
+            }
+        }
+        .padding(.top, 4)
     }
 
     private func dayTile(_ spec: DailyRewardSpec) -> some View {
