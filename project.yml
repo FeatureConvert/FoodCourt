@@ -9,7 +9,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: "5X98G8X3FJ"
     CODE_SIGN_STYLE: Automatic
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     SWIFT_STRICT_CONCURRENCY: minimal
@@ -67,9 +67,11 @@ schemes:
     test:
       config: Debug
       gatherCoverageData: false
-      storeKitConfiguration: Sources/Store/Products.storekit
-      targets:
-        - FableTests
+      # The test plan is what carries the StoreKit configuration into `xcodebuild test`;
+      # the scheme's own storeKitConfiguration is only honoured by the Xcode UI.
+      testPlans:
+        - path: Fable.xctestplan
+          defaultPlan: true
     profile:
       config: Release
     analyze:

@@ -1,0 +1,28 @@
+{
+  "configurations" : [
+    {
+      "id" : "7A37D157-11DB-434C-962C-339B30F821B1",
+      "name" : "Configuration 1",
+      "options" : {
+        "storeKitConfigurationFileReference" : {
+          "containerPath" : "container:Fable.xcodeproj",
+          "identifier" : "90ADE33E20D3F2B41202C2A1",
+          "name" : "Products.storekit"
+        }
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Fable.xcodeproj",
+        "identifier" : "026E3FA6A2B024476B4DDA48",
+        "name" : "FableTests"
+      }
+    }
+  ],
+  "version" : 1
+}
