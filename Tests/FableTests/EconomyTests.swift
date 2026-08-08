@@ -55,26 +55,26 @@ final class EconomyTests: XCTestCase {
     // MARK: Milestones
 
     func testMilestonesStackMultiplicatively() {
-        XCTAssertEqual(Balance.profitMultiplier(level: 9), 1)
-        XCTAssertEqual(Balance.speedMultiplier(level: 10), 2)
-        XCTAssertEqual(Balance.profitMultiplier(level: 25), 2)
-        XCTAssertEqual(Balance.speedMultiplier(level: 50), 4)
-        XCTAssertEqual(Balance.profitMultiplier(level: 100), 6)   // 2 x 3
-        XCTAssertEqual(Balance.speedMultiplier(level: 200), 8)    // 2 x 2 x 2
-        XCTAssertEqual(Balance.profitMultiplier(level: 400), 24)  // 2 x 3 x 4
+        XCTAssertEqual(Balance.profitMultiplier(level: 99), 1)
+        XCTAssertEqual(Balance.speedMultiplier(level: 40), 2)
+        XCTAssertEqual(Balance.profitMultiplier(level: 100), 2)
+        XCTAssertEqual(Balance.speedMultiplier(level: 250), 4)
+        XCTAssertEqual(Balance.profitMultiplier(level: 500), 6)    // 2 x 3
+        XCTAssertEqual(Balance.speedMultiplier(level: 1000), 8)    // 2 x 2 x 2
+        XCTAssertEqual(Balance.profitMultiplier(level: 2000), 24)  // 2 x 3 x 4
     }
 
     func testCycleTimeShrinksWithSpeedMilestonesButIsFloored() {
         let base = Balance.cycleTime(spec: spec, level: 1)
         XCTAssertEqual(base, spec.baseCycle, accuracy: 1e-9)
-        XCTAssertEqual(Balance.cycleTime(spec: spec, level: 10), spec.baseCycle / 2, accuracy: 1e-9)
+        XCTAssertEqual(Balance.cycleTime(spec: spec, level: 40), spec.baseCycle / 2, accuracy: 1e-9)
         XCTAssertGreaterThanOrEqual(Balance.cycleTime(spec: spec, level: 10_000), Balance.minimumCycle)
     }
 
     func testNextMilestoneAdvances() {
-        XCTAssertEqual(Balance.nextMilestone(level: 0)?.level, 10)
-        XCTAssertEqual(Balance.nextMilestone(level: 10)?.level, 25)
-        XCTAssertNil(Balance.nextMilestone(level: 400))
+        XCTAssertEqual(Balance.nextMilestone(level: 0)?.level, 40)
+        XCTAssertEqual(Balance.nextMilestone(level: 40)?.level, 100)
+        XCTAssertNil(Balance.nextMilestone(level: 2000))
     }
 
     func testUnownedStationEarnsNothing() {

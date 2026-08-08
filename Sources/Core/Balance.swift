@@ -73,22 +73,32 @@ enum Balance {
 
     // Idle-game convention: each station is roughly an order of magnitude beyond the last,
     // so the "next" station is always the aspirational purchase.
+    // Cost growth was tuned too gently against a player who mashes the MAX-buy button: since
+    // income per second scales with level, a low growth rate lets levels compound faster than
+    // their own cost, and the game degenerates into "buy MAX repeatedly" trivializing every
+    // milestone within the first couple of minutes. These values were re-derived by
+    // simulating that exact MAX-buy loop against the real cost/revenue formulas rather than
+    // guessed - see the balance pass notes for the target curve (first speed milestone ~5min
+    // in, second venue ~20min of continuous optimal play, not under 5).
     private static let stationCurve: [(cost: Double, revenue: Double, cycle: TimeInterval, growth: Double)] = [
-        (4,             1,        0.6,  1.07),
-        (60,            60,       3,    1.08),
-        (720,           540,      6,    1.09),
-        (8_640,         4_320,    12,   1.10),
-        (103_680,       51_840,   24,   1.11),
-        (1_244_160,     622_080,  48,   1.12),
+        (4,             1,        0.6,  1.18),
+        (60,            60,       3,    1.19),
+        (720,           540,      6,    1.20),
+        (8_640,         4_320,    12,   1.21),
+        (103_680,       51_840,   24,   1.22),
+        (1_244_160,     622_080,  48,   1.23),
     ]
 
+    /// Levels raised alongside the steeper cost growth above - the old thresholds (10/25/50)
+    /// were reachable within the first 20 seconds of MAX-buying, which collapsed cycle time to
+    /// the floor almost immediately and made "serve N" quests trivial rather than a target.
     static let milestones: [Milestone] = [
-        Milestone(level: 10,  kind: .speed(2)),
-        Milestone(level: 25,  kind: .profit(2)),
-        Milestone(level: 50,  kind: .speed(2)),
-        Milestone(level: 100, kind: .profit(3)),
-        Milestone(level: 200, kind: .speed(2)),
-        Milestone(level: 400, kind: .profit(4)),
+        Milestone(level: 40,   kind: .speed(2)),
+        Milestone(level: 100,  kind: .profit(2)),
+        Milestone(level: 250,  kind: .speed(2)),
+        Milestone(level: 500,  kind: .profit(3)),
+        Milestone(level: 1000, kind: .speed(2)),
+        Milestone(level: 2000, kind: .profit(4)),
     ]
 
     /// A station stops getting faster past this point, otherwise cycles underflow the tick.
