@@ -52,6 +52,8 @@ private struct StaffSection: View {
     @EnvironmentObject private var engine: GameEngine
     let onToast: (String) -> Void
 
+    @State private var showChefConfetti = false
+
     var body: some View {
         guestChefBanner
 
@@ -126,6 +128,15 @@ private struct StaffSection: View {
         .padding(12)
         .panel(Theme.panelRaised)
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.star, lineWidth: 1.5))
+        .overlay {
+            if showChefConfetti { ConfettiBurstView() }
+        }
+        .onAppear {
+            if engine.guestChefSpotlightPending {
+                showChefConfetti = true
+                engine.markGuestChefSpotlightSeen()
+            }
+        }
     }
 
     /// Best staff first - the player cares about their legendaries, not their trainees.
@@ -138,9 +149,8 @@ private struct StaffSection: View {
 
     private var emptyState: some View {
         VStack(spacing: 8) {
-            Image(systemName: "person.2.slash")
-                .font(.system(size: 30))
-                .foregroundStyle(Theme.textDim)
+            PeopleIcon(tint: Theme.textDim)
+                .frame(width: 30, height: 30)
             Text("No staff yet")
                 .font(Theme.body(14, weight: .black))
                 .foregroundStyle(Theme.text)

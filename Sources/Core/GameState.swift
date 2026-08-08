@@ -185,6 +185,11 @@ struct GameState: Codable, Equatable {
     /// twice in the same week. Nil for a player who has never bought one.
     var lastGuestChefPurchaseWeek: Int? = nil
 
+    /// `GuestChef.weekKey` of the last time the banner's one-shot celebration played, kept
+    /// separate from `lastGuestChefPurchaseWeek` since the spotlight fires on first *sight*
+    /// of the week's pick, whether or not the player buys it.
+    var lastGuestChefSpotlightWeek: Int? = nil
+
     var claimedAchievements: Set<String> = []
     var prestigeCount: Int = 0
     /// Kept separately from `league.tier` because `league` is replaced wholesale every time
@@ -383,7 +388,7 @@ struct GameState: Codable, Equatable {
         case errands
         case venueSkins, unlockedSkins
         case legacy
-        case lastGuestChefPurchaseWeek
+        case lastGuestChefPurchaseWeek, lastGuestChefSpotlightWeek
     }
 
     init() {}
@@ -436,5 +441,6 @@ struct GameState: Codable, Equatable {
 
         legacy = try c.decodeIfPresent(LegacyState.self, forKey: .legacy) ?? LegacyState()
         lastGuestChefPurchaseWeek = try c.decodeIfPresent(Int.self, forKey: .lastGuestChefPurchaseWeek)
+        lastGuestChefSpotlightWeek = try c.decodeIfPresent(Int.self, forKey: .lastGuestChefSpotlightWeek)
     }
 }

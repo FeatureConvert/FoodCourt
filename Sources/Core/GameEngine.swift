@@ -449,6 +449,17 @@ final class GameEngine: ObservableObject {
         state.lastGuestChefPurchaseWeek == GuestChef.weekKey(now: state.now)
     }
 
+    /// True the first time the Staff sheet is opened for a given week's pick - drives a
+    /// one-shot celebration rather than replaying it on every visit.
+    var guestChefSpotlightPending: Bool {
+        state.lastGuestChefSpotlightWeek != GuestChef.weekKey(now: state.now)
+    }
+
+    func markGuestChefSpotlightSeen() {
+        state.lastGuestChefSpotlightWeek = GuestChef.weekKey(now: state.now)
+        save()
+    }
+
     @discardableResult
     func purchaseGuestChef() -> ManagerSpec? {
         guard !guestChefAlreadyPurchasedThisWeek else { return nil }
