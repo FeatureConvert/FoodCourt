@@ -32,6 +32,11 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleLightContent
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        # iPad is in TARGETED_DEVICE_FAMILY below; Apple requires an app that restricts
+        # orientation to also opt out of Slide Over/Split View, or support every orientation.
+        # This is a portrait-locked phone-style game, so it opts out rather than adding
+        # landscape layouts it was never designed for.
+        INFOPLIST_KEY_UIRequiresFullScreen: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

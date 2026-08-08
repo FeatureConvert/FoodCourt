@@ -139,7 +139,9 @@ final class StoreTests: XCTestCase {
     }
 
     func testFailedPurchaseGrantsNothing() async throws {
-        session?.failTransactionsEnabled = true
+        // failTransactionsEnabled was deprecated in iOS 17 with no replacement property;
+        // the modern equivalent targets a specific API and takes a real StoreKitError.
+        try await session?.setSimulatedError(.generic(.unknown), forAPI: .purchase)
         let before = engine.state.gems
 
         await store.purchase(ShopCatalog.gemPacks[2])
