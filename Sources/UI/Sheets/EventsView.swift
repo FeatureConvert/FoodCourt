@@ -185,16 +185,22 @@ private struct FestivalSection: View {
     private func rewardChip(_ reward: FestivalReward, claimable: Bool, claimed: Bool,
                             locked: Bool, premium: Bool,
                             action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        let tint = chipForeground(claimable: claimable, claimed: claimed, locked: locked)
+        return Button(action: action) {
             HStack(spacing: 6) {
-                Image(systemName: claimed ? "checkmark.circle.fill" : reward.symbol)
-                    .font(.system(size: 12, weight: .bold))
+                if claimed {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12, weight: .bold))
+                } else {
+                    GlyphIcon(reward.symbol, tint: tint)
+                        .frame(width: 13, height: 13)
+                }
                 Text(reward.label)
                     .font(Theme.body(10, weight: .black))
                     .lineLimit(1).minimumScaleFactor(0.65)
                 Spacer(minLength: 0)
             }
-            .foregroundStyle(chipForeground(claimable: claimable, claimed: claimed, locked: locked))
+            .foregroundStyle(tint)
             .padding(.horizontal, 9)
             .frame(maxWidth: .infinity, minHeight: 38)
             .background(
@@ -240,9 +246,9 @@ private struct LeagueSection: View {
                 ZStack {
                     Circle().fill(Color(hex: league.tier.hex).opacity(0.25))
                     Circle().stroke(Color(hex: league.tier.hex), lineWidth: 2.5)
-                    Image(systemName: "trophy.fill")
-                        .font(.system(size: 20, weight: .black))
-                        .foregroundStyle(Color(hex: league.tier.hex))
+                    TrophyIcon(cup: Color(hex: league.tier.hex),
+                               base: Color(hex: league.tier.hex).opacity(0.75))
+                        .frame(width: 30, height: 30)
                 }
                 .frame(width: 54, height: 54)
 

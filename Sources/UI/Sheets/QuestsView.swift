@@ -62,9 +62,8 @@ private struct QuestsSection: View {
         let done = quest.isComplete
         return VStack(spacing: 10) {
             HStack(spacing: 12) {
-                Image(systemName: quest.kind.symbol)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(done ? Theme.positive : Theme.textDim)
+                GlyphIcon(quest.kind.symbol, tint: done ? Theme.positive : Theme.textDim)
+                    .frame(width: 20, height: 20)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Theme.ink.opacity(0.5)))
 
@@ -138,9 +137,8 @@ private struct AchievementsSection: View {
 
         return VStack(spacing: 10) {
             HStack(spacing: 12) {
-                Image(systemName: spec.symbol)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(claimed ? Theme.positive : (done ? Theme.coin : Theme.textDim))
+                GlyphIcon(spec.symbol, tint: claimed ? Theme.positive : (done ? Theme.coin : Theme.textDim))
+                    .frame(width: 20, height: 20)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Theme.ink.opacity(0.5)))
 

@@ -300,8 +300,8 @@ private struct BottomBar: View {
         Button(action: action) {
             VStack(spacing: 3) {
                 ZStack(alignment: .topTrailing) {
-                    Image(systemName: symbol)
-                        .font(.system(size: 18, weight: .bold))
+                    GlyphIcon(symbol, tint: Theme.text)
+                        .frame(width: 19, height: 19)
                         .frame(height: 22)
                     if badge {
                         Circle().fill(Theme.negative)

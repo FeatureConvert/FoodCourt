@@ -46,9 +46,8 @@ struct PerkChoiceView: View {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { dismiss() }
                     } label: {
                         HStack(spacing: 12) {
-                            Image(systemName: perk.symbol)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(Theme.star)
+                            GlyphIcon(perk.symbol, tint: Theme.star)
+                                .frame(width: 22, height: 22)
                                 .frame(width: 40, height: 40)
                                 .background(Circle().fill(Theme.ink.opacity(0.5)))
 

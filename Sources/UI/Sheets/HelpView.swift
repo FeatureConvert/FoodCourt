@@ -316,9 +316,8 @@ private struct GuideSection: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: symbol)
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(Theme.coin)
+            GlyphIcon(symbol, tint: Theme.coin)
+                .frame(width: 19, height: 19)
                 .frame(width: 34, height: 34)
                 .background(Circle().fill(Theme.ink.opacity(0.5)))
 

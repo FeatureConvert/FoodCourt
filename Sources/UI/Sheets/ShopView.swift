@@ -62,9 +62,8 @@ struct ShopView: View {
             }
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: offer.symbol)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(Theme.gem)
+                GlyphIcon(offer.symbol, tint: Theme.gem)
+                    .frame(width: 21, height: 21)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Theme.ink.opacity(0.5)))
 

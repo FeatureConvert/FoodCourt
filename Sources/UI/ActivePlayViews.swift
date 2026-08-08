@@ -15,9 +15,8 @@ struct ComboMeterView: View {
             let timeLeft = engine.combo.remaining(at: now) / ActivePlay.comboWindow
 
             HStack(spacing: 10) {
-                Image(systemName: "flame.fill")
-                    .font(.system(size: 15, weight: .black))
-                    .foregroundStyle(Theme.coin)
+                GlyphIcon("flame.fill", tint: Theme.coin)
+                    .frame(width: 17, height: 17)
                     .scaleEffect(1 + 0.15 * timeLeft)
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -67,8 +66,8 @@ struct RushBannerView: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.25)) { _ in
             HStack(spacing: 8) {
-                Image(systemName: "timer")
-                    .font(.system(size: 14, weight: .black))
+                GlyphIcon("timer", tint: Theme.ink)
+                    .frame(width: 16, height: 16)
                 Text("RUSH HOUR ×\(Format.trim(ActivePlay.rushMultiplier))")
                     .font(Theme.body(13, weight: .black))
                 Spacer()
@@ -154,9 +153,8 @@ struct StageActionsView: View {
                     .fill(tint)
                     .frame(width: 42, height: 42)
                     .overlay(
-                        Image(systemName: symbol)
-                            .font(.system(size: 17, weight: .black))
-                            .foregroundStyle(Theme.ink)
+                        GlyphIcon(symbol, tint: Theme.ink)
+                            .frame(width: 20, height: 20)
                     )
                     .shadow(color: .black.opacity(0.35), radius: 4, y: 2)
                 if badge {

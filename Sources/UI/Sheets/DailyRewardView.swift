@@ -59,14 +59,15 @@ struct DailyRewardSection: View {
     private var streakRow: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
-                Image(systemName: "flame.fill")
-                    .foregroundStyle(Theme.coin)
+                GlyphIcon("flame.fill", tint: Theme.coin)
+                    .frame(width: 15, height: 15)
                 Text("\(Format.plural(engine.state.daily.streakLength, "day")) streak")
                     .font(Theme.body(13, weight: .black))
                     .foregroundStyle(Theme.text)
                 if engine.state.daily.streakFreezes > 0 {
                     HStack(spacing: 3) {
-                        Image(systemName: "snowflake")
+                        GlyphIcon("snowflake", tint: Theme.textDim)
+                            .frame(width: 12, height: 12)
                         Text("×\(engine.state.daily.streakFreezes)")
                     }
                     .font(Theme.body(11, weight: .bold))
@@ -150,9 +151,8 @@ struct DailyRewardSection: View {
         case .gems:
             GemIcon().frame(width: 30, height: 30)
         case .boost:
-            Image(systemName: "bolt.fill")
-                .font(.system(size: 26, weight: .black))
-                .foregroundStyle(Theme.coin)
+            GlyphIcon("bolt.fill", tint: Theme.coin)
+                .frame(width: 26, height: 26)
         case .grand:
             HStack(spacing: -6) {
                 GemIcon().frame(width: 26, height: 26)
