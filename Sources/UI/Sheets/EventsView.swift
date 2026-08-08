@@ -278,7 +278,7 @@ private struct LeagueSection: View {
         }
         .panel(Theme.panel)
 
-        Text("Rivals keep cooking while you're away. Scores reset every week.")
+        Text("A solo ladder: your rivals are simulated, and their pace is set by your own income so it stays competitive as you grow. Nothing is sent anywhere — the game has no online play.")
             .font(Theme.body(11, weight: .medium))
             .foregroundStyle(Theme.textDim)
             .frame(maxWidth: .infinity)

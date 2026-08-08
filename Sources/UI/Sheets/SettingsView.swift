@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var engine: GameEngine
     @EnvironmentObject private var store: StoreService
+    @EnvironmentObject private var cloud: CloudSaveService
     let onToast: (String) -> Void
     var onHelp: () -> Void = {}
 
@@ -21,6 +22,27 @@ struct SettingsView: View {
                 row("Ads shown", "0")
             }
             .panel(Theme.panel)
+
+            SectionLabel(text: "iCloud")
+            VStack(spacing: 0) {
+                row("Sync", cloud.status.label)
+            }
+            .panel(Theme.panel)
+
+            if cloud.isAvailable {
+                Button {
+                    engine.pushToCloud()
+                    onToast("Saved to iCloud")
+                } label: {
+                    label("Sync now", system: "arrow.triangle.2.circlepath")
+                }
+                .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
+            } else {
+                Text("Sign in to iCloud to keep your progress across devices. Until then it is stored on this device only.")
+                    .font(Theme.body(11, weight: .medium))
+                    .foregroundStyle(Theme.textDim)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
             SectionLabel(text: "Help")
             Button {

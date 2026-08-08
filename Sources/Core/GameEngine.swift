@@ -137,7 +137,34 @@ final class GameEngine: ObservableObject {
         lastTickTime = CACurrentMediaTimeCompat()
     }
 
-    func handleBackground() { save() }
+    func handleBackground() {
+        save()
+        // KVS wants infrequent writes, so the cloud push happens on the way out rather than
+        // on every five-second autosave.
+        cloud?.push(state)
+    }
+
+    /// Set by the app once both objects exist.
+    private weak var cloud: CloudSaveService?
+    func attachCloud(_ service: CloudSaveService) { cloud = service }
+
+    /// Replaces local progress with a save from another device.
+    func adoptCloudSave(_ incoming: GameState) {
+        stop()
+        state = incoming
+        state.reconcileWithCatalog()
+        Boosts.prune(&state)
+        lastServe.removeAll()
+        pendingBursts.removeAll()
+        lastBurstAt.removeAll()
+        combo.reset()
+        golden = nil
+        bootstrapSystems()
+        save()
+        start()
+    }
+
+    func pushToCloud() { cloud?.push(state) }
 
     // MARK: Tick
 

@@ -12,6 +12,7 @@
 		0FC02FF81C9838F43E3749AE /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 90ADE33E20D3F2B41202C2A1 /* Products.storekit */; };
 		170194D21A2D534628E7C4CA /* Perks.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6C690DF5FC87BAEDABD2B2B /* Perks.swift */; };
 		1AF5363324B986459614ECC8 /* ProgressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED78409947694A96FF745DF8 /* ProgressionTests.swift */; };
+		1D2352C63B1413B836DFED9C /* CloudConflictView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40C66A8940881741C7577CF4 /* CloudConflictView.swift */; };
 		1E72DAC185AFED13C6E14B82 /* EventsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37515A3266C48B43461F8FFF /* EventsView.swift */; };
 		228B89D93E112BDF014988A5 /* Balance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C207BD78124374F04BB52A /* Balance.swift */; };
 		273B751043EDD9E4788F384D /* SheetScaffold.swift in Sources */ = {isa = PBXBuildFile; fileRef = E16825A1724A72F0030D40D1 /* SheetScaffold.swift */; };
@@ -52,6 +53,7 @@
 		DE1FBDD2A5D54E8B7BB4E062 /* EconomyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6C8B5AE629838FD3011DB86 /* EconomyTests.swift */; };
 		E018DD2D1670A22E593B6962 /* Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B320AD114EF8759BA8EA4A0 /* Formatting.swift */; };
 		E7360EC0A6A0DD5B5A5E691B /* OfflineEarningsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE1EE843FA78D5CC2CCC947C /* OfflineEarningsView.swift */; };
+		E7B5962454FC73B395E7A013 /* CloudSave.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49106EDE90721B0A6B9DC939 /* CloudSave.swift */; };
 		EB6CA288EED7AAEE9C372B77 /* DailyRewards.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF0F3E61981543C34C90567C /* DailyRewards.swift */; };
 		ECC05541EDFB311DC4CD681E /* TutorialOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 043F653C507C5D4BF440FA54 /* TutorialOverlay.swift */; };
 		EDC2E9F49F724833352C78C3 /* StoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E9FBAB04997C010D88507E /* StoreTests.swift */; };
@@ -86,7 +88,9 @@
 		388AFC1D19065A136570A153 /* PerkChoiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerkChoiceView.swift; sourceTree = "<group>"; };
 		3A2EE81608776E2BF273BBBD /* FoodSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodSprite.swift; sourceTree = "<group>"; };
 		40A09664AFA96F68507B8608 /* StationMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationMath.swift; sourceTree = "<group>"; };
+		40C66A8940881741C7577CF4 /* CloudConflictView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudConflictView.swift; sourceTree = "<group>"; };
 		46D1911EBB949FF72F6AB016 /* Research.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Research.swift; sourceTree = "<group>"; };
+		49106EDE90721B0A6B9DC939 /* CloudSave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSave.swift; sourceTree = "<group>"; };
 		4B34835D7F5A7622BB272E93 /* Quests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Quests.swift; sourceTree = "<group>"; };
 		4E8833189801270C6E78D286 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		4F09D63C291B04A5F9057BC6 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -116,6 +120,7 @@
 		B56026DD041F82FCAAF814D9 /* CustomerSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerSprite.swift; sourceTree = "<group>"; };
 		BE1EE843FA78D5CC2CCC947C /* OfflineEarningsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineEarningsView.swift; sourceTree = "<group>"; };
 		BF0115CD9E38675947B4A523 /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
+		C1D05DA06D8F0FB494659C71 /* Fable.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Fable.entitlements; sourceTree = "<group>"; };
 		D4F2EB0B4C5701B9F89C4497 /* FeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureTests.swift; sourceTree = "<group>"; };
 		D6110EAE66DAA23544163D60 /* ShopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopView.swift; sourceTree = "<group>"; };
 		D6C8B5AE629838FD3011DB86 /* EconomyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EconomyTests.swift; sourceTree = "<group>"; };
@@ -146,6 +151,7 @@
 			children = (
 				75C207BD78124374F04BB52A /* Balance.swift */,
 				E8A230F7E6FC4B1137C45619 /* Boosts.swift */,
+				49106EDE90721B0A6B9DC939 /* CloudSave.swift */,
 				5CA66CE43888B7C621F4130C /* Combo.swift */,
 				AF0F3E61981543C34C90567C /* DailyRewards.swift */,
 				6B5E019C15AA811DEA06C126 /* Festival.swift */,
@@ -170,6 +176,7 @@
 			isa = PBXGroup;
 			children = (
 				AB9CDFE41E11F22B7F4BB70F /* Assets.xcassets */,
+				C1D05DA06D8F0FB494659C71 /* Fable.entitlements */,
 				D17556388182BC802A1D28A9 /* App */,
 				40ADE39A21A9FC6777460EA2 /* Core */,
 				CD2953EBA2A374C41A1DBCC4 /* Store */,
@@ -199,6 +206,7 @@
 		9DC4DC81BC1CB6163A43F7D2 /* Sheets */ = {
 			isa = PBXGroup;
 			children = (
+				40C66A8940881741C7577CF4 /* CloudConflictView.swift */,
 				89F2E53AB8B4FAF1BD409A44 /* CollectionView.swift */,
 				5A00F2A8A161196B9066FFE9 /* DailyRewardView.swift */,
 				69FFAD265ADEF5481F857016 /* DebugMenuView.swift */,
@@ -389,6 +397,8 @@
 				F4F5E2480A8519A92F0C8507 /* AdFreeBadge.swift in Sources */,
 				228B89D93E112BDF014988A5 /* Balance.swift in Sources */,
 				2FEFB4DEC9538D8CB0331FD2 /* Boosts.swift in Sources */,
+				1D2352C63B1413B836DFED9C /* CloudConflictView.swift in Sources */,
+				E7B5962454FC73B395E7A013 /* CloudSave.swift in Sources */,
 				2EB53E40C1F48100422B9C33 /* CoinBurst.swift in Sources */,
 				D08D9543ECB9B90210EFBFCE /* CollectionView.swift in Sources */,
 				C16A5659DD105E55069E0C52 /* Combo.swift in Sources */,
@@ -517,6 +527,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Sources/Fable.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -559,6 +570,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Sources/Fable.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;

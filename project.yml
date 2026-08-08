@@ -24,6 +24,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fable.foodcourt
         PRODUCT_NAME: Fable
+        # iCloud key-value sync. Needs a signing team with iCloud enabled; the simulator
+        # ignores it and the game falls back to local-only storage.
+        CODE_SIGN_ENTITLEMENTS: Sources/Fable.entitlements
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Food Court Tycoon
         INFOPLIST_KEY_UILaunchScreen_Generation: YES

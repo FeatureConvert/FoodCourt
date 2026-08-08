@@ -709,6 +709,50 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(e.state.assignedManagerCount, 0)
     }
 
+    // MARK: Cloud sync
+
+    func testCloudPicksTheSaveThatHasSeenMoreOfTheGame() {
+        // Lifetime earnings only ever go up, so it beats a timestamp - a device with a wrong
+        // clock could otherwise win with nothing to show for it.
+        var a = GameState.newGame(); a.lifetimeEarnings = 5_000
+        var b = GameState.newGame(); b.lifetimeEarnings = 9_000
+        XCTAssertTrue(CloudSaveService.isAhead(b, of: a))
+        XCTAssertFalse(CloudSaveService.isAhead(a, of: b))
+
+        // Stars outrank earnings: a franchised save is further along even after its reset.
+        var franchised = GameState.newGame()
+        franchised.lifetimeStars = 200
+        franchised.lifetimeEarnings = 1_000
+        var grinding = GameState.newGame()
+        grinding.lifetimeEarnings = 500_000
+        XCTAssertTrue(CloudSaveService.isAhead(franchised, of: grinding))
+    }
+
+    func testIdenticalSavesAreNotConsideredAhead() {
+        let a = GameState.newGame()
+        XCTAssertFalse(CloudSaveService.isAhead(a, of: a))
+    }
+
+    @MainActor
+    func testAdoptingACloudSaveReplacesLocalProgressWholesale() {
+        var remote = GameState.newGame()
+        remote.lifetimeEarnings = 9_000_000
+        remote.lifetimeStars = 40
+        remote.gems = 777
+        remote.venues[0].stations[0].level = 88
+
+        let e = engine()
+        e.addCoins(10)
+        e.adoptCloudSave(remote)
+
+        XCTAssertEqual(e.state.gems, 777)
+        XCTAssertEqual(e.state.lifetimeStars, 40)
+        XCTAssertEqual(e.state.venues[0].stations[0].level, 88)
+        // The adopted save still gets its quest slots and league seeded.
+        XCTAssertEqual(e.state.quests.count, Quests.slots)
+        XCTAssertFalse(e.state.league.rivals.isEmpty)
+    }
+
     // MARK: Save migration
 
     func testSchemaOneSaveMigratesOntoRealManagers() throws {

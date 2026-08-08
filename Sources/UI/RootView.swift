@@ -2,6 +2,7 @@ import SwiftUI
 
 enum ActiveSheet: Identifiable, Equatable {
     case shop, venues, prestige, settings, debug, offline, collection, quests, help
+    case cloudConflict
     case daily
     case events(EventsView.Tab)
     case perk(Int)
@@ -17,6 +18,7 @@ enum ActiveSheet: Identifiable, Equatable {
         case .collection: return "collection"
         case .quests: return "quests"
         case .help: return "help"
+        case .cloudConflict: return "cloud-conflict"
         case .daily: return "daily"
         case .events(let tab): return "events-\(tab.rawValue)"
         case .perk(let station): return "perk-\(station)"
@@ -27,6 +29,7 @@ enum ActiveSheet: Identifiable, Equatable {
 struct RootView: View {
     @EnvironmentObject private var engine: GameEngine
     @EnvironmentObject private var store: StoreService
+    @EnvironmentObject private var cloud: CloudSaveService
 
     @State private var sheet: ActiveSheet?
     @State private var toast: String?
@@ -106,6 +109,9 @@ struct RootView: View {
                 .presentationDragIndicator(.visible)
         }
         .onChange(of: sheet) { _, new in if let new { lastPresented = new } }
+        .onChange(of: cloud.conflict) { _, conflict in
+            if conflict != nil { present(.cloudConflict) }
+        }
         .onChange(of: engine.pendingOfflineReport) { _, report in
             if report != nil { present(.offline) }
         }
@@ -140,6 +146,10 @@ struct RootView: View {
         case .collection: CollectionView(onToast: showToast)
         case .quests: QuestsView(onToast: showToast)
         case .help: HelpView(onToast: showToast)
+        case .cloudConflict:
+            if let remote = cloud.conflict {
+                CloudConflictView(remote: remote, onToast: showToast)
+            }
         case .daily: DailyRewardView(onToast: showToast)
         case .events(let tab): EventsView(initialTab: tab, onToast: showToast)
         case .perk(let station): PerkChoiceView(station: station, onToast: showToast)
@@ -152,7 +162,7 @@ struct RootView: View {
 
     private func detents(for sheet: ActiveSheet) -> Set<PresentationDetent> {
         switch sheet {
-        case .venues, .collection, .events: return [.large]
+        case .venues, .collection, .events, .cloudConflict: return [.large]
         case .perk: return [.medium, .large]
         default: return [.medium, .large]
         }
@@ -186,6 +196,10 @@ struct RootView: View {
         guard !hasHandledLaunch else { return }
         hasHandledLaunch = true
 
+        if cloud.conflict != nil {
+            present(.cloudConflict)
+            return
+        }
         if engine.pendingOfflineReport != nil {
             present(.offline)
             return
