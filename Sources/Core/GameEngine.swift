@@ -725,9 +725,10 @@ final class GameEngine: ObservableObject {
         Boosts.add(Boosts.make(id: id, label: label, multiplier: multiplier, hours: hours, from: state.now), to: &state)
     }
 
-    func setEntitlement(vip: Bool? = nil, starterPack: Bool? = nil) {
+    func setEntitlement(vip: Bool? = nil, starterPack: Bool? = nil, grandOpeningBundle: Bool? = nil) {
         if let vip { state.entitlements.vip = vip }
         if let starterPack { state.entitlements.starterPack = starterPack }
+        if let grandOpeningBundle { state.entitlements.grandOpeningBundle = grandOpeningBundle }
     }
 
     @discardableResult
@@ -789,6 +790,18 @@ final class GameEngine: ObservableObject {
         let earned = timeWarp(hours: 8)
         addBoost(id: "accelerator", label: "Accelerator ×2", multiplier: 2, hours: 48)
         return earned
+    }
+
+    /// The one-time anchor purchase. Unlike the Starter Pack (venue 0 only, most useful to a
+    /// brand new player), this automates every station in every venue the player has already
+    /// opened - so it stays a genuinely good deal no matter how far along they are when they
+    /// buy it, rather than losing value the moment they've moved past venue 0.
+    func grantGrandOpeningBundle() {
+        addGems(1_500)
+        for venue in Balance.venues where state.venues[venue.id].unlocked {
+            grantManagerPack(venue: venue.id)
+        }
+        addBoost(id: "grand-opening", label: "Grand Opening ×2", multiplier: 2, hours: 72)
     }
 
     // MARK: Free boost (Coffee Break)

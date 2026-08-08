@@ -60,10 +60,25 @@ struct BoostState: Codable, Equatable, Identifiable {
 struct Entitlements: Codable, Equatable {
     var vip: Bool = false
     var starterPack: Bool = false
+    var grandOpeningBundle: Bool = false
 
     var profitMultiplier: Double { vip ? 1 + Balance.vipProfitBonus : 1 }
     /// VIP carries the Carnival Pass, every season, for as long as they hold it.
     var includesFestivalPremium: Bool { vip }
+
+    enum CodingKeys: String, CodingKey { case vip, starterPack, grandOpeningBundle }
+
+    init() {}
+
+    /// Hand-written for the same reason as `GameState`'s: a synthesized decoder throws on
+    /// any key an older save doesn't have yet, which would fail the whole save's decode -
+    /// not just this one flag - the moment a new entitlement is added.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        vip = try c.decodeIfPresent(Bool.self, forKey: .vip) ?? false
+        starterPack = try c.decodeIfPresent(Bool.self, forKey: .starterPack) ?? false
+        grandOpeningBundle = try c.decodeIfPresent(Bool.self, forKey: .grandOpeningBundle) ?? false
+    }
 }
 
 /// Login calendar progress. Tracked by calendar day, not by a rolling 24h timer.

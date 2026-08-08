@@ -794,6 +794,117 @@ final class FeatureTests: XCTestCase {
         }
     }
 
+    func testGrandOpeningBundleIsAOneTimeNonConsumable() {
+        let item = ShopCatalog.all.first { $0.reward == .grandOpeningBundle }
+        XCTAssertNotNil(item, "the Grand Opening Bundle must be in the catalog")
+        XCTAssertFalse(item?.isConsumable ?? true, "a one-time anchor purchase must not be repeatable")
+    }
+
+    // MARK: Shop sort order
+
+    func testGemSinksDisplayCheapestFirst() {
+        let sorted = GemOffer.allSortedByCost
+        XCTAssertEqual(sorted.count, GemOffer.all.count, "sorting must not drop or duplicate an offer")
+        for (a, b) in zip(sorted, sorted.dropFirst()) {
+            XCTAssertLessThanOrEqual(a.cost, b.cost)
+        }
+        XCTAssertEqual(sorted.first?.id, "instant", "Serve Everyone at 20 gems is the cheapest sink")
+    }
+
+    // MARK: Festival ticket gem sink
+
+    @MainActor
+    func testTicketBundlePaysOutRegardlessOfTheServeCap() {
+        // Serve-sourced tickets are capped at 45% of the track (tested elsewhere); a
+        // purchased top-up is a different source entirely and must not be throttled by it.
+        var state = GameState.newGame()
+        state.gems = 1000
+        state.festival.ticketsFromServing = Festival.maxTicketsFromServing  // already maxed out
+        let e = engine(state)
+        let offer = GemOffer.all.first { $0.id == "tickets" }!
+
+        let before = e.state.festival.tickets
+        guard case .success = GemSpend.redeem(offer, engine: e) else {
+            return XCTFail("a ticket purchase must succeed even with the serve cap maxed")
+        }
+        XCTAssertEqual(e.state.festival.tickets, before + 500)
+    }
+
+    @MainActor
+    func testTicketBundleRefusesWithoutEnoughGems() {
+        let e = engine()
+        XCTAssertEqual(GemSpend.redeem(GemOffer.all.first { $0.id == "tickets" }!, engine: e),
+                       .insufficientGems)
+    }
+
+    // MARK: Grand Opening Bundle
+
+    @MainActor
+    func testGrandOpeningBundleAutomatesEveryUnlockedVenueNotJustOne() {
+        var state = GameState.newGame()
+        state.venues[1].unlocked = true
+        state.venues[1].stations[0].level = 3
+        state.venues[1].stations[2].level = 3
+        let e = engine(state)
+        let before = e.state.gems
+
+        e.grantGrandOpeningBundle()
+
+        XCTAssertTrue(e.state.venues[0].stations[0].isStaffed, "venue 0's starting station")
+        XCTAssertTrue(e.state.venues[1].stations[0].isStaffed)
+        XCTAssertTrue(e.state.venues[1].stations[2].isStaffed)
+        XCTAssertEqual(e.state.gems, before + 1_500)
+        XCTAssertEqual(e.state.activeBoosts.first { $0.id == "grand-opening" }?.multiplier, 2)
+    }
+
+    @MainActor
+    func testGrandOpeningBundleGrantsExactlyOnceAcrossRepeatedEntitlementRefreshes() {
+        // A non-consumable is re-delivered by StoreKit's currentEntitlements on every launch.
+        // The engine call itself is idempotent-unsafe by design (it always grants) - the
+        // one-time guard belongs to the caller, which is what this exercises: the same
+        // firstTime-check pattern already proven for the Starter Pack.
+        let e = engine()
+        XCTAssertFalse(e.state.entitlements.grandOpeningBundle)
+        let before = e.state.gems
+
+        let firstTime = !e.state.entitlements.grandOpeningBundle
+        e.setEntitlement(grandOpeningBundle: true)
+        if firstTime { e.grantGrandOpeningBundle() }
+        XCTAssertEqual(e.state.gems, before + 1_500)
+
+        // Simulate the exact same call landing again on a later launch.
+        let secondTime = !e.state.entitlements.grandOpeningBundle
+        e.setEntitlement(grandOpeningBundle: true)
+        if secondTime { e.grantGrandOpeningBundle() }
+        XCTAssertEqual(e.state.gems, before + 1_500, "must not double-grant on a repeated entitlement refresh")
+    }
+
+    // MARK: Entitlements save-compatibility
+
+    func testEntitlementsDecodeFineWithoutTheNewestField() throws {
+        // The exact trap that already bit GameState once this session: adding a new
+        // non-optional stored property to a Codable struct makes the synthesized decoder
+        // throw on ANY save that predates the field - not just default it to false. Confirms
+        // Entitlements' hand-written decoder actually guards against that.
+        let legacyJSON = """
+        {"vip": true, "starterPack": false}
+        """.data(using: .utf8)!
+
+        let decoded = try JSONDecoder().decode(Entitlements.self, from: legacyJSON)
+        XCTAssertTrue(decoded.vip)
+        XCTAssertFalse(decoded.starterPack)
+        XCTAssertFalse(decoded.grandOpeningBundle, "a missing key must default, not throw")
+    }
+
+    func testEntitlementsRoundTripsAllThreeFlags() throws {
+        var e = Entitlements()
+        e.vip = true
+        e.grandOpeningBundle = true
+        let data = try JSONEncoder().encode(e)
+        let restored = try JSONDecoder().decode(Entitlements.self, from: data)
+        XCTAssertEqual(restored, e)
+    }
+
     // MARK: League - the one free route to Legendary rarity
 
     @MainActor

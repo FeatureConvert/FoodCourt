@@ -10,13 +10,12 @@ struct TutorialOverlay: View {
     var body: some View {
         if let step = engine.state.tutorial.current {
             VStack(spacing: 0) {
-                Spacer()
+                Spacer().allowsHitTesting(false)
                 card(step)
                     .padding(.horizontal, 18)
                     .padding(.bottom, 96)
             }
             .transition(.move(edge: .bottom).combined(with: .opacity))
-            .allowsHitTesting(true)
         }
     }
 

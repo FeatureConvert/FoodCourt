@@ -10,7 +10,7 @@ struct ShopView: View {
             AdFreeBadge()
 
             SectionLabel(text: "Spend gems")
-            ForEach(GemOffer.all) { offer in
+            ForEach(GemOffer.allSortedByCost) { offer in
                 gemSinkRow(offer)
             }
 

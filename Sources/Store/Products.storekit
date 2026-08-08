@@ -135,6 +135,21 @@
       "type" : "Consumable"
     },
     {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "1000000012",
+      "localizations" : [
+        {
+          "description" : "1,500 gems, a manager for every open station in every venue you've unlocked, and double profit for 72 hours.",
+          "displayName" : "Grand Opening Bundle",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fable.foodcourt.pack.grandopening",
+      "referenceName" : "Grand Opening Bundle",
+      "type" : "NonConsumable"
+    },
+    {
       "displayPrice" : "4.99",
       "familyShareable" : false,
       "internalID" : "1000000005",

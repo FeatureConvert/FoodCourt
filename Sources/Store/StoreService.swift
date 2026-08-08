@@ -14,6 +14,8 @@ enum ShopReward: Equatable {
     /// The whale bundle: gems + banked income + a long boost. See
     /// `GameEngine.grantFranchiseAccelerator`.
     case accelerator
+    /// The one-time anchor purchase. See `GameEngine.grantGrandOpeningBundle`.
+    case grandOpeningBundle
 }
 
 struct ShopItem: Identifiable, Equatable {
@@ -32,7 +34,7 @@ struct ShopItem: Identifiable, Equatable {
     var isConsumable: Bool {
         switch reward {
         case .gems, .festivalPass, .legendaryManager, .accelerator: return true
-        case .starterPack, .vip: return false
+        case .starterPack, .vip, .grandOpeningBundle: return false
         }
     }
 }
@@ -71,6 +73,9 @@ enum ShopCatalog {
         ShopItem(id: prefix + "pack.accelerator", title: "Franchise Accelerator",
                  subtitle: "2,500 gems · 8 hours of income banked now · ×2 profit for 48h",
                  reward: .accelerator, fallbackPrice: "$19.99", badge: "BUNDLE", magnitude: 4),
+        ShopItem(id: prefix + "pack.grandopening", title: "Grand Opening Bundle",
+                 subtitle: "1,500 gems · a manager for every open station in every venue · ×2 for 72h",
+                 reward: .grandOpeningBundle, fallbackPrice: "$9.99", badge: "ONE TIME", magnitude: 3),
     ]
 
     static let all: [ShopItem] = offers + gemPacks
@@ -134,6 +139,7 @@ final class StoreService: ObservableObject {
         case .gems, .legendaryManager, .accelerator: return false
         case .starterPack: return engine.state.entitlements.starterPack
         case .vip: return engine.state.entitlements.vip
+        case .grandOpeningBundle: return engine.state.entitlements.grandOpeningBundle
         // Per-season, so it stops reading as owned once the season rolls - unless the
         // player holds VIP, which includes it and makes buying it separately pointless.
         case .festivalPass: return engine.festivalPremiumActive
@@ -246,6 +252,15 @@ final class StoreService: ObservableObject {
         case .accelerator:
             let earned = engine.grantFranchiseAccelerator()
             if announce { lastGrant = "+2,500 gems · \(Format.currency(earned)) coins · ×2 for 48h" }
+
+        case .grandOpeningBundle:
+            // Non-consumable: refreshEntitlements() re-delivers this transaction on every
+            // launch, so the grant must only fire the first time or it would hand out a
+            // fresh 1,500 gems and a fresh 72h boost on every relaunch forever.
+            let firstTime = !engine.state.entitlements.grandOpeningBundle
+            engine.setEntitlement(grandOpeningBundle: true)
+            if firstTime { engine.grantGrandOpeningBundle() }
+            if announce { lastGrant = "Grand Opening Bundle unlocked" }
         }
         engine.save()
     }

@@ -25,7 +25,13 @@ struct GemOffer: Identifiable, Equatable {
                  subtitle: "Staff every open station here at once", cost: 400, symbol: "person.3.fill"),
         GemOffer(id: "reserve", title: "Chef's Reserve",
                  subtitle: "×3 profit for 3 hours", cost: 300, symbol: "flame.fill"),
+        GemOffer(id: "tickets", title: "Ticket Bundle",
+                 subtitle: "+500 festival tickets", cost: 150, symbol: "ticket.fill"),
     ]
+
+    /// What the shop actually displays - cheapest first, so the list reads as a ladder
+    /// instead of whatever order they happened to be declared in above.
+    static var allSortedByCost: [GemOffer] { all.sorted { $0.cost < $1.cost } }
 }
 
 enum GemSpendResult: Equatable {
@@ -86,6 +92,16 @@ enum GemSpend {
             guard engine.spendGems(offer.cost) else { return .insufficientGems }
             engine.addBoost(id: "chefs-reserve", label: "×3 Chef's Reserve", multiplier: 3, hours: 3)
             return .success("Triple profit for 3 hours")
+
+        case "tickets":
+            // Tickets otherwise have no gem-purchasable path at all - a player who is close
+            // to a tier near season's end and out of time has nowhere to go. Deliberately
+            // priced so it tops up the stretch run rather than buying a whole season: at
+            // 150 gems for 500 tickets, covering all ~6,900 needed for tier 30 would take
+            // roughly 14 purchases.
+            guard engine.spendGems(offer.cost) else { return .insufficientGems }
+            engine.awardTickets(500)
+            return .success("+500 festival tickets")
 
         default:
             return .nothingToDo("Unavailable")
