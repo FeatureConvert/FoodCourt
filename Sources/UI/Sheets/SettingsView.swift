@@ -4,10 +4,12 @@ struct SettingsView: View {
     @EnvironmentObject private var engine: GameEngine
     @EnvironmentObject private var store: StoreService
     @EnvironmentObject private var cloud: CloudSaveService
+    @EnvironmentObject private var notifications: NotificationService
     let onToast: (String) -> Void
     var onHelp: () -> Void = {}
 
     @State private var confirmingReset = false
+    @AppStorage("notificationsEnabled") private var notificationsEnabled = false
 
     var body: some View {
         SheetScaffold(title: "Settings") {
@@ -43,6 +45,26 @@ struct SettingsView: View {
                     .foregroundStyle(Theme.textDim)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+
+            SectionLabel(text: "Notifications")
+            Toggle(isOn: Binding(
+                get: { notificationsEnabled },
+                set: { on in
+                    notificationsEnabled = on
+                    if on { notifications.requestAuthorizationIfNeeded() } else { notifications.cancelAll() }
+                }
+            )) {
+                Text("Reminders")
+                    .font(Theme.body(13, weight: .bold))
+                    .foregroundStyle(Theme.text)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .panel(Theme.panel)
+            Text("Rush Hour ready, offline earnings capped, and festival/league deadlines - only while the app is closed.")
+                .font(Theme.body(11, weight: .medium))
+                .foregroundStyle(Theme.textDim)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             SectionLabel(text: "Help")
             Button {

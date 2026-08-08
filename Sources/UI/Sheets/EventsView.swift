@@ -229,6 +229,8 @@ private struct FestivalSection: View {
 
 private struct LeagueSection: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var gameCenter: GameCenterService
+    @State private var showingGameCenter = false
 
     var body: some View {
         let league = engine.state.league
@@ -278,11 +280,28 @@ private struct LeagueSection: View {
         }
         .panel(Theme.panel)
 
-        Text("A solo ladder: your rivals are simulated, and their pace is set by your own income so it stays competitive as you grow. Nothing is sent anywhere — the game has no online play.")
+        Text("A solo ladder: your rivals are simulated, and their pace is set by your own income so it stays competitive as you grow.")
             .font(Theme.body(11, weight: .medium))
             .foregroundStyle(Theme.textDim)
             .frame(maxWidth: .infinity)
             .multilineTextAlignment(.center)
+
+        if gameCenter.isAuthenticated {
+            Button {
+                gameCenter.reportLifetimeEarnings(engine.state.lifetimeEarnings)
+                showingGameCenter = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "trophy.fill")
+                    Text("Global Leaderboard")
+                }
+                .font(Theme.body(13, weight: .black))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+            }
+            .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
+            .sheet(isPresented: $showingGameCenter) { GameCenterView() }
+        }
     }
 
     private func legend(color: Color, text: String) -> some View {

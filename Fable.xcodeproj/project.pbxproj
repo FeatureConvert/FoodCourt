@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		03E7079F368EFFC722DF4657 /* GameCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DBBB5C3A2C9718D9BDEEE14 /* GameCenterView.swift */; };
 		052D63ED1DD4134EFFB997EA /* DebugMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69FFAD265ADEF5481F857016 /* DebugMenuView.swift */; };
 		07E54AC7BC9D690A54AE1F02 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB9CDFE41E11F22B7F4BB70F /* Assets.xcassets */; };
 		0FC02FF81C9838F43E3749AE /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 90ADE33E20D3F2B41202C2A1 /* Products.storekit */; };
@@ -37,11 +38,13 @@
 		91A5B84C81E8EB9D5B065519 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF0115CD9E38675947B4A523 /* GameState.swift */; };
 		9359848A89A660E279F3DEAC /* SaveManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADBF6FA651E23B2CE296686C /* SaveManager.swift */; };
 		94CD309B4984B1BAC6011F7B /* HUDView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 240578676C0B706FC34950F7 /* HUDView.swift */; };
+		9B94CEEE3AEB652BE73FB476 /* GameCenterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1837A7A9214C46DF66AA3576 /* GameCenterService.swift */; };
 		9DF42692F52099B94D787E87 /* StationMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40A09664AFA96F68507B8608 /* StationMath.swift */; };
 		9DFC77637C324CDD1AC8A9AD /* GemSpend.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6D9C15F5FAAEE676AFA42E6 /* GemSpend.swift */; };
 		AA4F7A9C8DF69657054AA551 /* QuestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0008725E6F430B76A24E5CA /* QuestsView.swift */; };
 		AA92E6FFD323932C7BFBCA41 /* PrestigeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D84AFD9A3A08F19C7440A7F9 /* PrestigeView.swift */; };
 		AE6D607423F0E3DCC735265B /* Tutorial.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B682FDA317BA51DA412FEA /* Tutorial.swift */; };
+		AEF7C22BE761419AA1FC5186 /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86417C4E82F8DBA0FDCEE737 /* Notifications.swift */; };
 		AF0FD8C199117D1A431555A2 /* ActivePlayViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C17466D04161D4F16C6110A /* ActivePlayViews.swift */; };
 		B3109EC527197FB0405AE433 /* FeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F2EB0B4C5701B9F89C4497 /* FeatureTests.swift */; };
 		BD63725F9DAA622F590E4F60 /* StoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C344A7F73D53DFFE26173A1 /* StoreService.swift */; };
@@ -85,6 +88,7 @@
 		11B682FDA317BA51DA412FEA /* Tutorial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tutorial.swift; sourceTree = "<group>"; };
 		125320FE8C0CD27DABD2E408 /* Managers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Managers.swift; sourceTree = "<group>"; };
 		14E9FBAB04997C010D88507E /* StoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreTests.swift; sourceTree = "<group>"; };
+		1837A7A9214C46DF66AA3576 /* GameCenterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameCenterService.swift; sourceTree = "<group>"; };
 		1B320AD114EF8759BA8EA4A0 /* Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatting.swift; sourceTree = "<group>"; };
 		240578676C0B706FC34950F7 /* HUDView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDView.swift; sourceTree = "<group>"; };
 		2532F7EDEF7C37C11C81E08C /* VenueStageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueStageView.swift; sourceTree = "<group>"; };
@@ -109,11 +113,13 @@
 		64A26993184F7413D36694FC /* Errands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Errands.swift; sourceTree = "<group>"; };
 		69FFAD265ADEF5481F857016 /* DebugMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugMenuView.swift; sourceTree = "<group>"; };
 		6B5E019C15AA811DEA06C126 /* Festival.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Festival.swift; sourceTree = "<group>"; };
+		6DBBB5C3A2C9718D9BDEEE14 /* GameCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameCenterView.swift; sourceTree = "<group>"; };
 		7222D4A6ECABE2F13FE32FAE /* OfflineEarnings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineEarnings.swift; sourceTree = "<group>"; };
 		75C207BD78124374F04BB52A /* Balance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Balance.swift; sourceTree = "<group>"; };
 		7854B9B210EC3F33B4762987 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 		7C344A7F73D53DFFE26173A1 /* StoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreService.swift; sourceTree = "<group>"; };
 		7EB9330C29FF462CFB68BA4C /* CoinBurst.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinBurst.swift; sourceTree = "<group>"; };
+		86417C4E82F8DBA0FDCEE737 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		89F2E53AB8B4FAF1BD409A44 /* CollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionView.swift; sourceTree = "<group>"; };
 		8A26A43CF2C4D9BBECE52A00 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		8B0191022A667BB5281A2549 /* CosmeticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CosmeticsView.swift; sourceTree = "<group>"; };
@@ -168,11 +174,13 @@
 				64A26993184F7413D36694FC /* Errands.swift */,
 				6B5E019C15AA811DEA06C126 /* Festival.swift */,
 				1B320AD114EF8759BA8EA4A0 /* Formatting.swift */,
+				1837A7A9214C46DF66AA3576 /* GameCenterService.swift */,
 				97F978F2657BFE1A5089482A /* GameEngine.swift */,
 				BF0115CD9E38675947B4A523 /* GameState.swift */,
 				91FAA9E9B4F61C58F14C0EF5 /* GuestChef.swift */,
 				B558697084816A04F76970C6 /* League.swift */,
 				125320FE8C0CD27DABD2E408 /* Managers.swift */,
+				86417C4E82F8DBA0FDCEE737 /* Notifications.swift */,
 				7222D4A6ECABE2F13FE32FAE /* OfflineEarnings.swift */,
 				E6C690DF5FC87BAEDABD2B2B /* Perks.swift */,
 				4B34835D7F5A7622BB272E93 /* Quests.swift */,
@@ -225,6 +233,7 @@
 				5A00F2A8A161196B9066FFE9 /* DailyRewardView.swift */,
 				69FFAD265ADEF5481F857016 /* DebugMenuView.swift */,
 				37515A3266C48B43461F8FFF /* EventsView.swift */,
+				6DBBB5C3A2C9718D9BDEEE14 /* GameCenterView.swift */,
 				7854B9B210EC3F33B4762987 /* HelpView.swift */,
 				BE1EE843FA78D5CC2CCC947C /* OfflineEarningsView.swift */,
 				388AFC1D19065A136570A153 /* PerkChoiceView.swift */,
@@ -429,6 +438,8 @@
 				FC246313F805860C203CB101 /* Festival.swift in Sources */,
 				75321F06B4C9A848CBD2DC9B /* FoodSprite.swift in Sources */,
 				E018DD2D1670A22E593B6962 /* Formatting.swift in Sources */,
+				9B94CEEE3AEB652BE73FB476 /* GameCenterService.swift in Sources */,
+				03E7079F368EFFC722DF4657 /* GameCenterView.swift in Sources */,
 				D4E84DE511EB946EE745296D /* GameEngine.swift in Sources */,
 				91A5B84C81E8EB9D5B065519 /* GameState.swift in Sources */,
 				9DFC77637C324CDD1AC8A9AD /* GemSpend.swift in Sources */,
@@ -438,6 +449,7 @@
 				DAA618AE10CAE02924719006 /* Icons.swift in Sources */,
 				BF0DF4C8E17DA444E35B346C /* League.swift in Sources */,
 				8C31EA19716CB3E7952B8769 /* Managers.swift in Sources */,
+				AEF7C22BE761419AA1FC5186 /* Notifications.swift in Sources */,
 				30CFDD3FD5F954C521D0E0A2 /* OfflineEarnings.swift in Sources */,
 				E7360EC0A6A0DD5B5A5E691B /* OfflineEarningsView.swift in Sources */,
 				D119FA33321C01028D35F1CE /* PerkChoiceView.swift in Sources */,

@@ -1568,6 +1568,64 @@ final class FeatureTests: XCTestCase {
         XCTAssertFalse(e.guestChefAlreadyPurchasedThisWeek)
     }
 
+    // MARK: 18 - Notification planner
+
+    func testPlanIncludesRushReadyWhenInTheFuture() {
+        var state = GameState.newGame()
+        let now = Date()
+        state.rushAvailableAt = now.addingTimeInterval(600)
+        let plan = NotificationPlanner.plan(for: state, now: now)
+        XCTAssertTrue(plan.contains { $0.id == "rush-ready" })
+    }
+
+    func testPlanExcludesRushReadyWhenAlreadyAvailable() {
+        var state = GameState.newGame()
+        let now = Date()
+        state.rushAvailableAt = now.addingTimeInterval(-600)
+        let plan = NotificationPlanner.plan(for: state, now: now)
+        XCTAssertFalse(plan.contains { $0.id == "rush-ready" },
+                       "no point reminding about something already ready")
+    }
+
+    func testPlanAlwaysIncludesOfflineCapFull() {
+        let state = GameState.newGame()
+        let now = Date()
+        let plan = NotificationPlanner.plan(for: state, now: now)
+        guard let capPlan = plan.first(where: { $0.id == "offline-cap-full" }) else {
+            return XCTFail("offline cap reminder must always be scheduled")
+        }
+        let expected = now.addingTimeInterval(state.offlineCapHours * 3600)
+        XCTAssertEqual(capPlan.fireDate.timeIntervalSince1970, expected.timeIntervalSince1970, accuracy: 1)
+    }
+
+    func testPlanExcludesFestivalEndingWithNoUnclaimedTiers() {
+        let state = GameState.newGame() // fresh save: 0 tickets, nothing unlocked
+        let plan = NotificationPlanner.plan(for: state, now: Date())
+        XCTAssertFalse(plan.contains { $0.id == "festival-ending" })
+    }
+
+    func testPlanIncludesFestivalEndingWhenTiersAreUnclaimed() {
+        var state = GameState.newGame()
+        state.festival.tickets = 500
+        state.festival.endsAt = Date().addingTimeInterval(10 * 24 * 3600)
+        let plan = NotificationPlanner.plan(for: state, now: Date())
+        XCTAssertTrue(plan.contains { $0.id == "festival-ending" })
+    }
+
+    func testPlanIncludesLeagueEndingWhenFarEnoughOut() {
+        var state = GameState.newGame()
+        state.league.endsAt = Date().addingTimeInterval(10 * 24 * 3600)
+        let plan = NotificationPlanner.plan(for: state, now: Date())
+        XCTAssertTrue(plan.contains { $0.id == "league-ending" })
+    }
+
+    func testPlanExcludesLeagueEndingWhenTheTwoHourWindowHasPassed() {
+        var state = GameState.newGame()
+        state.league.endsAt = Date().addingTimeInterval(3600) // ends in 1h, window needs 2h notice
+        let plan = NotificationPlanner.plan(for: state, now: Date())
+        XCTAssertFalse(plan.contains { $0.id == "league-ending" })
+    }
+
     func testActiveErrandDecodesFineWithoutNewerFields() throws {
         let legacyJSON = """
         {"managerID": "dex", "startedAt": "2026-01-01T00:00:00Z", "duration": 7200}

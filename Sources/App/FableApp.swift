@@ -5,8 +5,11 @@ struct FableApp: App {
     @StateObject private var engine = GameEngine()
     @StateObject private var store = StoreService()
     @StateObject private var cloud = CloudSaveService()
+    @StateObject private var notifications = NotificationService()
+    @StateObject private var gameCenter = GameCenterService()
 
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("notificationsEnabled") private var notificationsEnabled = false
 
     var body: some Scene {
         WindowGroup {
@@ -14,6 +17,8 @@ struct FableApp: App {
                 .environmentObject(engine)
                 .environmentObject(store)
                 .environmentObject(cloud)
+                .environmentObject(notifications)
+                .environmentObject(gameCenter)
                 .task {
                     // The store needs the engine to grant rewards, and the engine is only
                     // available once both objects exist.
@@ -26,6 +31,7 @@ struct FableApp: App {
                     await store.loadProducts()
                     await store.refreshEntitlements()
                     engine.handleForeground()
+                    gameCenter.authenticate()
                 }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -33,9 +39,11 @@ struct FableApp: App {
             case .active:
                 engine.start()
                 engine.handleForeground()
+                notifications.cancelAll()
             case .inactive, .background:
                 engine.handleBackground()
                 engine.stop()
+                if notificationsEnabled { notifications.reschedule(for: engine.state) }
             @unknown default:
                 break
             }
