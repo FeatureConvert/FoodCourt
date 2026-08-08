@@ -61,6 +61,7 @@
 		EDC2E9F49F724833352C78C3 /* StoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E9FBAB04997C010D88507E /* StoreTests.swift */; };
 		F3A571D29B7FC1381E1054FD /* VenueSelectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DC9C30BAAF4753AAF01055 /* VenueSelectView.swift */; };
 		F4F5E2480A8519A92F0C8507 /* AdFreeBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0586BCCDEDBDE702E5A8337E /* AdFreeBadge.swift */; };
+		F601DF3AB1A2626663D36178 /* Errands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64A26993184F7413D36694FC /* Errands.swift */; };
 		F9A2797441C4E4BE694E2ECB /* DailyRewardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A00F2A8A161196B9066FFE9 /* DailyRewardView.swift */; };
 		FA6AF9C9902DFF8F201F57B1 /* StationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD24733F2D1BC1BBE3D6F0E /* StationListView.swift */; };
 		FC246313F805860C203CB101 /* Festival.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B5E019C15AA811DEA06C126 /* Festival.swift */; };
@@ -103,6 +104,7 @@
 		5C17466D04161D4F16C6110A /* ActivePlayViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivePlayViews.swift; sourceTree = "<group>"; };
 		5CA66CE43888B7C621F4130C /* Combo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Combo.swift; sourceTree = "<group>"; };
 		612D8D80D7AD1A3688FC317E /* FableTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FableTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		64A26993184F7413D36694FC /* Errands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Errands.swift; sourceTree = "<group>"; };
 		69FFAD265ADEF5481F857016 /* DebugMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugMenuView.swift; sourceTree = "<group>"; };
 		6B5E019C15AA811DEA06C126 /* Festival.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Festival.swift; sourceTree = "<group>"; };
 		7222D4A6ECABE2F13FE32FAE /* OfflineEarnings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineEarnings.swift; sourceTree = "<group>"; };
@@ -159,6 +161,7 @@
 				49106EDE90721B0A6B9DC939 /* CloudSave.swift */,
 				5CA66CE43888B7C621F4130C /* Combo.swift */,
 				AF0F3E61981543C34C90567C /* DailyRewards.swift */,
+				64A26993184F7413D36694FC /* Errands.swift */,
 				6B5E019C15AA811DEA06C126 /* Festival.swift */,
 				1B320AD114EF8759BA8EA4A0 /* Formatting.swift */,
 				97F978F2657BFE1A5089482A /* GameEngine.swift */,
@@ -413,6 +416,7 @@
 				F9A2797441C4E4BE694E2ECB /* DailyRewardView.swift in Sources */,
 				EB6CA288EED7AAEE9C372B77 /* DailyRewards.swift in Sources */,
 				052D63ED1DD4134EFFB997EA /* DebugMenuView.swift in Sources */,
+				F601DF3AB1A2626663D36178 /* Errands.swift in Sources */,
 				1E72DAC185AFED13C6E14B82 /* EventsView.swift in Sources */,
 				877B550408BB856B16FC8443 /* FableApp.swift in Sources */,
 				FC246313F805860C203CB101 /* Festival.swift in Sources */,

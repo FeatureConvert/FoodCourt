@@ -22,6 +22,12 @@ enum ActivePlay {
     static let goldenMinSeconds: Double = 30  // of current income
     static let goldenMaxSeconds: Double = 120
 
+    // Customer order - "ORDER UP" on a specific station
+    static let orderBaseChance = 0.05          // per queue rotation
+    static let orderWindow: TimeInterval = 12
+    static let orderBonusMinSeconds: Double = 20  // of current income
+    static let orderBonusMaxSeconds: Double = 60
+
     // Coffee Break - the free boost. This used to be behind a rewarded ad; the game is
     // ad-free, so it is simply given away on a cooldown.
     static let freeBoostMultiplier: Double = 2

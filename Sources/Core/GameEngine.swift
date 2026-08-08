@@ -37,6 +37,15 @@ struct GoldenCustomer: Identifiable, Equatable {
     let expiresAt: Date
 }
 
+/// A specific station asking for a serve within a short window, for a coin bonus. Mirrors
+/// GoldenCustomer's shape exactly - transient, engine-only, never persisted - just retargeted
+/// at "the next completed cycle on this station" instead of a floating tap.
+struct StationOrder: Equatable {
+    let venue: Int
+    let station: Int
+    let expiresAt: Date
+}
+
 @MainActor
 final class GameEngine: ObservableObject {
 
@@ -50,6 +59,7 @@ final class GameEngine: ObservableObject {
     // Active play
     @Published private(set) var combo = ComboTracker()
     @Published private(set) var golden: GoldenCustomer?
+    @Published private(set) var activeOrder: StationOrder?
 
     /// Transient banners the UI reacts to.
     @Published var pendingPerkStation: Int?
@@ -159,6 +169,7 @@ final class GameEngine: ObservableObject {
         lastBurstAt.removeAll()
         combo.reset()
         golden = nil
+        activeOrder = nil
         bootstrapSystems()
         save()
         start()
@@ -189,6 +200,7 @@ final class GameEngine: ObservableObject {
 
         if combo.prune(at: now) { objectWillChange.send() }
         expireGoldenIfNeeded(now: now)
+        expireOrderIfNeeded(now: now)
         finishRushIfNeeded(now: now)
 
         var serves: [Int: ServeEvent] = [:]
@@ -257,6 +269,7 @@ final class GameEngine: ObservableObject {
                 pendingBursts[station] = pending
             }
             servedCustomers += totalServed
+            fulfillOrderIfServed(serves, now: now)
         }
         flushBursts()
 
@@ -518,6 +531,38 @@ final class GameEngine: ObservableObject {
         return amount
     }
 
+    // MARK: Customer orders
+
+    /// Called by the queue each time it rotates a customer out, alongside rollGoldenCustomer.
+    func rollStationOrder() {
+        guard activeOrder == nil else { return }
+        let venue = state.currentVenue
+        let staffed = Balance.venue(venue).stations
+            .filter { state.venues[venue].stations[$0.id].isStaffed }
+            .map(\.id)
+        guard !staffed.isEmpty else { return }
+        guard Double.random(in: 0..<1) < ActivePlay.orderBaseChance else { return }
+        let station = staffed.randomElement() ?? staffed[0]
+        activeOrder = StationOrder(venue: venue, station: station,
+                                   expiresAt: state.now.addingTimeInterval(ActivePlay.orderWindow))
+    }
+
+    private func expireOrderIfNeeded(now: Date) {
+        if let order = activeOrder, order.expiresAt <= now { activeOrder = nil }
+    }
+
+    /// Pays a coin bonus when the ordered station serves within the window. Called from
+    /// advance(by:) right after the per-station loop, using the same `serves` dictionary it
+    /// already built for burst animations.
+    private func fulfillOrderIfServed(_ serves: [Int: ServeEvent], now: Date) {
+        guard let order = activeOrder, order.venue == state.currentVenue,
+              serves[order.station] != nil else { return }
+        activeOrder = nil
+        let seconds = Double.random(in: ActivePlay.orderBonusMinSeconds...ActivePlay.orderBonusMaxSeconds)
+        let base = Swift.max(state.automatedRate, 50)
+        addCoins(base * seconds * payoutMultiplier)
+    }
+
     // MARK: Venues
 
     var nextLockedVenue: VenueSpec? {
@@ -543,6 +588,7 @@ final class GameEngine: ObservableObject {
         pendingBursts.removeAll()
         lastBurstAt.removeAll()
         golden = nil
+        activeOrder = nil
     }
 
     // MARK: Prestige
@@ -648,6 +694,36 @@ final class GameEngine: ObservableObject {
         state.gems += spec.rewardGems
         save()
         return spec
+    }
+
+    // MARK: Manager errands
+
+    var claimableErrands: [ActiveErrand] {
+        state.errands.filter { $0.isComplete(at: state.now) }
+    }
+
+    @discardableResult
+    func startErrand(managerID: String, hours: Double) -> Bool {
+        guard state.errands.count < Errands.maxSlots else { return false }
+        guard let manager = state.manager(id: managerID),
+              state.unassignedManagers.contains(where: { $0.id == managerID }) else { return false }
+        let (gems, coins) = Errands.reward(manager: manager, hours: hours,
+                                           incomePerSecond: state.automatedRate)
+        state.errands.append(ActiveErrand(managerID: managerID, startedAt: state.now,
+                                          duration: hours * 3600, rewardGems: gems, rewardCoins: coins))
+        save()
+        return true
+    }
+
+    @discardableResult
+    func collectErrand(id: String) -> ActiveErrand? {
+        guard let index = state.errands.firstIndex(where: { $0.id == id }),
+              state.errands[index].isComplete(at: state.now) else { return nil }
+        let errand = state.errands.remove(at: index)
+        state.gems += errand.rewardGems
+        addCoins(errand.rewardCoins)
+        save()
+        return errand
     }
 
     // MARK: Festival
@@ -956,6 +1032,7 @@ final class GameEngine: ObservableObject {
         servedCustomers = 0
         combo.reset()
         golden = nil
+        activeOrder = nil
         bootstrapSystems()
         start()
     }

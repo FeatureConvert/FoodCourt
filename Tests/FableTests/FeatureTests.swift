@@ -1230,4 +1230,159 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(decoded.streakFreezes, 0)
         XCTAssertTrue(decoded.claimedStreakMilestones.isEmpty)
     }
+
+    // MARK: 13 - Manager errands
+
+    @MainActor
+    func testStartingAnErrandBenchesTheManager() {
+        var state = GameState.newGame()
+        let manager = OwnedManager.make("dex")
+        state.managers.append(manager)
+        let e = engine(state)
+        XCTAssertTrue(e.state.unassignedManagers.contains { $0.id == manager.id })
+
+        XCTAssertTrue(e.startErrand(managerID: manager.id, hours: 2))
+
+        XCTAssertFalse(e.state.unassignedManagers.contains { $0.id == manager.id },
+                       "an erranded manager must not be assignable to a station")
+        XCTAssertEqual(e.state.errands.count, 1)
+    }
+
+    @MainActor
+    func testCannotDoubleBookTheSameManagerOnAnErrand() {
+        var state = GameState.newGame()
+        let manager = OwnedManager.make("dex")
+        state.managers.append(manager)
+        let e = engine(state)
+
+        XCTAssertTrue(e.startErrand(managerID: manager.id, hours: 2))
+        XCTAssertFalse(e.startErrand(managerID: manager.id, hours: 2),
+                       "the same manager can't be sent on a second errand while already away")
+        XCTAssertEqual(e.state.errands.count, 1)
+    }
+
+    @MainActor
+    func testErrandSlotsAreCapped() {
+        var state = GameState.newGame()
+        let managers = (0..<(Errands.maxSlots + 1)).map { _ in OwnedManager.make("dex") }
+        state.managers.append(contentsOf: managers)
+        let e = engine(state)
+
+        for manager in managers {
+            _ = e.startErrand(managerID: manager.id, hours: 2)
+        }
+
+        XCTAssertEqual(e.state.errands.count, Errands.maxSlots)
+    }
+
+    @MainActor
+    func testCannotCollectAnErrandBeforeItsDurationElapses() {
+        var state = GameState.newGame()
+        let manager = OwnedManager.make("dex")
+        state.managers.append(manager)
+        let e = engine(state)
+        e.startErrand(managerID: manager.id, hours: 6)
+        let id = e.state.errands[0].id
+
+        XCTAssertNil(e.collectErrand(id: id))
+        XCTAssertEqual(e.state.errands.count, 1)
+    }
+
+    @MainActor
+    func testCollectingAnErrandPaysOutOnceAndFreesTheManager() {
+        var state = GameState.newGame()
+        let manager = OwnedManager.make("dex")
+        state.managers.append(manager)
+        let e = engine(state)
+        e.startErrand(managerID: manager.id, hours: 2)
+        let id = e.state.errands[0].id
+        let gemsBefore = e.state.gems
+
+        e.debugSkip(hours: 2)
+
+        let claimed = e.collectErrand(id: id)
+        XCTAssertNotNil(claimed)
+        XCTAssertEqual(e.state.gems, gemsBefore + (claimed?.rewardGems ?? -1))
+        XCTAssertTrue(e.state.errands.isEmpty)
+        XCTAssertTrue(e.state.unassignedManagers.contains { $0.id == manager.id },
+                     "the manager must return to the bench once the errand is collected")
+
+        // Collecting the same id again does nothing - it's already gone.
+        XCTAssertNil(e.collectErrand(id: id))
+    }
+
+    // MARK: 14 - Customer orders
+
+    @MainActor
+    func testStationOrderTargetsAStaffedStationAndPaysOutOnServe() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 40
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        let e = engine(state)
+
+        while e.activeOrder == nil { e.rollStationOrder() }
+        let order = e.activeOrder!
+        XCTAssertEqual(order.venue, 0)
+        XCTAssertEqual(order.station, 0)
+
+        let before = e.state.coins
+        let cycle = e.state.cycleTime(venue: 0, station: 0)
+        e.advance(by: cycle + 0.01)
+
+        XCTAssertNil(e.activeOrder, "fulfilling the order clears it")
+        XCTAssertGreaterThan(e.state.coins, before)
+    }
+
+    @MainActor
+    func testStationOrderExpiresWithoutPayoutIfMissed() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 40
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        let e = engine(state)
+
+        while e.activeOrder == nil { e.rollStationOrder() }
+
+        // A big clock skip pushes `now` well past the order's short window; the following
+        // tiny advance's own delta is far too small to complete a station cycle, so this
+        // can only be exercising the expiry path, not an accidental fulfillment.
+        e.debugSkip(hours: 1)
+        e.advance(by: 0.01)
+
+        XCTAssertNil(e.activeOrder, "an unmet order should not linger past its window")
+    }
+
+    @MainActor
+    func testStationOrderNeverTargetsAnUnstaffedStation() {
+        // A fresh save owns station 0 but nothing is staffed yet.
+        let e = engine()
+        for _ in 0..<200 { e.rollStationOrder() }
+        XCTAssertNil(e.activeOrder)
+    }
+
+    @MainActor
+    func testStationOrderDoesNotReplaceItselfWhileActive() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 40
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        let e = engine(state)
+
+        while e.activeOrder == nil { e.rollStationOrder() }
+        let first = e.activeOrder
+
+        for _ in 0..<50 { e.rollStationOrder() }
+        XCTAssertEqual(e.activeOrder, first, "a live order must not be clobbered by later rolls")
+    }
+
+    func testActiveErrandDecodesFineWithoutNewerFields() throws {
+        let legacyJSON = """
+        {"managerID": "dex", "startedAt": "2026-01-01T00:00:00Z", "duration": 7200}
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let decoded = try decoder.decode(ActiveErrand.self, from: legacyJSON)
+        XCTAssertEqual(decoded.managerID, "dex")
+        XCTAssertEqual(decoded.rewardGems, 0)
+        XCTAssertEqual(decoded.rewardCoins, 0)
+        XCTAssertFalse(decoded.id.isEmpty)
+    }
 }

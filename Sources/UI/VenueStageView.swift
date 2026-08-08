@@ -134,5 +134,7 @@ struct CustomerQueueView: View {
         }
         // Each rotation is a chance for a VIP to walk in.
         engine.rollGoldenCustomer()
+        // ...and a separate chance for a specific station to get an order.
+        engine.rollStationOrder()
     }
 }

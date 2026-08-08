@@ -47,6 +47,13 @@ struct DebugMenuView: View {
             }
             HStack(spacing: 8) {
                 grantButton("Force prestige") { _ = engine.prestige() }
+                grantButton("Force order") {
+                    var attempts = 0
+                    while engine.activeOrder == nil && attempts < 500 {
+                        engine.rollStationOrder()
+                        attempts += 1
+                    }
+                }
             }
 
             SectionLabel(text: "State")

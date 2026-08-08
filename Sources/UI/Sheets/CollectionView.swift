@@ -5,9 +5,15 @@ struct CollectionView: View {
     let onToast: (String) -> Void
 
     enum Tab: String, CaseIterable, Identifiable {
-        case staff, recipes
+        case staff, recipes, errands
         var id: String { rawValue }
-        var title: String { self == .staff ? "Staff" : "Recipes" }
+        var title: String {
+            switch self {
+            case .staff: return "Staff"
+            case .recipes: return "Recipes"
+            case .errands: return "Errands"
+            }
+        }
     }
 
     @State private var tab: Tab = .staff
@@ -23,6 +29,7 @@ struct CollectionView: View {
             switch tab {
             case .staff: StaffSection(onToast: onToast)
             case .recipes: RecipeSection()
+            case .errands: ErrandsSection(onToast: onToast)
             }
         }
     }
@@ -33,6 +40,8 @@ struct CollectionView: View {
             return "\(engine.state.assignedManagerCount) working · \(engine.state.unassignedManagers.count) on the bench"
         case .recipes:
             return "\(Recipes.totalCollected(engine.state.recipeCards)) of \(Balance.venues.count * 6) cards found"
+        case .errands:
+            return "\(engine.state.errands.count) of \(Errands.maxSlots) slots busy"
         }
     }
 }
@@ -250,5 +259,135 @@ private struct RecipeSection: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Errands
+
+private struct ErrandsSection: View {
+    @EnvironmentObject private var engine: GameEngine
+    let onToast: (String) -> Void
+
+    var body: some View {
+        ForEach(0..<Errands.maxSlots, id: \.self) { slot in
+            slotView(slot)
+        }
+
+        Text("Send an idle manager on an errand for a lump sum of gems and coins when they return - a tradeoff against staffing a station, not a free bonus.")
+            .font(Theme.body(11, weight: .medium))
+            .foregroundStyle(Theme.textDim)
+            .multilineTextAlignment(.center)
+            .padding(.top, 4)
+    }
+
+    private var activeErrands: [ActiveErrand] { engine.state.errands }
+
+    private func slotView(_ slot: Int) -> some View {
+        Group {
+            if slot < activeErrands.count {
+                errandRow(activeErrands[slot])
+            } else {
+                emptySlotRow
+            }
+        }
+    }
+
+    private func errandRow(_ errand: ActiveErrand) -> some View {
+        let manager = engine.state.manager(id: errand.managerID)
+        let done = errand.isComplete(at: engine.state.now)
+        let remaining = errand.remaining(at: engine.state.now)
+
+        return HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(Theme.ink.opacity(0.5))
+                if let spec = manager?.spec {
+                    CustomerSprite(seed: spec.portraitSeed)
+                        .equatable()
+                        .frame(width: 26, height: 36)
+                        .offset(y: 3)
+                }
+            }
+            .frame(width: 46, height: 46)
+            .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(manager?.spec.name ?? "Manager")
+                    .font(Theme.body(13, weight: .black))
+                    .foregroundStyle(Theme.text)
+                Text(done ? "Errand complete" : "Back in \(Format.duration(remaining))")
+                    .font(Theme.body(11, weight: .bold))
+                    .foregroundStyle(done ? Theme.positive : Theme.textDim)
+                HStack(spacing: 8) {
+                    HStack(spacing: 3) {
+                        GemIcon().frame(width: 11, height: 11)
+                        Text("\(errand.rewardGems)")
+                    }
+                    HStack(spacing: 3) {
+                        CoinIcon().frame(width: 11, height: 11)
+                        Text(Format.currency(errand.rewardCoins))
+                    }
+                }
+                .font(Theme.numeric(11))
+                .foregroundStyle(Theme.textDim)
+            }
+            Spacer(minLength: 0)
+
+            if done {
+                Button("Collect") {
+                    if let claimed = engine.collectErrand(id: errand.id) {
+                        Haptics.success()
+                        onToast("+\(claimed.rewardGems) gems · \(Format.currency(claimed.rewardCoins)) coins")
+                    }
+                }
+                .buttonStyle(ChunkyButtonStyle(fill: Theme.positive,
+                                               shadow: Theme.positive.opacity(0.5), radius: 10))
+            }
+        }
+        .padding(12)
+        .panel(done ? Theme.panelRaised : Theme.panel)
+    }
+
+    private var emptySlotRow: some View {
+        Menu {
+            if engine.state.unassignedManagers.isEmpty {
+                Text("No idle managers on the bench")
+            } else {
+                ForEach(engine.state.unassignedManagers) { manager in
+                    Menu(manager.spec.name) {
+                        ForEach(Errands.options) { option in
+                            Button(option.label) {
+                                if engine.startErrand(managerID: manager.id, hours: option.hours) {
+                                    Haptics.success()
+                                    onToast("\(manager.spec.name) is out on an errand")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle().stroke(Theme.stroke, style: StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
+                    Image(systemName: "plus")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(Theme.textDim)
+                }
+                .frame(width: 46, height: 46)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Empty slot")
+                        .font(Theme.body(13, weight: .black))
+                        .foregroundStyle(Theme.text)
+                    Text("Send a manager on an errand")
+                        .font(Theme.body(11, weight: .medium))
+                        .foregroundStyle(Theme.textDim)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .panel(Theme.panel)
+        }
+        .buttonStyle(.plain)
     }
 }

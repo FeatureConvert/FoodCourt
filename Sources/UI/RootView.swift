@@ -275,7 +275,7 @@ private struct BottomBar: View {
                       badge: engine.nextLockedVenue.map { engine.canUnlock($0) } == true,
                       action: onVenues)
             barButton("Staff", "person.2.fill",
-                      badge: !engine.state.unassignedManagers.isEmpty,
+                      badge: !engine.state.unassignedManagers.isEmpty || !engine.claimableErrands.isEmpty,
                       action: onCollection)
             barButton("Goals", "checklist",
                       badge: engine.claimableQuests > 0 || !engine.claimableAchievements.isEmpty,

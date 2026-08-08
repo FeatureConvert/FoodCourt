@@ -82,6 +82,13 @@ struct StationCardView: View {
         engine.pendingPerkLevel(venue: venueID, station: spec.id)
     }
 
+    /// Whether the live customer-order system (distinct from the tutorial's own highlight) is
+    /// currently asking for a serve on this exact station.
+    private var isOrderTarget: Bool {
+        guard let order = engine.activeOrder else { return false }
+        return order.venue == venueID && order.station == spec.id
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             cooker
@@ -94,6 +101,30 @@ struct StationCardView: View {
         .overlay(alignment: .top) {
             ServeBurstOverlay(event: engine.lastServe[spec.id])
                 .offset(y: 10)
+        }
+        .overlay {
+            if isOrderTarget {
+                // Same pulsing-ring technique as TutorialHighlight, kept separate since that
+                // modifier is keyed specifically to TutorialTarget rather than a plain flag.
+                TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+                    let t = timeline.date.timeIntervalSinceReferenceDate
+                    let pulse = 0.5 + 0.5 * sin(t * 4)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Theme.coin, lineWidth: 2 + 1.5 * pulse)
+                        .opacity(0.55 + 0.45 * pulse)
+                }
+                .allowsHitTesting(false)
+            }
+        }
+        .overlay(alignment: .topLeading) {
+            if isOrderTarget {
+                Text("ORDER UP")
+                    .font(Theme.body(9, weight: .black))
+                    .foregroundStyle(Theme.ink)
+                    .padding(.horizontal, 6).padding(.vertical, 3)
+                    .background(Capsule().fill(Theme.coin))
+                    .offset(x: 8, y: -8)
+            }
         }
     }
 

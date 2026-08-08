@@ -157,6 +157,8 @@ struct GameState: Codable, Equatable {
     var totalServed: Int = 0
 
     // Achievements
+    var errands: [ActiveErrand] = []
+
     var claimedAchievements: Set<String> = []
     var prestigeCount: Int = 0
     /// Kept separately from `league.tier` because `league` is replaced wholesale every time
@@ -271,9 +273,14 @@ struct GameState: Codable, Equatable {
 
     var assignedManagerCount: Int { assignedManagerIDs.count }
 
+    /// Managers currently away on an errand - neither on the bench nor assignable to a
+    /// station until they return.
+    var erredManagerIDs: Set<String> { Set(errands.map(\.managerID)) }
+
     var unassignedManagers: [OwnedManager] {
         let assigned = assignedManagerIDs
-        return managers.filter { !assigned.contains($0.id) }
+        let erred = erredManagerIDs
+        return managers.filter { !assigned.contains($0.id) && !erred.contains($0.id) }
     }
 
     /// Where a manager is currently working, if anywhere.
@@ -338,6 +345,7 @@ struct GameState: Codable, Equatable {
         case research, managers, recipeCards, quests, questsClaimed, festival, league, tutorial
         case rushEndsAt, rushAvailableAt, rushesCompleted, totalTaps, totalServed
         case claimedAchievements, prestigeCount, bestLeagueTierReached
+        case errands
     }
 
     init() {}
@@ -382,5 +390,7 @@ struct GameState: Codable, Equatable {
         claimedAchievements = try c.decodeIfPresent(Set<String>.self, forKey: .claimedAchievements) ?? []
         prestigeCount = try c.decodeIfPresent(Int.self, forKey: .prestigeCount) ?? 0
         bestLeagueTierReached = try c.decodeIfPresent(LeagueTier.self, forKey: .bestLeagueTierReached) ?? .bronze
+
+        errands = try c.decodeIfPresent([ActiveErrand].self, forKey: .errands) ?? []
     }
 }
