@@ -21,6 +21,11 @@ struct VenueStageView: View {
                 LinearGradient(colors: [palette.wallTop.opacity(0.9), palette.wallBottom],
                                startPoint: .top, endPoint: .bottom)
 
+                // Wall dressing - stays clear of the centered sign and the queue below.
+                VenuePropsView(theme: venue.theme)
+                    .frame(height: h * 0.62)
+                    .frame(maxHeight: .infinity, alignment: .top)
+
                 // Floor plane.
                 VStack(spacing: 0) {
                     Spacer()
@@ -33,19 +38,14 @@ struct VenueStageView: View {
                 VStack(spacing: 2) {
                     Text(venue.name.uppercased())
                         .font(Theme.title(15))
-                        .foregroundStyle(palette.sign)
+                        .foregroundStyle(Color(hex: "#2B1D14"))
                     Text(venue.tagline)
                         .font(Theme.body(10, weight: .medium))
-                        .foregroundStyle(palette.sign.opacity(0.7))
+                        .foregroundStyle(Color(hex: "#2B1D14").opacity(0.65))
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 7)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(palette.counter)
-                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(palette.accent, lineWidth: 2))
-                )
+                .background(VenueSignFrame(plate: palette.sign))
                 .frame(maxHeight: .infinity, alignment: .top)
                 .padding(.top, 12)
                 .contentShape(Rectangle())

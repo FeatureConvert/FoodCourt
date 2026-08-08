@@ -31,6 +31,7 @@
 		75321F06B4C9A848CBD2DC9B /* FoodSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2EE81608776E2BF273BBBD /* FoodSprite.swift */; };
 		79C4CA2410441F131686D40E /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A26A43CF2C4D9BBECE52A00 /* Theme.swift */; };
 		7D14D631059B4E9DBD2612F3 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7854B9B210EC3F33B4762987 /* HelpView.swift */; };
+		82502C079735B3C036B1CB55 /* VenueProps.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10AE32D35CB2E6365F4E23C /* VenueProps.swift */; };
 		8551FD91817332203E83BBFE /* GuestChef.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91FAA9E9B4F61C58F14C0EF5 /* GuestChef.swift */; };
 		877B550408BB856B16FC8443 /* FableApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F55D1F4DA01CDB0A1E3FEE /* FableApp.swift */; };
 		8C31EA19716CB3E7952B8769 /* Managers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125320FE8C0CD27DABD2E408 /* Managers.swift */; };
@@ -134,6 +135,7 @@
 		B56026DD041F82FCAAF814D9 /* CustomerSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerSprite.swift; sourceTree = "<group>"; };
 		BE1EE843FA78D5CC2CCC947C /* OfflineEarningsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineEarningsView.swift; sourceTree = "<group>"; };
 		BF0115CD9E38675947B4A523 /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
+		C10AE32D35CB2E6365F4E23C /* VenueProps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueProps.swift; sourceTree = "<group>"; };
 		C1D05DA06D8F0FB494659C71 /* Fable.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Fable.entitlements; sourceTree = "<group>"; };
 		D4F2EB0B4C5701B9F89C4497 /* FeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureTests.swift; sourceTree = "<group>"; };
 		D6110EAE66DAA23544163D60 /* ShopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopView.swift; sourceTree = "<group>"; };
@@ -158,6 +160,7 @@
 				B56026DD041F82FCAAF814D9 /* CustomerSprite.swift */,
 				3A2EE81608776E2BF273BBBD /* FoodSprite.swift */,
 				52F8CDD98905FDF24A7F37B5 /* Icons.swift */,
+				C10AE32D35CB2E6365F4E23C /* VenueProps.swift */,
 			);
 			path = Art;
 			sourceTree = "<group>";
@@ -471,6 +474,7 @@
 				79C4CA2410441F131686D40E /* Theme.swift in Sources */,
 				AE6D607423F0E3DCC735265B /* Tutorial.swift in Sources */,
 				ECC05541EDFB311DC4CD681E /* TutorialOverlay.swift in Sources */,
+				82502C079735B3C036B1CB55 /* VenueProps.swift in Sources */,
 				F3A571D29B7FC1381E1054FD /* VenueSelectView.swift in Sources */,
 				62E6F3569791FF240B8F752A /* VenueStageView.swift in Sources */,
 			);
