@@ -29,7 +29,7 @@ struct VenueSelectView: View {
                 onToast("\(venue.name) is open for business!")
                 dismiss()
             } else {
-                onToast("Need \(Format.currency(venue.unlockCost)) to open \(venue.name)")
+                onToast("Need \(Format.price(venue.unlockCost)) to open \(venue.name)")
             }
         } label: {
             HStack(spacing: 14) {
@@ -87,7 +87,7 @@ struct VenueSelectView: View {
                     VStack(spacing: 2) {
                         Image(systemName: affordable ? "lock.open.fill" : "lock.fill")
                             .font(.system(size: 13, weight: .black))
-                        Text(Format.currency(venue.unlockCost))
+                        Text(Format.price(venue.unlockCost))
                             .font(Theme.numeric(12))
                     }
                     .foregroundStyle(affordable ? Theme.coin : Theme.textDim)

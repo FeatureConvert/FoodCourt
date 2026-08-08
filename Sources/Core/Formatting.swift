@@ -48,6 +48,39 @@ enum Format {
         return String([first, second])
     }
 
+    /// A cost the player has to actually cover, rounded **up**.
+    ///
+    /// `currency` truncates below a thousand and rounds the mantissa above it, which is right
+    /// for a balance but wrong for a price: the first station upgrade costs 4.72 and rendered
+    /// as "4" - the exact same string as a 4.0 balance - so the button read as affordable, the
+    /// engine correctly refused the purchase, and nothing on screen explained the difference.
+    /// Rounding up means the number shown is always enough to complete the buy.
+    static func price(_ value: Double) -> String {
+        guard value.isFinite else { return "∞" }
+        let v = abs(value)
+        guard v > 0 else { return "0" }
+        let sign = value < 0 ? "-" : ""
+
+        if v < 1000 { return sign + String(Int(v.rounded(.up))) }
+
+        let tier = Int(floor(log10(v) / 3))
+        let scaled = v / pow(1000, Double(tier))
+        let digits: Int = scaled >= 100 ? 0 : (scaled >= 10 ? 1 : 2)
+
+        // Round the mantissa up at exactly the precision about to be printed.
+        let factor = pow(10, Double(digits))
+        let bumped = (scaled * factor).rounded(.up) / factor
+
+        // That bump can tip the mantissa into the next tier (999.6 -> 1000 -> 1.00 of the
+        // suffix above), which would otherwise print as a four-digit mantissa.
+        if bumped >= 1000 {
+            let next = v / pow(1000, Double(tier + 1))
+            return sign + String(format: "%.2f", (next * 100).rounded(.up) / 100)
+                + suffixForTier(tier + 1)
+        }
+        return sign + String(format: "%.\(digits)f", bumped) + suffixForTier(tier)
+    }
+
     /// Rate shown in the HUD, e.g. `12.4K/s`.
     static func rate(_ perSecond: Double) -> String {
         currency(perSecond) + "/s"

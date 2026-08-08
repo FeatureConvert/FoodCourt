@@ -130,6 +130,37 @@ final class EconomyTests: XCTestCase {
         XCTAssertEqual(Format.currency(1e18), "1.00ab")
     }
 
+    func testPricesNeverRenderLowerThanTheyCost() {
+        // The bug this guards: the first station upgrade costs 4.72, and currency() rendered
+        // it "4" - the same string a 4.0 balance renders as - so the buy button looked
+        // affordable while the engine correctly refused it.
+        XCTAssertEqual(Format.currency(4.72), "4", "balances truncate, which is what broke this")
+        XCTAssertEqual(Format.price(4.72), "5")
+        XCTAssertEqual(Format.price(4.0), "4", "an exact price must not inflate")
+
+        // Above a thousand the mantissa rounds up at the printed precision.
+        XCTAssertEqual(Format.price(1_000), "1.00K")
+        XCTAssertEqual(Format.price(1_234.5), "1.24K")
+        XCTAssertEqual(Format.price(12_341), "12.4K")
+        XCTAssertEqual(Format.price(123_401), "124K")
+
+        // Rounding up can tip the mantissa into the next tier rather than print 4 digits.
+        XCTAssertEqual(Format.price(999_600), "1.00M")
+
+        XCTAssertEqual(Format.price(0), "0")
+    }
+
+    /// The real-world case: a brand-new player at station level 1 must never see a price
+    /// they cannot actually pay.
+    func testFirstUpgradePriceIsNotUnderstated() {
+        let spec = Balance.venue(0).stations[0]
+        let cost = Balance.cost(spec: spec, level: 1, quantity: 1)
+        let shown = Format.price(cost)
+        XCTAssertEqual(shown, "5")
+        XCTAssertGreaterThanOrEqual(Double(shown) ?? 0, cost,
+                                    "the number on the button has to cover the real cost")
+    }
+
     func testDurationFormatting() {
         XCTAssertEqual(Format.duration(45), "45s")
         XCTAssertEqual(Format.duration(90), "1m 30s")

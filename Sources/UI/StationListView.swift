@@ -259,7 +259,7 @@ struct StationCardView: View {
                     Text(state.isOwned ? buyLabel : "UNLOCK")
                         .font(Theme.body(10, weight: .black))
                         .lineLimit(1).minimumScaleFactor(0.7)
-                    Text(Format.currency(engine.price(for: spec.id)))
+                    Text(Format.price(engine.price(for: spec.id)))
                         .font(Theme.numeric(13))
                         .lineLimit(1).minimumScaleFactor(0.7)
                 }
@@ -329,7 +329,7 @@ struct StationCardView: View {
                 HStack(spacing: 4) {
                     Image(systemName: canHire ? "person.fill.badge.plus" : "diamond.fill")
                         .font(.system(size: 10, weight: .black))
-                    Text(canHire ? Format.currency(cost) : "\(GemSpend.instantManagerGemCost)")
+                    Text(canHire ? Format.price(cost) : "\(GemSpend.instantManagerGemCost)")
                         .font(Theme.body(10, weight: .black))
                         .lineLimit(1).minimumScaleFactor(0.7)
                 }
@@ -379,7 +379,7 @@ struct StationCardView: View {
                 Haptics.success()
                 onToast("\(spec.name) is now staffed")
             case .insufficientGems:
-                onToast("Need \(GemSpend.instantManagerGemCost) gems or \(Format.currency(cost))")
+                onToast("Need \(GemSpend.instantManagerGemCost) gems or \(Format.price(cost))")
             case .nothingToDo(let message):
                 onToast(message)
             }
@@ -471,7 +471,7 @@ struct NextVenueTeaser: View {
                 Haptics.success()
                 onToast("\(venue.name) is open for business!")
             } else {
-                onToast("Need \(Format.currency(venue.unlockCost)) to open \(venue.name)")
+                onToast("Need \(Format.price(venue.unlockCost)) to open \(venue.name)")
             }
         } label: {
             HStack(spacing: 12) {
@@ -493,7 +493,7 @@ struct NextVenueTeaser: View {
                         .foregroundStyle(Theme.textDim)
                 }
                 Spacer(minLength: 0)
-                Text(Format.currency(venue.unlockCost))
+                Text(Format.price(venue.unlockCost))
                     .font(Theme.numeric(14))
                     .foregroundStyle(affordable ? Theme.coin : Theme.textDim)
             }

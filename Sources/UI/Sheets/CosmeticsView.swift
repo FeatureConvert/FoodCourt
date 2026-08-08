@@ -36,7 +36,7 @@ struct CosmeticsView: View {
                 Text(skin.capitalized)
                     .font(Theme.body(14, weight: .black))
                     .foregroundStyle(Theme.text)
-                Text(equipped ? "Equipped" : (unlocked ? "Owned" : "\(Format.currency(price)) coins"))
+                Text(equipped ? "Equipped" : (unlocked ? "Owned" : "\(Format.price(price)) coins"))
                     .font(Theme.body(11, weight: .bold))
                     .foregroundStyle(equipped ? Theme.positive : Theme.textDim)
             }
