@@ -141,6 +141,9 @@ struct StageActionsView: View {
                                     total: ActivePlay.freeBoostCooldownMinutes * 60),
                          action: onBoost)
                 .tutorialHighlight(.coffeeButton)
+                .accessibilityLabel("Coffee Break boost")
+                .accessibilityValue(engine.boostReady ? "Ready"
+                    : "Ready in \(Format.duration(engine.boostCooldownRemaining))")
 
             circleButton(symbol: "timer",
                          tint: engine.rushActive ? Theme.negative
@@ -150,6 +153,9 @@ struct StageActionsView: View {
                             Cooldown(remaining: engine.rushCooldownRemaining,
                                     total: ActivePlay.rushCooldownMinutes * 60),
                          action: onRush)
+                .accessibilityLabel("Rush Hour")
+                .accessibilityValue(engine.rushActive ? "Running"
+                    : (engine.rushReady ? "Ready" : "Ready in \(Format.duration(engine.rushCooldownRemaining))"))
         }
     }
 

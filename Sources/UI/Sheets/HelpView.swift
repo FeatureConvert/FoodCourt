@@ -307,12 +307,24 @@ struct HelpView: View {
                 for a permanent +20% per level stacked on top of the star bonus. Think of it \
                 as a second, much bigger reset for once the first one has run its course.
                 """),
+        FAQItem(question: "What are all these currencies?",
+                answer: """
+                Coins run the board - stations, levels, hires - and reset every franchise. \
+                Gems are the premium currency from goals, events, and the shop; they buy \
+                convenience, never required power. Stars come from franchising: every star \
+                ever earned raises your permanent profit bonus, and your spendable balance \
+                buys research. Purchased research stars (Star Infusion, Research Grant) are \
+                spendable only — they fund research but never raise the permanent bonus, \
+                which only real franchising can grow.
+                """),
         FAQItem(question: "Do achievements, the streak, or any of the newer systems require spending money?",
                 answer: """
                 No — achievements, the login streak, errands, customer orders, the Roadmap, \
-                Reminders, and the Global Leaderboard are all entirely free. The only new paid \
-                items are the Streak Freeze and the weekly Guest Chef, both optional gem \
-                purchases — nothing new is gated behind them.
+                Reminders, and the Global Leaderboard are all entirely free. Optional \
+                purchases exist — gem sinks like the Streak Freeze and Guest Chef, and \
+                real-money items like the Research Grant, which pays spendable research \
+                stars scaled to your latest franchise — but nothing is gated behind any of \
+                them, and every part of the game can be finished without spending.
                 """),
         FAQItem(question: "I bought something and didn't get it.",
                 answer: """

@@ -75,6 +75,10 @@ struct HUDView: View {
                     }
                     .buttonStyle(.plain)
                     .pulsingHighlight(engine.shouldNudgePrestige, cornerRadius: 14)
+                    .accessibilityLabel("Franchise and Research")
+                    .accessibilityValue(engine.pendingStars > 0
+                        ? "\(engine.pendingStars) stars ready to claim"
+                        : "\(engine.state.stars) stars to spend")
                 }
 
                 Spacer(minLength: 0)
@@ -87,6 +91,7 @@ struct HUDView: View {
                         .background(Circle().fill(Theme.panel.opacity(0.92)))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Help")
 
                 Button(action: onSettings) {
                     Image(systemName: "gearshape.fill")
@@ -96,6 +101,7 @@ struct HUDView: View {
                         .background(Circle().fill(Theme.panel.opacity(0.92)))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Settings")
             }
 
             if !activeBoosts.isEmpty || engine.state.entitlements.vip

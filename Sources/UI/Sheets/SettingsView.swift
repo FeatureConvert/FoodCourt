@@ -28,6 +28,9 @@ struct SettingsView: View {
             }
             .panel(Theme.panel)
 
+            IntroBanner(key: IntroKey.icloudSync, symbol: "icloud.fill",
+                        title: "Your save follows your iCloud",
+                        detail: "Signed into iCloud, your empire syncs across devices automatically and survives a reinstall. If another device is further along, the game always asks before touching this one's progress.")
             SectionLabel(text: "iCloud")
             VStack(spacing: 0) {
                 row("Sync", cloud.status.label)
@@ -169,13 +172,30 @@ struct SettingsView: View {
                 .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
             }
 
+            // App Review Guideline 5.1.1: an app with IAP + iCloud + Game Center must link
+            // a privacy policy. The URL constant below is a placeholder Robert swaps for
+            // the real hosted policy (and pastes into App Store Connect) before submission.
+            Link(destination: Self.privacyPolicyURL) {
+                Text("Privacy Policy")
+                    .font(Theme.body(11, weight: .bold))
+                    .foregroundStyle(Theme.textDim)
+                    .underline()
+                    .frame(maxWidth: .infinity)
+            }
+            .padding(.top, 8)
+            .accessibilityLabel("Privacy Policy")
+
             Text("Food Court Tycoon · v1.0")
                 .font(Theme.body(10, weight: .medium))
                 .foregroundStyle(Theme.textDim)
                 .frame(maxWidth: .infinity)
-                .padding(.top, 8)
+                .padding(.top, 2)
         }
     }
+
+    /// PLACEHOLDER - replace with the real hosted policy URL before App Store submission,
+    /// and enter the same URL in App Store Connect's App Privacy section.
+    static let privacyPolicyURL = URL(string: "https://example.com/foodcourttycoon/privacy")!
 
     private func row(_ title: String, _ value: String) -> some View {
         HStack {

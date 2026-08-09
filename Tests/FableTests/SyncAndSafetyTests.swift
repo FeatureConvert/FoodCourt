@@ -152,6 +152,54 @@ final class SyncAndSafetyTests: XCTestCase {
         XCTAssertEqual(state.offlineCapHours, base + Balance.mogulOfflineCapBonusHours)
     }
 
+    // MARK: New retention systems
+
+    func testStaleBoardNudgeOnlySchedulesForPrestigedPlayers() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 5
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        XCTAssertFalse(NotificationPlanner.plan(for: state, now: Date()).contains { $0.id == "board-stale" },
+                       "pre-first-franchise players don't know what a reset is yet")
+        state.prestigeCount = 2
+        state.boardStartedAt = Date()
+        XCTAssertTrue(NotificationPlanner.plan(for: state, now: Date()).contains { $0.id == "board-stale" })
+    }
+
+    @MainActor
+    func testWeeklyQuestRollsOncePerWeekAndClaims() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 10
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        let engine = GameEngine(state: state, startTimers: false,
+                                persistence: EphemeralPersistence())
+        // bootstrapSystems already rolled this week's quest.
+        guard let weekly = engine.state.weeklyQuest else { return XCTFail("no weekly quest rolled") }
+        XCTAssertEqual(weekly.kind, .serve)
+        XCTAssertEqual(weekly.rewardGems, 150)
+
+        engine.rollWeeklyQuestIfNeeded()
+        XCTAssertEqual(engine.state.weeklyQuest?.id, weekly.id, "same week must not re-roll")
+
+        XCTAssertNil(engine.claimWeeklyQuest(), "unfinished challenge can't be claimed")
+        let gems = engine.state.gems
+        engine.debugCompleteWeeklyQuest()
+        XCTAssertNotNil(engine.claimWeeklyQuest())
+        XCTAssertEqual(engine.state.gems, gems + 150)
+        XCTAssertNil(engine.state.weeklyQuest, "claimed challenge clears until next week")
+    }
+
+    func testRushChainMathCapsAtThree() {
+        var state = GameState.newGame()
+        state.rushChain = 0
+        XCTAssertEqual(chainMultiplier(state), 5.0, "no chain, base x5")
+        state.rushChain = 3
+        XCTAssertEqual(chainMultiplier(state), 5.0 * 1.5, "chain 3 = +50%")
+    }
+
+    private func chainMultiplier(_ state: GameState) -> Double {
+        ActivePlay.rushMultiplier * (1 + 0.25 * Double(max(0, state.rushChain - 1)))
+    }
+
     // MARK: Goal director ladder
 
     func testGoalLadderWalksTheArcInOrder() {

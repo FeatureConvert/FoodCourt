@@ -584,9 +584,11 @@ enum IntroKey {
     /// One-shot toast when a first-run player crosses halfway to their first Franchise -
     /// the moment the "real game" is close enough to be worth naming.
     static let halfwayFranchise = "halfwayFranchise"
+    static let guestChef = "guestChef"
+    static let icloudSync = "icloudSync"
 
     static let allKeys: [String] = [
         welcome, prestige, legacy, perks, research, league, festival, staff, recipes, errands,
-        cosmetics, roadmap, halfwayFranchise,
+        cosmetics, roadmap, halfwayFranchise, guestChef, icloudSync,
     ]
 }

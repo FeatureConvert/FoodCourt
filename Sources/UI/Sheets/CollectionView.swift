@@ -60,6 +60,9 @@ private struct StaffSection: View {
                     title: "Your whole roster, in one place",
                     detail: "A manager on a station automates it, even while the app is closed. Anyone on the bench isn't earning - assign them to a station, or send them on an Errand instead.")
 
+        IntroBanner(key: IntroKey.guestChef, symbol: "star.circle.fill",
+                    title: "The weekly Guest Chef",
+                    detail: "A Legendary-tier hire rotates in every Monday, exclusive to this spot - no reward pool ever drops them. Buy with gems, keep forever, and next week someone new takes the stand.")
         guestChefBanner
 
         if engine.state.managers.isEmpty {

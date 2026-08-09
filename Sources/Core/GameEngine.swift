@@ -1407,6 +1407,10 @@ final class GameEngine: ObservableObject {
         }
     }
 
+    func debugCompleteWeeklyQuest() {
+        state.weeklyQuest?.progress = state.weeklyQuest?.target ?? 0
+    }
+
     /// Ends the league week immediately and settles it.
     func debugEndLeagueWeek() {
         state.league.endsAt = state.now.addingTimeInterval(-1)

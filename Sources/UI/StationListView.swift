@@ -177,6 +177,10 @@ struct StationCardView: View {
         .tutorialHighlight(spec.id == 0 ? .stationCooker : nil)
         .scaleEffect(state.isRunning ? 0.96 : 1)
         .animation(.easeOut(duration: 0.12), value: state.isRunning)
+        // The most-used control in the game is pure vector art - without these it simply
+        // does not exist to VoiceOver.
+        .accessibilityLabel(state.isOwned ? "Cook at \(spec.name)" : "\(spec.name), locked")
+        .accessibilityHint(state.isOwned ? "Serves one order" : "Buys the station's first level")
     }
 
     // MARK: Details

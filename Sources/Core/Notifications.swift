@@ -60,6 +60,19 @@ enum NotificationPlanner {
                               fireDate: fireDate))
         }
 
+        // The staleness-cadence nudge: fires when the board hits three days old, the point
+        // where a Franchise reset clearly beats holding on. This is the one timing decision
+        // the game most wants made well, and no notification mentioned it before.
+        if state.prestigeCount > 0 {
+            let threeDaysIn = state.boardStartedAt.addingTimeInterval(3 * 24 * 3600)
+            if threeDaysIn > now {
+                plans.append(Plan(id: "board-stale",
+                                  title: "Your board is 3 days old",
+                                  body: "Costs are creeping up - a Franchise reset clears the markup and banks your stars.",
+                                  fireDate: threeDaysIn))
+            }
+        }
+
         return plans
     }
 
@@ -126,7 +139,8 @@ final class NotificationService: ObservableObject {
     /// Authorization is checked against the live system settings inside the callback, not
     /// the cached `authStatus` - see `init` for the relaunch bug the cache caused.
     func reschedule(for state: GameState, now: Date = Date()) {
-        let ids = ["rush-ready", "offline-cap-full", "festival-ending", "league-ending"]
+        let ids = ["rush-ready", "offline-cap-full", "festival-ending", "league-ending",
+                   "happy-hour", "board-stale"]
         center.removePendingNotificationRequests(withIdentifiers: ids)
 
         center.getNotificationSettings { [weak self] settings in
