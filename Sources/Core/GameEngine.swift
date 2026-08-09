@@ -253,6 +253,7 @@ final class GameEngine: ObservableObject {
         expireGoldenIfNeeded(now: now)
         expireOrderIfNeeded(now: now)
         finishRushIfNeeded(now: now)
+        settleGauntletIfFinished(now: now)
 
         var serves: [Int: ServeEvent] = [:]
         var totalServed = 0
@@ -368,6 +369,7 @@ final class GameEngine: ObservableObject {
         state.lifetimeEarnings += amount
         state.runEarnings += amount
         state.league.score += amount
+        if gauntletActive { state.gauntletScore += amount }
         advanceQuests(kind: .earn, by: amount)
         registerLandmarks(before: before)
     }
@@ -414,8 +416,17 @@ final class GameEngine: ObservableObject {
     /// Everything that scales a payout right now, including the transient combo and the
     /// daily Happy Hour window.
     var payoutMultiplier: Double {
-        state.globalMultiplier * comboMultiplier
+        var multiplier = state.globalMultiplier * comboMultiplier
             * (state.isHappyHour() ? ActivePlay.happyHourMultiplier : 1)
+        if gauntletActive {
+            multiplier *= gauntletPayoutBonus
+            // Hands Only: the sprint pays x3 on everything WHILE the combo is alive -
+            // taps are the whole game for those ten minutes.
+            if gauntletMutator.id == "handsonly", combo.isLive(at: state.now) {
+                multiplier *= 3
+            }
+        }
+        return multiplier
     }
 
     var incomePerSecond: Double {
@@ -714,6 +725,7 @@ final class GameEngine: ObservableObject {
         guard golden == nil, state.automatedRate > 0 || state.coins > 0 else { return }
         let chance = state.goldenChance * (state.isHappyHour() ? 2 : 1)
             * Festival.modifier(seasonID: state.festival.seasonID).goldenChanceMultiplier
+            * gauntletGoldenBonus
         guard Double.random(in: 0..<1) < chance else { return }
         golden = GoldenCustomer(seed: Int.random(in: 0..<10_000),
                                 expiresAt: state.now.addingTimeInterval(ActivePlay.goldenWindow),
@@ -1200,6 +1212,83 @@ final class GameEngine: ObservableObject {
         addCoins(errand.rewardCoins)
         save()
         return errand
+    }
+
+    // MARK: Weekly Gauntlet
+
+    /// The skill-expression mode for players who've solved the main loop: a ten-minute
+    /// scored sprint on the live board, once per calendar week, under a weekly mutator.
+    /// Score = coins earned in the window; the purse scales with how many multiples of
+    /// your ten-minute automated baseline you beat - pure play skill (taps, combos,
+    /// boosts, Rush timing) is exactly what beats the baseline.
+    static let gauntletSeconds: TimeInterval = 600
+
+    struct GauntletMutator {
+        let id: String
+        let title: String
+        let detail: String
+    }
+
+    static let gauntletMutators: [GauntletMutator] = [
+        GauntletMutator(id: "handsonly", title: "Hands Only",
+                        detail: "While your combo is alive, everything pays x3 - never stop tapping."),
+        GauntletMutator(id: "vipnight", title: "VIP Night",
+                        detail: "Golden customers swarm - x5 spawn odds for the whole sprint."),
+        GauntletMutator(id: "highstakes", title: "High Stakes",
+                        detail: "Everything pays x2... but your combo decays twice as fast."),
+    ]
+
+    var gauntletMutator: GauntletMutator {
+        let week = GuestChef.weekKey(now: state.now)
+        return Self.gauntletMutators[((week % Self.gauntletMutators.count)
+                                      + Self.gauntletMutators.count) % Self.gauntletMutators.count]
+    }
+
+    var gauntletActive: Bool {
+        guard let ends = state.gauntletEndsAt else { return false }
+        return ends > state.now
+    }
+
+    var gauntletPlayedThisWeek: Bool {
+        state.gauntletWeekPlayed == GuestChef.weekKey(now: state.now)
+    }
+
+    @discardableResult
+    func startGauntlet() -> Bool {
+        guard !gauntletActive, !gauntletPlayedThisWeek else { return false }
+        state.gauntletWeekPlayed = GuestChef.weekKey(now: state.now)
+        state.gauntletScore = 0
+        state.gauntletEndsAt = state.now.addingTimeInterval(Self.gauntletSeconds)
+        save()
+        return true
+    }
+
+    /// Called from the tick loop; settles the sprint the moment time expires.
+    private func settleGauntletIfFinished(now: Date) {
+        guard let ends = state.gauntletEndsAt, ends <= now else { return }
+        state.gauntletEndsAt = nil
+        let score = state.gauntletScore
+        state.gauntletBestEver = Swift.max(state.gauntletBestEver, score)
+        // Purse: baseline is ten idle minutes; every full multiple of it earned pays 15
+        // gems, capped at 90 - an all-out sprint roughly doubles-to-triples idle, so the
+        // cap needs real play to reach without being farmable.
+        let baseline = Swift.max(1, state.automatedRate * Self.gauntletSeconds)
+        let multiples = Int(score / baseline)
+        let gems = Swift.min(90, multiples * 15)
+        if gems > 0 { state.gems += gems }
+        toast = "Gauntlet over! \(Format.currency(score)) earned - +\(gems) gems"
+        save()
+    }
+
+    /// Gauntlet mutator hooks, read by the payout paths while a sprint runs.
+    var gauntletTapBonus: Double {
+        gauntletActive && gauntletMutator.id == "handsonly" ? 5 : 1
+    }
+    var gauntletPayoutBonus: Double {
+        gauntletActive && gauntletMutator.id == "highstakes" ? 2 : 1
+    }
+    var gauntletGoldenBonus: Double {
+        gauntletActive && gauntletMutator.id == "vipnight" ? 5 : 1
     }
 
     // MARK: Kitchen tools

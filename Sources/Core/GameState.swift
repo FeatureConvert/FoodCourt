@@ -254,6 +254,11 @@ struct GameState: Codable, Equatable {
     var catering: CateringOrder? = nil
     /// Kitchen tools found so far - permanent, no slots, owning them IS the build.
     var tools: Set<String> = []
+    // Weekly Gauntlet - the scored sprint. See `GameEngine.startGauntlet`.
+    var gauntletEndsAt: Date? = nil
+    var gauntletScore: Double = 0
+    var gauntletWeekPlayed: Int? = nil
+    var gauntletBestEver: Double = 0
     /// Interactive perk choices spent this franchise run (see `Balance.perkChoicesPerRun`).
     /// Milestones past the cap still pay their automatic speed/profit bonuses - what runs
     /// out is the CHOICE, which turns "which four stations get a build?" into a real
@@ -506,6 +511,7 @@ struct GameState: Codable, Equatable {
         case weeklyQuest, weeklyQuestWeek
         case activeContract, legacyPerks, signatureDish, expedition, expeditionWins, catering
         case perkChoicesUsed, tools
+        case gauntletEndsAt, gauntletScore, gauntletWeekPlayed, gauntletBestEver
         case boardStartedAt
         case errands
         case venueSkins, unlockedSkins
@@ -590,6 +596,10 @@ struct GameState: Codable, Equatable {
         catering = try c.decodeIfPresent(CateringOrder.self, forKey: .catering)
         perkChoicesUsed = try c.decodeIfPresent(Int.self, forKey: .perkChoicesUsed) ?? 0
         tools = try c.decodeIfPresent(Set<String>.self, forKey: .tools) ?? []
+        gauntletEndsAt = try c.decodeIfPresent(Date.self, forKey: .gauntletEndsAt)
+        gauntletScore = try c.decodeIfPresent(Double.self, forKey: .gauntletScore) ?? 0
+        gauntletWeekPlayed = try c.decodeIfPresent(Int.self, forKey: .gauntletWeekPlayed)
+        gauntletBestEver = try c.decodeIfPresent(Double.self, forKey: .gauntletBestEver) ?? 0
         if let crossed = try c.decodeIfPresent(Set<Int>.self, forKey: .landmarksCrossed) {
             landmarksCrossed = crossed
         } else {
@@ -654,10 +664,11 @@ enum IntroKey {
     static let expeditions = "expeditions"
     static let catering = "catering"
     static let tools = "tools"
+    static let gauntlet = "gauntlet"
 
     static let allKeys: [String] = [
         welcome, prestige, legacy, perks, research, league, festival, staff, recipes, errands,
         cosmetics, roadmap, halfwayFranchise, guestChef, icloudSync, contracts, legacyTree,
-        signature, synergies, seasonTwist, expeditions, catering, tools,
+        signature, synergies, seasonTwist, expeditions, catering, tools, gauntlet,
     ]
 }

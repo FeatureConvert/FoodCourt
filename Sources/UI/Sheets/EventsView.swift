@@ -63,6 +63,8 @@ private struct FestivalSection: View {
                     title: "Seasonal, and free to fully clear",
                     detail: "Tickets from playing unlock every tier on this track before the season ends. A Premium Pass just adds a second reward alongside each one - it never gates anything the free track already has.")
 
+        gauntletCard
+
         header
 
         seasonTwistCard
@@ -103,6 +105,69 @@ private struct FestivalSection: View {
                 }
             }
             Spacer(minLength: 0)
+        }
+        .padding(12)
+        .panel(Theme.panelRaised)
+    }
+
+    /// The Weekly Gauntlet card, shown above the festival track - once a week, the
+    /// ten-minute sprint is the loudest thing in Events until it's been run.
+    @ViewBuilder var gauntletCard: some View {
+        IntroBanner(key: IntroKey.gauntlet, symbol: "stopwatch.fill",
+                    title: "The Weekly Gauntlet",
+                    detail: "Once a week: a ten-minute scored sprint on your live board under a rotating twist. Score every coin you can - taps, combos, boosts, Rush, everything counts - and beat your idle baseline for a gem purse. Personal bests are forever.")
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                GlyphIcon("stopwatch.fill", tint: Theme.negative)
+                    .frame(width: 20, height: 20)
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(Theme.ink.opacity(0.5)))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("WEEKLY GAUNTLET · \(engine.gauntletMutator.title.uppercased())")
+                        .font(Theme.body(10, weight: .black))
+                        .tracking(0.5)
+                        .foregroundStyle(Theme.negative)
+                    Text(engine.gauntletMutator.detail)
+                        .font(Theme.body(11, weight: .bold))
+                        .foregroundStyle(Theme.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if engine.state.gauntletBestEver > 0 {
+                        Text("Best ever: \(Format.currency(engine.state.gauntletBestEver))")
+                            .font(Theme.body(10, weight: .medium))
+                            .foregroundStyle(Theme.textDim)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            if engine.gauntletActive {
+                HStack {
+                    Text("SPRINTING · \(Format.currency(engine.state.gauntletScore))")
+                        .font(Theme.numeric(13))
+                        .foregroundStyle(Theme.positive)
+                    Spacer()
+                    Text(Format.duration((engine.state.gauntletEndsAt ?? engine.state.now).timeIntervalSince(engine.state.now)))
+                        .font(Theme.numeric(13))
+                        .foregroundStyle(Theme.negative)
+                }
+            } else if engine.gauntletPlayedThisWeek {
+                Text("Run for this week - a new twist arrives Monday.")
+                    .font(Theme.body(11, weight: .medium))
+                    .foregroundStyle(Theme.textDim)
+            } else {
+                Button {
+                    if engine.startGauntlet() {
+                        Haptics.thud()
+                        sound.play(.bigReward)
+                        onToast("GAUNTLET! Ten minutes - earn everything you can!")
+                    }
+                } label: {
+                    Text("Start the sprint")
+                        .font(Theme.body(14, weight: .black))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                }
+                .buttonStyle(ChunkyButtonStyle(fill: Theme.negative, shadow: Theme.ink))
+            }
         }
         .padding(12)
         .panel(Theme.panelRaised)
