@@ -7,7 +7,11 @@ enum ActivePlay {
     // Combo. 10 steps x 0.4/step caps at a clean x5 rather than a stacking-friendly x10 -
     // this multiplies with Coffee Break and Rush Hour on every station's automated income,
     // not just a tapped one, so a lower cap matters more than it looks like it should.
-    static let comboWindow: TimeInterval = 1.5
+    // The window itself was 1.5s, which reset the whole combo back to zero for anything
+    // short of rapid-fire tapping - punishing enough that a normal tap cadence kept dying.
+    // 2.5s keeps it an active-play mechanic (still requires genuine engagement, not idle
+    // taps minutes apart) without demanding a metronome.
+    static let comboWindow: TimeInterval = 2.5
     static let comboBaseSteps = 10
     static let comboPerStep = 0.4
 
