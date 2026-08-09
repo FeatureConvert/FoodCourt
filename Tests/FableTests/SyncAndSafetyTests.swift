@@ -152,6 +152,37 @@ final class SyncAndSafetyTests: XCTestCase {
         XCTAssertEqual(state.offlineCapHours, base + Balance.mogulOfflineCapBonusHours)
     }
 
+    // MARK: Goal director ladder
+
+    func testGoalLadderWalksTheArcInOrder() {
+        var state = GameState.newGame()
+        XCTAssertEqual(GoalDirector.currentGoal(for: state)?.id, "first-manager")
+
+        state.venues[0].stations[0].level = 30
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        XCTAssertEqual(GoalDirector.currentGoal(for: state)?.id, "venue-2",
+                       "one manager + Lv 30 station means the next rung is expansion")
+
+        state.venues[1].unlocked = true
+        for idx in 1...4 { state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: idx) }
+        XCTAssertEqual(GoalDirector.currentGoal(for: state)?.id, "first-franchise")
+
+        state.prestigeCount = 1
+        XCTAssertEqual(GoalDirector.currentGoal(for: state)?.id, "first-research")
+
+        state.research["prep"] = 1
+        XCTAssertEqual(GoalDirector.currentGoal(for: state)?.id, "all-venues")
+
+        for v in 2...4 { state.venues[v].unlocked = true }
+        XCTAssertEqual(GoalDirector.currentGoal(for: state)?.id, "franchise-5")
+
+        state.prestigeCount = Balance.legacyUnlockPrestigeCount
+        XCTAssertEqual(GoalDirector.currentGoal(for: state)?.id, "first-legacy")
+
+        state.legacy.level = 3
+        XCTAssertNil(GoalDirector.currentGoal(for: state), "veterans graduate off the chip")
+    }
+
     /// An old save's entitlements block predates the whale tier entirely - it must decode
     /// with both new flags off, not fail or default on.
     func testOldEntitlementsDecodeWithoutWhaleFields() throws {

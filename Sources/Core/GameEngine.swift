@@ -706,6 +706,14 @@ final class GameEngine: ObservableObject {
         canPrestige && (state.prestigeCount == 0 || boardIsFullyBuiltOut)
     }
 
+    /// True once a never-prestiged player crosses half the first-Franchise minimum - the
+    /// late tutorial beat that names the "real game" while it's finally close enough to
+    /// feel real. One-shot via `IntroKey.halfwayFranchise`; RootView watches this.
+    var halfwayToFirstFranchise: Bool {
+        state.prestigeCount == 0
+            && state.lifetimeEarnings >= Balance.minimumLifetimeForPrestige * 0.5
+    }
+
     @discardableResult
     func prestige() -> Int {
         let award = pendingStars

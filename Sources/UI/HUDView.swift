@@ -8,6 +8,10 @@ struct HUDView: View {
     let onStars: () -> Void
     let onHelp: () -> Void
 
+    /// Which goal's explainer is unfolded - keyed by id so advancing to the next goal
+    /// collapses the chip again on its own.
+    @State private var expandedGoalID: String?
+
     var body: some View {
         VStack(spacing: 8) {
             HStack(spacing: 10) {
@@ -88,12 +92,58 @@ struct HUDView: View {
                     if engine.state.entitlements.vip {
                         badge("VIP +\(Int(Balance.vipProfitBonus * 100))%", color: Theme.gem)
                     }
+                    if engine.state.entitlements.mogul {
+                        badge("MOGUL +\(Int(Balance.mogulProfitBonus * 100))%", color: Theme.star)
+                    }
                     ForEach(activeBoosts) { boost in
                         badge("\(boost.label) · \(Format.duration(boost.remaining(at: engine.state.now)))",
                               color: Theme.coin)
                     }
                     Spacer(minLength: 0)
                 }
+            }
+
+            // The always-on answer to "what should I be doing?" - see GoalDirector. Hidden
+            // during the coach-card tutorial so two guidance systems never talk at once.
+            if engine.state.tutorial.finished,
+               let goal = GoalDirector.currentGoal(for: engine.state) {
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        expandedGoalID = expandedGoalID == goal.id ? nil : goal.id
+                    }
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "scope")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundStyle(Theme.coin)
+                            Text("NEXT GOAL")
+                                .font(Theme.body(9, weight: .black))
+                                .tracking(0.6)
+                                .foregroundStyle(Theme.textDim)
+                            Text(goal.title)
+                                .font(Theme.body(11, weight: .bold))
+                                .foregroundStyle(Theme.text)
+                                .lineLimit(1)
+                            Spacer(minLength: 0)
+                            Image(systemName: expandedGoalID == goal.id ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 9, weight: .black))
+                                .foregroundStyle(Theme.textDim)
+                        }
+                        if expandedGoalID == goal.id {
+                            Text(goal.detail)
+                                .font(Theme.body(11, weight: .medium))
+                                .foregroundStyle(Theme.textDim)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .multilineTextAlignment(.leading)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .panel(Theme.panel.opacity(0.92), radius: 12)
+                }
+                .buttonStyle(.plain)
             }
         }
         .contentShape(Rectangle())

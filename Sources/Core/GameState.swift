@@ -530,8 +530,13 @@ enum IntroKey {
     static let recipes = "recipes"
     static let errands = "errands"
     static let cosmetics = "cosmetics"
+    static let roadmap = "roadmap"
+    /// One-shot toast when a first-run player crosses halfway to their first Franchise -
+    /// the moment the "real game" is close enough to be worth naming.
+    static let halfwayFranchise = "halfwayFranchise"
 
     static let allKeys: [String] = [
-        welcome, prestige, legacy, perks, research, league, festival, staff, recipes, errands, cosmetics,
+        welcome, prestige, legacy, perks, research, league, festival, staff, recipes, errands,
+        cosmetics, roadmap, halfwayFranchise,
     ]
 }

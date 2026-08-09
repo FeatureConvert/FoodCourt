@@ -109,6 +109,16 @@ struct HelpView: View {
             +25% across that venue.
             """),
         GuideSection(
+            symbol: "scope", title: "What's the goal?",
+            text: """
+            Build a food court that runs itself, open all five venues, then Franchise: \
+            reset the board for Stars, a permanent profit bonus that makes every future \
+            run bigger. Stars fund permanent research; five franchises unlock Legacy, an \
+            even bigger reset. Maxing all of it is a months-long journey — the Next Goal \
+            chip under the HUD always shows your single next step, and the Map tab in the \
+            Franchise sheet shows the whole road.
+            """),
+        GuideSection(
             symbol: "star.fill", title: "Franchising and research",
             text: """
             Once you have earned enough, franchising resets the board in exchange for \

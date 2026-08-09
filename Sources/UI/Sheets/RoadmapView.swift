@@ -15,6 +15,9 @@ struct RoadmapSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
+            IntroBanner(key: IntroKey.roadmap, symbol: "map.fill",
+                        title: "The whole journey, one map",
+                        detail: "Everything the game is building toward - venues, leagues, research, franchises, Legacy - with your position checked off. When you wonder what the point is, it's this list.")
             group("Venues", items: venueItems)
             group("League", items: leagueItems)
             group("Research", items: researchItems)

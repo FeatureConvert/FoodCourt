@@ -32,6 +32,7 @@
 		4BF88D6EA3891724BF93EF61 /* SegmentedTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11ACEF22BC7C73E72DBDB0A6 /* SegmentedTabs.swift */; };
 		56BD95ED366A8F35E3D7BDEF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F09D63C291B04A5F9057BC6 /* SettingsView.swift */; };
 		58B4D9A595DA981E15FFF05E /* CosmeticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B0191022A667BB5281A2549 /* CosmeticsView.swift */; };
+		5B2E38F58E1760EB6269AD63 /* GoalDirector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BD60DE9A6D7A4FCFB75AB9C /* GoalDirector.swift */; };
 		62E6F3569791FF240B8F752A /* VenueStageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2532F7EDEF7C37C11C81E08C /* VenueStageView.swift */; };
 		659855CFDE9511A6C6B9AE2E /* SoundServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD20B6F5A66BCC6AC360C61 /* SoundServiceTests.swift */; };
 		6A49BCD2BCFB42F041347BC0 /* Achievements.swift in Sources */ = {isa = PBXBuildFile; fileRef = E42422329EB870BCE0F5CD48 /* Achievements.swift */; };
@@ -94,6 +95,7 @@
 /* Begin PBXFileReference section */
 		043F653C507C5D4BF440FA54 /* TutorialOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialOverlay.swift; sourceTree = "<group>"; };
 		0586BCCDEDBDE702E5A8337E /* AdFreeBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdFreeBadge.swift; sourceTree = "<group>"; };
+		0BD60DE9A6D7A4FCFB75AB9C /* GoalDirector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalDirector.swift; sourceTree = "<group>"; };
 		0CD20B6F5A66BCC6AC360C61 /* SoundServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundServiceTests.swift; sourceTree = "<group>"; };
 		11ACEF22BC7C73E72DBDB0A6 /* SegmentedTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentedTabs.swift; sourceTree = "<group>"; };
 		11B682FDA317BA51DA412FEA /* Tutorial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tutorial.swift; sourceTree = "<group>"; };
@@ -197,6 +199,7 @@
 				1837A7A9214C46DF66AA3576 /* GameCenterService.swift */,
 				97F978F2657BFE1A5089482A /* GameEngine.swift */,
 				BF0115CD9E38675947B4A523 /* GameState.swift */,
+				0BD60DE9A6D7A4FCFB75AB9C /* GoalDirector.swift */,
 				91FAA9E9B4F61C58F14C0EF5 /* GuestChef.swift */,
 				B558697084816A04F76970C6 /* League.swift */,
 				125320FE8C0CD27DABD2E408 /* Managers.swift */,
@@ -475,6 +478,7 @@
 				D4E84DE511EB946EE745296D /* GameEngine.swift in Sources */,
 				91A5B84C81E8EB9D5B065519 /* GameState.swift in Sources */,
 				9DFC77637C324CDD1AC8A9AD /* GemSpend.swift in Sources */,
+				5B2E38F58E1760EB6269AD63 /* GoalDirector.swift in Sources */,
 				8551FD91817332203E83BBFE /* GuestChef.swift in Sources */,
 				94CD309B4984B1BAC6011F7B /* HUDView.swift in Sources */,
 				7D14D631059B4E9DBD2612F3 /* HelpView.swift in Sources */,

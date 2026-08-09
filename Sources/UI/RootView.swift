@@ -133,6 +133,12 @@ struct RootView: View {
         .onChange(of: engine.pendingPerkStation) { _, station in
             if let station { present(.perk(station)) }
         }
+        .onChange(of: engine.halfwayToFirstFranchise) { _, halfway in
+            // Late tutorial beat: name the "real game" the moment it's half in reach.
+            guard halfway, !engine.hasSeenIntro(IntroKey.halfwayFranchise) else { return }
+            engine.markIntroSeen(IntroKey.halfwayFranchise)
+            showToast("Halfway to your first Franchise - the star pill is where the real game starts.")
+        }
         .onChange(of: engine.pendingLeagueOutcome) { _, outcome in
             if let outcome {
                 switch outcome {
