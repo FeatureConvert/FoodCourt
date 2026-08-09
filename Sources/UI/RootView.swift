@@ -195,8 +195,39 @@ struct RootView: View {
         }
     }
 
-    private var observedContent: some View {
+    /// The moment a pacing gate opens mid-play, say so - the player shouldn't have to
+    /// stumble onto a new system by revisiting a tab. One-shot per save; a gate that's
+    /// already open at launch stays quiet (those players have met the system already).
+    private var unlockObserved: some View {
         gameplayObserved
+        .onChange(of: engine.crewsRelevant) { _, open in
+            if open { announceUnlock(IntroKey.crewsUnlockToast,
+                                     "New: Crews! Your named managers have chemistry - see the Staff tab.") }
+        }
+        .onChange(of: engine.faceOffsRelevant) { _, open in
+            if open { announceUnlock(IntroKey.faceOffsUnlockToast,
+                                     "New: Face-Offs! Send a bench crew to out-cook a rival - Staff → Errands.") }
+        }
+        .onChange(of: engine.gauntletRelevant) { _, open in
+            if open { announceUnlock(IntroKey.gauntletUnlockToast,
+                                     "New: the Weekly Gauntlet! A ten-minute scored sprint waits in Events.") }
+        }
+        .onChange(of: engine.toolsRelevant) { _, open in
+            if open { announceUnlock(IntroKey.toolsUnlockToast,
+                                     "New: Kitchen Tools! Rare drops from big moments - the shelf is in Recipes.") }
+        }
+    }
+
+    private func announceUnlock(_ key: String, _ message: String) {
+        guard !engine.hasSeenIntro(key) else { return }
+        engine.markIntroSeen(key)
+        sound.play(.reward)
+        Haptics.success()
+        showToast(message)
+    }
+
+    private var observedContent: some View {
+        unlockObserved
         .onChange(of: engine.pendingLeagueOutcome) { _, outcome in
             if let outcome {
                 switch outcome {

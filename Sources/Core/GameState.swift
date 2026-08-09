@@ -665,10 +665,17 @@ enum IntroKey {
     static let catering = "catering"
     static let tools = "tools"
     static let gauntlet = "gauntlet"
+    // One-shot "New: X unlocked" toasts fired the moment a pacing gate opens mid-play
+    // (the in-tab banners still do the explaining; these just point at the tab).
+    static let crewsUnlockToast = "crewsUnlockToast"
+    static let faceOffsUnlockToast = "faceOffsUnlockToast"
+    static let gauntletUnlockToast = "gauntletUnlockToast"
+    static let toolsUnlockToast = "toolsUnlockToast"
 
     static let allKeys: [String] = [
         welcome, prestige, legacy, perks, research, league, festival, staff, recipes, errands,
         cosmetics, roadmap, halfwayFranchise, guestChef, icloudSync, contracts, legacyTree,
         signature, synergies, seasonTwist, expeditions, catering, tools, gauntlet,
+        crewsUnlockToast, faceOffsUnlockToast, gauntletUnlockToast, toolsUnlockToast,
     ]
 }
