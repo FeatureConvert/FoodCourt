@@ -44,6 +44,9 @@ final class ProgressionTests: XCTestCase {
 
     func testOfflineIsCappedAndDiscounted() {
         var state = staffedState()
+        // Season twists rotate by id; pin one with no offline bonus (id % 4 == 0) so the
+        // discount being asserted is the base one.
+        state.festival.seasonID = 4
         let start = Date()
         state.lastSeen = start
 

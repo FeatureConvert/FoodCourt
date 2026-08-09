@@ -245,6 +245,9 @@ final class FeatureTests: XCTestCase {
 
     func testOfflineCapAndEfficiencyRespondToNightShiftResearch() {
         var state = GameState.newGame()
+        // Pin a season whose twist has no offline component (season twists rotate by id,
+        // and id % 4 == 0 is Tap Frenzy) so this measures research alone.
+        state.festival.seasonID = 4
         let baseCap = state.offlineCapHours
         state.research["keys"] = 3          // +2h each
         XCTAssertEqual(state.offlineCapHours, baseCap + 6, accuracy: 1e-9)
