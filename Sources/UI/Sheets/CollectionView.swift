@@ -458,6 +458,11 @@ private struct ErrandsSection: View {
             slotView(slot)
         }
 
+        IntroBanner(key: IntroKey.expeditions, symbol: "trophy.fill",
+                    title: "Food Court Face-Offs",
+                    detail: "Send your three best benched managers to out-cook a rival crew. Higher stakes pay better - and the Grand Face-Off can bring home a new Epic recruit. Rarity and long service (bond) decide your odds, shown before you commit.")
+        faceOffCard
+
         Text("Send an idle manager on an errand for a lump sum of gems and coins when they return - a tradeoff against staffing a station, not a free bonus.")
             .font(Theme.body(11, weight: .medium))
             .foregroundStyle(Theme.textDim)
@@ -466,6 +471,101 @@ private struct ErrandsSection: View {
     }
 
     private var activeErrands: [ActiveErrand] { engine.state.errands }
+
+    /// The best three on the bench, by fight value - the launcher sends these, shown by
+    /// name so the pick is transparent even though it's automatic.
+    private var bestCrew: [OwnedManager] {
+        engine.state.unassignedManagers
+            .sorted { Expeditions.crewScore([$0]) > Expeditions.crewScore([$1]) }
+            .prefix(Expeditions.crewSize).map { $0 }
+    }
+
+    @ViewBuilder private var faceOffCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("FACE-OFF")
+                .font(Theme.body(10, weight: .black))
+                .tracking(0.6)
+                .foregroundStyle(Theme.textDim)
+
+            if let expedition = engine.state.expedition {
+                let tier = Expeditions.tier(expedition.tier)
+                HStack(spacing: 8) {
+                    GlyphIcon("trophy.fill", tint: Theme.coin)
+                        .frame(width: 16, height: 16)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(tier.title)
+                            .font(Theme.body(13, weight: .black))
+                            .foregroundStyle(Theme.text)
+                        Text(crewNames(expedition.managerIDs))
+                            .font(Theme.body(10, weight: .medium))
+                            .foregroundStyle(Theme.textDim)
+                    }
+                    Spacer(minLength: 0)
+                    if expedition.isComplete(at: engine.state.now) {
+                        Button {
+                            if let result = engine.resolveExpedition() {
+                                Haptics.success()
+                                sound.play(result.won ? .bigReward : .denied)
+                            }
+                        } label: {
+                            Text("Results")
+                                .font(Theme.body(12, weight: .black))
+                                .padding(.horizontal, 14).padding(.vertical, 8)
+                        }
+                        .buttonStyle(ChunkyButtonStyle(fill: Theme.positive,
+                                                       shadow: Theme.positive.opacity(0.5), radius: 10))
+                    } else {
+                        Text(Format.duration(expedition.remaining(at: engine.state.now)))
+                            .font(Theme.numeric(13))
+                            .foregroundStyle(Theme.textDim)
+                    }
+                }
+            } else if bestCrew.count < Expeditions.crewSize {
+                Text("Needs \(Expeditions.crewSize) benched managers - hire or unassign to field a crew.")
+                    .font(Theme.body(11, weight: .medium))
+                    .foregroundStyle(Theme.textDim)
+            } else {
+                let crew = bestCrew
+                Text("Crew: \(crewNames(crew.map(\.id)))")
+                    .font(Theme.body(11, weight: .bold))
+                    .foregroundStyle(Theme.text)
+                ForEach(Expeditions.tiers) { tier in
+                    let chance = Expeditions.winChance(score: Expeditions.crewScore(crew), tier: tier)
+                    Button {
+                        if engine.startExpedition(managerIDs: crew.map(\.id), tierID: tier.id) {
+                            Haptics.thud()
+                            sound.play(.purchase)
+                            onToast("\(tier.title) underway - back in \(Format.trim(tier.hours))h")
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(tier.title)
+                                    .font(Theme.body(12, weight: .black))
+                                    .foregroundStyle(Theme.text)
+                                Text(tier.detail)
+                                    .font(Theme.body(10, weight: .medium))
+                                    .foregroundStyle(Theme.textDim)
+                            }
+                            Spacer(minLength: 0)
+                            Text("\(Int((chance * 100).rounded()))% win")
+                                .font(Theme.numeric(12))
+                                .foregroundStyle(chance >= 0.75 ? Theme.positive
+                                                 : (chance >= 0.4 ? Theme.coin : Theme.negative))
+                        }
+                        .padding(10)
+                    }
+                    .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink, radius: 12))
+                }
+            }
+        }
+        .padding(12)
+        .panel(Theme.panel)
+    }
+
+    private func crewNames(_ ids: [String]) -> String {
+        ids.compactMap { engine.state.manager(id: $0)?.name }.joined(separator: " · ")
+    }
 
     private func slotView(_ slot: Int) -> some View {
         Group {

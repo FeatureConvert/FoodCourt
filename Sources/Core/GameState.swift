@@ -247,6 +247,9 @@ struct GameState: Codable, Equatable {
     /// Unlocked by fully 3-starring the venue's recipe set; re-crownable anytime, so it's
     /// a standing strategic knob, not a one-shot. Survives prestige like recipes do.
     var signatureDish: [Int: Int] = [:]
+    /// The one in-flight Face-Off, if any - see `Expeditions`.
+    var expedition: ActiveExpedition? = nil
+    var expeditionWins: Int = 0
 
     /// Keys of one-shot explainer moments the player has already seen - the welcome screen,
     /// the first-prestige and first-legacy alerts, the perk primer, and the first-open banner
@@ -398,9 +401,11 @@ struct GameState: Codable, Equatable {
 
     var assignedManagerCount: Int { assignedManagerIDs.count }
 
-    /// Managers currently away on an errand - neither on the bench nor assignable to a
-    /// station until they return.
-    var erredManagerIDs: Set<String> { Set(errands.map(\.managerID)) }
+    /// Managers currently away on an errand or a Face-Off - neither on the bench nor
+    /// assignable to a station until they return.
+    var erredManagerIDs: Set<String> {
+        Set(errands.map(\.managerID)).union(expedition?.managerIDs ?? [])
+    }
 
     var unassignedManagers: [OwnedManager] {
         let assigned = assignedManagerIDs
@@ -487,7 +492,7 @@ struct GameState: Codable, Equatable {
         case lastPrestigeAward, landmarksCrossed, rushChain, servedAtBoardStart
         case nemesisSeed, venueMastery, bestFestivalTier, lastBondAccrualAt
         case weeklyQuest, weeklyQuestWeek
-        case activeContract, legacyPerks, signatureDish
+        case activeContract, legacyPerks, signatureDish, expedition, expeditionWins
         case boardStartedAt
         case errands
         case venueSkins, unlockedSkins
@@ -567,6 +572,8 @@ struct GameState: Codable, Equatable {
             ?? (prestigeCount > 0 ? "straight" : nil)
         legacyPerks = try c.decodeIfPresent([String: Int].self, forKey: .legacyPerks) ?? [:]
         signatureDish = try c.decodeIfPresent([Int: Int].self, forKey: .signatureDish) ?? [:]
+        expedition = try c.decodeIfPresent(ActiveExpedition.self, forKey: .expedition)
+        expeditionWins = try c.decodeIfPresent(Int.self, forKey: .expeditionWins) ?? 0
         if let crossed = try c.decodeIfPresent(Set<Int>.self, forKey: .landmarksCrossed) {
             landmarksCrossed = crossed
         } else {
@@ -628,10 +635,11 @@ enum IntroKey {
     static let signature = "signature"
     static let synergies = "synergies"
     static let seasonTwist = "seasonTwist"
+    static let expeditions = "expeditions"
 
     static let allKeys: [String] = [
         welcome, prestige, legacy, perks, research, league, festival, staff, recipes, errands,
         cosmetics, roadmap, halfwayFranchise, guestChef, icloudSync, contracts, legacyTree,
-        signature, synergies, seasonTwist,
+        signature, synergies, seasonTwist, expeditions,
     ]
 }

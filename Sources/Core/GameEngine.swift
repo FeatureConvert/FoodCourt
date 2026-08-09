@@ -1165,6 +1165,59 @@ final class GameEngine: ObservableObject {
         return errand
     }
 
+    // MARK: Expeditions (Food Court Face-Offs)
+
+    var expeditionComplete: Bool {
+        state.expedition?.isComplete(at: state.now) ?? false
+    }
+
+    /// Starts a Face-Off with exactly three benched managers. The outcome roll is fixed
+    /// now (see ActiveExpedition.roll) - what's left is the wait.
+    @discardableResult
+    func startExpedition(managerIDs: [String], tierID: String) -> Bool {
+        guard state.expedition == nil,
+              managerIDs.count == Expeditions.crewSize,
+              Set(managerIDs).count == Expeditions.crewSize else { return false }
+        let benchIDs = Set(state.unassignedManagers.map(\.id))
+        guard managerIDs.allSatisfy(benchIDs.contains) else { return false }
+        let tier = Expeditions.tier(tierID)
+        state.expedition = ActiveExpedition(
+            managerIDs: managerIDs, startedAt: state.now,
+            duration: tier.hours * 3600, tier: tierID,
+            roll: Double.random(in: 0..<1))
+        save()
+        return true
+    }
+
+    /// Resolves a finished Face-Off: win pays the tier's purse (and sometimes a recruit),
+    /// a loss still pays a consolation quarter - the time was real either way.
+    @discardableResult
+    func resolveExpedition() -> (won: Bool, gems: Int, coins: Double, recruit: ManagerSpec?)? {
+        guard let expedition = state.expedition,
+              expedition.isComplete(at: state.now) else { return nil }
+        let tier = Expeditions.tier(expedition.tier)
+        let won = Expeditions.isWin(expedition, managers: state.managers)
+        state.expedition = nil
+
+        let gems = won ? tier.rewardGems : tier.rewardGems / 4
+        let coins = Swift.max(1_000, state.automatedRate * tier.rewardIncomeHours * 3600)
+            * (won ? 1 : 0.25)
+        state.gems += gems
+        addCoins(coins)
+        var recruit: ManagerSpec?
+        if won {
+            state.expeditionWins += 1
+            if Double.random(in: 0..<1) < tier.recruitChance {
+                recruit = grantManager(rarity: .epic)
+            }
+        }
+        toast = won
+            ? "Face-Off won! +\(gems) gems\(recruit.map { " · \($0.name) joins!" } ?? "")"
+            : "Face-Off lost - the crew still learned something. +\(gems) gems"
+        save()
+        return (won, gems, coins, recruit)
+    }
+
     // MARK: Festival
 
     func awardTickets(_ amount: Int) {
@@ -1503,6 +1556,11 @@ final class GameEngine: ObservableObject {
 
     func debugCompleteWeeklyQuest() {
         state.weeklyQuest?.progress = state.weeklyQuest?.target ?? 0
+    }
+
+    func debugCompleteExpedition() {
+        guard let expedition = state.expedition else { return }
+        state.expedition?.startedAt = state.now.addingTimeInterval(-expedition.duration - 1)
     }
 
     /// Ends the league week immediately and settles it.

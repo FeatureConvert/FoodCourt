@@ -152,6 +152,38 @@ final class SyncAndSafetyTests: XCTestCase {
         XCTAssertEqual(state.offlineCapHours, base + Balance.mogulOfflineCapBonusHours)
     }
 
+    // MARK: Expeditions
+
+    @MainActor
+    func testExpeditionLifecycleAndOddsAreHonest() {
+        var state = GameState.newGame()
+        for spec in ["august", "nova", "vera", "dex"] { state.recruit(specID: spec, premium: true) }
+        let engine = GameEngine(state: state, startTimers: false,
+                                persistence: EphemeralPersistence())
+        let bench = engine.state.unassignedManagers.prefix(3).map(\.id)
+
+        XCTAssertFalse(engine.startExpedition(managerIDs: [bench[0]], tierID: "friendly"),
+                       "a crew is exactly three")
+        XCTAssertTrue(engine.startExpedition(managerIDs: Array(bench), tierID: "friendly"))
+        XCTAssertFalse(engine.startExpedition(managerIDs: Array(bench), tierID: "friendly"),
+                       "one face-off at a time")
+        XCTAssertEqual(engine.state.unassignedManagers.count, 1,
+                       "the crew is off the bench while away")
+        XCTAssertNil(engine.resolveExpedition(), "can't resolve before it finishes")
+
+        // Two legendaries + an epic (score 13.5) lock the friendly tier (difficulty 4).
+        let crew = engine.state.managers.filter { bench.contains($0.id) }
+        XCTAssertEqual(Expeditions.winChance(score: Expeditions.crewScore(crew),
+                                             tier: Expeditions.tier("friendly")), 1)
+
+        engine.debugCompleteExpedition()
+        let gems = engine.state.gems
+        guard let result = engine.resolveExpedition() else { return XCTFail("resolvable") }
+        XCTAssertTrue(result.won)
+        XCTAssertEqual(engine.state.gems, gems + Expeditions.tier("friendly").rewardGems)
+        XCTAssertNil(engine.state.expedition)
+    }
+
     // MARK: Contracts and the Legacy tree
 
     @MainActor
