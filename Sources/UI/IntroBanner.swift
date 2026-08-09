@@ -12,9 +12,12 @@ struct IntroBanner: View {
     let symbol: String
     let title: String
     let detail: String
+    /// Pacing gate: banners can wait for the moment their system becomes relevant instead
+    /// of firing on first sight of a tab (see the gate properties on GameEngine).
+    var gate: Bool = true
 
     var body: some View {
-        if !engine.hasSeenIntro(key) {
+        if gate, !engine.hasSeenIntro(key) {
             HStack(alignment: .top, spacing: 10) {
                 GlyphIcon(symbol, tint: Theme.coin)
                     .frame(width: 20, height: 20)

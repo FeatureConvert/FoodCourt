@@ -1713,6 +1713,41 @@ final class GameEngine: ObservableObject {
 
     // MARK: Onboarding explainers
 
+    // Pacing gates: a system's card (and its explainer) only appears once the player can
+    // meaningfully touch it. Before these, a day-one player opening the Staff tab met four
+    // stacked explainers describing systems that wouldn't matter for weeks - systems
+    // unfurling with progress IS the onboarding pacing.
+
+    /// Crews matter once the roster holds at least two NAMED managers (trainees can't
+    /// form crews, so a wall of coin-hires shouldn't summon the crew board).
+    var crewsRelevant: Bool {
+        state.managers.filter { $0.specID != ManagerCatalog.traineeID }.count >= 2
+    }
+
+    /// Face-Offs need a fieldable crew: three benchable managers beyond a skeleton staff,
+    /// or a veteran (any prestige) who can plan around pulling staff.
+    var faceOffsRelevant: Bool {
+        state.prestigeCount >= 1 || state.managers.count >= 5
+    }
+
+    /// The Gauntlet is skill expression for players who've solved the base loop.
+    var gauntletRelevant: Bool {
+        state.prestigeCount >= 1 || state.gauntletBestEver > 0
+    }
+
+    /// The tool chase opens with the first franchise - or instantly if something already
+    /// dropped (drops can technically fire earlier via Rush).
+    var toolsRelevant: Bool {
+        state.prestigeCount >= 1 || !state.tools.isEmpty
+    }
+
+    /// The season-twist explainer waits until the festival itself is a thing the player
+    /// has touched.
+    var seasonTwistRelevant: Bool {
+        state.festival.tickets > 0 || state.bestFestivalTier > 0
+            || !state.festival.claimedFree.isEmpty
+    }
+
     func hasSeenIntro(_ key: String) -> Bool { state.seenIntros.contains(key) }
 
     func markIntroSeen(_ key: String) {

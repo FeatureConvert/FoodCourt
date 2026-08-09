@@ -152,6 +152,35 @@ final class SyncAndSafetyTests: XCTestCase {
         XCTAssertEqual(state.offlineCapHours, base + Balance.mogulOfflineCapBonusHours)
     }
 
+    // MARK: Intro pacing gates
+
+    @MainActor
+    func testLateGameSystemsStayHiddenFromNewPlayers() {
+        let fresh = GameEngine(state: GameState.newGame(), startTimers: false,
+                               persistence: EphemeralPersistence())
+        XCTAssertFalse(fresh.crewsRelevant, "no named managers yet - no crew board")
+        XCTAssertFalse(fresh.faceOffsRelevant, "no fieldable crew - no Face-Offs")
+        XCTAssertFalse(fresh.gauntletRelevant, "veteran mode waits for a first franchise")
+        XCTAssertFalse(fresh.toolsRelevant, "the tool chase opens with the first franchise")
+        XCTAssertFalse(fresh.seasonTwistRelevant, "twist explainer waits for festival touch")
+    }
+
+    @MainActor
+    func testPacingGatesOpenWithProgress() {
+        var state = GameState.newGame()
+        state.recruit(specID: "sam", premium: true)
+        state.recruit(specID: "otto", premium: true)
+        state.prestigeCount = 1
+        state.festival.tickets = 10
+        let engine = GameEngine(state: state, startTimers: false,
+                                persistence: EphemeralPersistence())
+        XCTAssertTrue(engine.crewsRelevant)
+        XCTAssertTrue(engine.faceOffsRelevant)
+        XCTAssertTrue(engine.gauntletRelevant)
+        XCTAssertTrue(engine.toolsRelevant)
+        XCTAssertTrue(engine.seasonTwistRelevant)
+    }
+
     // MARK: Kitchen tools
 
     func testGoldSpatulaIsTheRarestAndBestDrop() {

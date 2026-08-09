@@ -45,7 +45,9 @@ private struct QuestsSection: View {
     let onToast: (String) -> Void
 
     var body: some View {
-        if let weekly = engine.state.weeklyQuest {
+        // Paced: the oversized weekly ask waits until the guided opening is done - a
+        // tutorial-hour player should meet three small goals, not a 40,000-dish wall.
+        if let weekly = engine.state.weeklyQuest, engine.state.tutorial.finished {
             weeklyRow(weekly)
         }
 

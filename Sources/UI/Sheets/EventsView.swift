@@ -63,7 +63,10 @@ private struct FestivalSection: View {
                     title: "Seasonal, and free to fully clear",
                     detail: "Tickets from playing unlock every tier on this track before the season ends. A Premium Pass just adds a second reward alongside each one - it never gates anything the free track already has.")
 
-        gauntletCard
+        // Paced: the Gauntlet is a veteran mode; a first-week player sees a calmer Events.
+        if engine.gauntletRelevant {
+            gauntletCard
+        }
 
         header
 
@@ -84,7 +87,8 @@ private struct FestivalSection: View {
         let twist = Festival.modifier(seasonID: festival.seasonID)
         IntroBanner(key: IntroKey.seasonTwist, symbol: "wand.and.stars",
                     title: "Every season plays differently",
-                    detail: "Each carnival season carries one twist - extra tickets from tapping, richer offline hauls, doubled VIP odds. It changes every week, so check back here when a new season starts.")
+                    detail: "Each carnival season carries one twist - extra tickets from tapping, richer offline hauls, doubled VIP odds. It changes every week, so check back here when a new season starts.",
+                    gate: engine.seasonTwistRelevant)
         HStack(spacing: 10) {
             GlyphIcon("wand.and.stars", tint: Theme.gem)
                 .frame(width: 20, height: 20)

@@ -65,10 +65,13 @@ private struct StaffSection: View {
                     detail: "A Legendary-tier hire rotates in every Monday, exclusive to this spot - no reward pool ever drops them. Buy with gems, keep forever, and next week someone new takes the stand.")
         guestChefBanner
 
-        IntroBanner(key: IntroKey.synergies, symbol: "person.3.fill",
-                    title: "Crews have chemistry",
-                    detail: "Certain managers form a named crew: staff every member anywhere in the SAME venue and the whole venue earns a bonus. The crew list below shows who belongs together.")
-        synergyBoard
+        // Paced: the crew system stays invisible until the roster can actually form one.
+        if engine.crewsRelevant {
+            IntroBanner(key: IntroKey.synergies, symbol: "person.3.fill",
+                        title: "Crews have chemistry",
+                        detail: "Certain managers form a named crew: staff every member anywhere in the SAME venue and the whole venue earns a bonus. The crew list below shows who belongs together.")
+            synergyBoard
+        }
 
         if engine.state.managers.isEmpty {
             emptyState
@@ -361,10 +364,13 @@ private struct RecipeSection: View {
             .multilineTextAlignment(.center)
             .padding(.top, 4)
 
-        IntroBanner(key: IntroKey.tools, symbol: "wrench.and.screwdriver.fill",
-                    title: "Kitchen Tools",
-                    detail: "Rare equipment drops from the game's big moments - Rush Hours, VIP catches, Face-Off wins, catering deliveries. Once found, a tool works forever. Somewhere out there is a Gold Spatula.")
-        toolShelf
+        // Paced: the tool chase opens with the first franchise (or first lucky drop).
+        if engine.toolsRelevant {
+            IntroBanner(key: IntroKey.tools, symbol: "wrench.and.screwdriver.fill",
+                        title: "Kitchen Tools",
+                        detail: "Rare equipment drops from the game's big moments - Rush Hours, VIP catches, Face-Off wins, catering deliveries. Once found, a tool works forever. Somewhere out there is a Gold Spatula.")
+            toolShelf
+        }
     }
 
     /// The tool collection: owned tools glow with their effects, unfound ones are dark
@@ -522,10 +528,13 @@ private struct ErrandsSection: View {
             slotView(slot)
         }
 
-        IntroBanner(key: IntroKey.expeditions, symbol: "trophy.fill",
-                    title: "Food Court Face-Offs",
-                    detail: "Send your three best benched managers to out-cook a rival crew. Higher stakes pay better - and the Grand Face-Off can bring home a new Epic recruit. Rarity and long service (bond) decide your odds, shown before you commit.")
-        faceOffCard
+        // Paced: Face-Offs surface once a crew is fieldable (or the player's a veteran).
+        if engine.faceOffsRelevant {
+            IntroBanner(key: IntroKey.expeditions, symbol: "trophy.fill",
+                        title: "Food Court Face-Offs",
+                        detail: "Send your three best benched managers to out-cook a rival crew. Higher stakes pay better - and the Grand Face-Off can bring home a new Epic recruit. Rarity and long service (bond) decide your odds, shown before you commit.")
+            faceOffCard
+        }
 
         Text("Send an idle manager on an errand for a lump sum of gems and coins when they return - a tradeoff against staffing a station, not a free bonus.")
             .font(Theme.body(11, weight: .medium))
