@@ -45,6 +45,13 @@ struct VenuePropsView: View {
             func dot(_ cx: CGFloat, _ cy: CGFloat, _ r: CGFloat, _ color: Color, stroked: Bool = true) {
                 fill(circle(cx, cy, r), color, stroked: stroked)
             }
+            /// A bulb that actually glows: two translucent halos behind the lit dot - fake
+            /// bloom, three fills, no filters, so it stays free at render time.
+            func glowDot(_ cx: CGFloat, _ cy: CGFloat, _ r: CGFloat, _ color: Color) {
+                context.fill(circle(cx, cy, r * 2.6), with: .color(color.opacity(0.14)))
+                context.fill(circle(cx, cy, r * 1.7), with: .color(color.opacity(0.26)))
+                dot(cx, cy, r, color)
+            }
             func openStroke(_ color: Color, width: CGFloat, opacity: Double = 1,
                             _ build: (inout Path) -> Void) {
                 context.stroke(custom(build), with: .color(color.opacity(opacity)), lineWidth: width)
@@ -63,7 +70,7 @@ struct VenuePropsView: View {
                     (68, 25, "#F5C242"), (84, 20, "#FFE9A8"),
                 ]
                 for (cx, cy, hex) in burgerLights {
-                    dot(cx, cy, 4.6, Color(hex: hex))
+                    glowDot(cx, cy, 4.6, Color(hex: hex))
                 }
                 fill(rr(60, 40, 36, 44, 4), Color(hex: "#3A3346"))
                 fill(rr(65, 45, 26, 34, 2), Color(hex: "#2E2A2B"))
@@ -110,7 +117,7 @@ struct VenuePropsView: View {
                     (20, 19, "#F0C24B"), (38, 23, "#FFE6B8"), (62, 23, "#F0C24B"), (80, 19, "#FFE6B8"),
                 ]
                 for (cx, cy, hex) in pizzaLights {
-                    dot(cx, cy, 4.4, Color(hex: hex))
+                    glowDot(cx, cy, 4.4, Color(hex: hex))
                 }
                 openStroke(outline, width: unit * 2.4) { path in
                     path.move(to: p(16, 34)); path.addLine(to: p(16, 44))

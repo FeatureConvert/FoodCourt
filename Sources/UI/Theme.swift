@@ -133,6 +133,37 @@ enum Theme {
     static func numeric(_ size: CGFloat) -> Font {
         .system(size: size, weight: .black, design: .rounded).monospacedDigit()
     }
+
+    // MARK: Depth tokens (visual-refresh foundation)
+    //
+    // The old look was honest flat vector but read as unfinished: single-tone fills, hard
+    // offset shadows, no light direction. These three tokens give every surface the same
+    // subtle top-light without any view doing its own color math - consumed by
+    // PanelBackground and ChunkyButtonStyle below, so the whole app lifts at once.
+
+    /// A soft top-light wash layered OVER any base fill - lighter at the top, vanishing by
+    /// the middle. Works on every hue, which is why it's an overlay rather than computed
+    /// lighter/darker variants of each color.
+    static let topLight = LinearGradient(
+        stops: [.init(color: .white.opacity(0.10), location: 0),
+                .init(color: .white.opacity(0.02), location: 0.45),
+                .init(color: .clear, location: 1)],
+        startPoint: .top, endPoint: .bottom)
+
+    /// Same idea for interactive fills - a touch stronger so buttons read as raised.
+    static let buttonLight = LinearGradient(
+        stops: [.init(color: .white.opacity(0.18), location: 0),
+                .init(color: .white.opacity(0.04), location: 0.5),
+                .init(color: .black.opacity(0.06), location: 1)],
+        startPoint: .top, endPoint: .bottom)
+
+    /// Panel edge treatment: a brighter top edge fading into the ordinary stroke, which is
+    /// what sells "lit from above" at a glance.
+    static let edgeLight = LinearGradient(
+        stops: [.init(color: Color.white.opacity(0.22), location: 0),
+                .init(color: Theme.stroke, location: 0.35),
+                .init(color: Theme.stroke.opacity(0.6), location: 1)],
+        startPoint: .top, endPoint: .bottom)
 }
 
 // MARK: - Reusable chrome
@@ -146,9 +177,16 @@ struct PanelBackground: ViewModifier {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .fill(color)
                     .overlay(
+                        // Top-light wash + lit top edge - the whole depth story in two
+                        // overlays, shared by every panel in the game.
                         RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .stroke(Theme.stroke, lineWidth: 1.5)
+                            .fill(Theme.topLight)
                     )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: radius, style: .continuous)
+                            .strokeBorder(Theme.edgeLight, lineWidth: 1.5)
+                    )
+                    .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
             )
     }
 }
@@ -178,6 +216,14 @@ struct ChunkyButtonStyle: ButtonStyle {
                         .offset(y: 4)
                     RoundedRectangle(cornerRadius: radius, style: .continuous)
                         .fill(disabled ? Theme.locked.opacity(0.75) : fill)
+                        .overlay(
+                            // Raised-surface light: stronger than a panel's, and it
+                            // flattens while pressed so the push reads in the shading,
+                            // not just the translation.
+                            RoundedRectangle(cornerRadius: radius, style: .continuous)
+                                .fill(Theme.buttonLight)
+                                .opacity(disabled ? 0.3 : (pressed ? 0.35 : 1))
+                        )
                 }
             )
             .offset(y: pressed ? 3 : 0)

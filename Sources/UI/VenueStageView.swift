@@ -22,6 +22,16 @@ struct VenueStageView: View {
                 LinearGradient(colors: [palette.wallTop.opacity(0.9), palette.wallBottom],
                                startPoint: .top, endPoint: .bottom)
 
+                // Warm overhead pool of light: an elliptical wash falling from the string
+                // lights toward the counter, which is what turns "a gradient wall" into
+                // "a lit room". Pure vector, static, costs nothing per frame.
+                RadialGradient(
+                    stops: [.init(color: palette.accent.opacity(0.16), location: 0),
+                            .init(color: palette.accent.opacity(0.05), location: 0.5),
+                            .init(color: .clear, location: 1)],
+                    center: .init(x: 0.5, y: 0.22),
+                    startRadius: 0, endRadius: w * 0.75)
+
                 // Wall dressing - stays clear of the centered sign and the queue below.
                 VenuePropsView(theme: venue.theme)
                     .frame(height: h * 0.62)
@@ -33,7 +43,21 @@ struct VenueStageView: View {
                     LinearGradient(colors: [palette.floor, palette.floor.opacity(0.75)],
                                    startPoint: .top, endPoint: .bottom)
                         .frame(height: h * 0.42)
+                        .overlay(
+                            // Contact shadow where floor meets wall - grounds the plane.
+                            LinearGradient(colors: [.black.opacity(0.22), .clear],
+                                           startPoint: .top, endPoint: .bottom)
+                                .frame(height: 14),
+                            alignment: .top)
                 }
+
+                // Soft edge vignette so the stage reads as a lit interior, not a flat card.
+                RoundedRectangle(cornerRadius: 0)
+                    .fill(RadialGradient(
+                        stops: [.init(color: .clear, location: 0.72),
+                                .init(color: .black.opacity(0.18), location: 1)],
+                        center: .center, startRadius: 0, endRadius: w * 0.72))
+                    .allowsHitTesting(false)
 
                 // Hanging sign.
                 VStack(spacing: 2) {

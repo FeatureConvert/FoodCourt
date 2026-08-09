@@ -111,9 +111,13 @@ struct StationCardView: View {
         }
         .padding(12)
         .panel(state.isOwned ? Theme.panel : Theme.panel.opacity(0.6))
-        .overlay(alignment: .top) {
+        .overlay(alignment: .topLeading) {
+            // Anchored over the cooker ring rather than centered: centered, the floating
+            // payout number landed exactly on top of the station title and read as a
+            // rendering glitch. Over the ring it reads as the food paying out.
             ServeBurstOverlay(event: engine.lastServe[spec.id])
-                .offset(y: 10)
+                .frame(width: 66)
+                .offset(x: 12, y: 2)
         }
         .overlay {
             if isOrderTarget {
