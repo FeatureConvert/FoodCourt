@@ -432,6 +432,16 @@ final class GameEngine: ObservableObject {
         state.totalTaps += 1
         advanceQuests(kind: .tap, by: 1)
         state.tutorial.complete(.tapStation)
+        // Tap Frenzy seasons: taps drip festival tickets too (through the same serve-track
+        // cap as everything else, so the season can't blow the track open).
+        if let per = Festival.modifier(seasonID: state.festival.seasonID).tapsPerTicket,
+           state.totalTaps % per == 0 {
+            let headroom = Swift.max(0, Festival.maxTicketsFromServing - state.festival.ticketsFromServing)
+            if headroom > 0 {
+                state.festival.ticketsFromServing += 1
+                awardTickets(1)
+            }
+        }
 
         var station = state.venues[venue].stations[index]
         guard station.isOwned, !station.isStaffed, !station.isRunning else { return false }
@@ -615,6 +625,26 @@ final class GameEngine: ObservableObject {
         lastRecipeDrop = drop
     }
 
+    // MARK: Signature Dish (recipe fusion)
+
+    /// A venue whose whole recipe set is 3-starred may crown one station its Signature
+    /// Dish (x1.5 profit there). Re-crownable freely - a standing strategy knob that gives
+    /// the recipe album an endgame beyond set completion.
+    func canCrownSignature(venue: Int) -> Bool {
+        Balance.venue(venue).stations.allSatisfy {
+            Recipes.stars(state.recipeCards, venue: venue, station: $0.id) >= Recipes.maxStars
+        }
+    }
+
+    @discardableResult
+    func crownSignatureDish(venue: Int, station: Int) -> Bool {
+        guard canCrownSignature(venue: venue),
+              Balance.venue(venue).stations.indices.contains(station) else { return false }
+        state.signatureDish[venue] = station
+        save()
+        return true
+    }
+
     // MARK: Rush Hour
 
     var rushActive: Bool { state.isRushActive(at: state.now) }
@@ -666,6 +696,7 @@ final class GameEngine: ObservableObject {
     func rollGoldenCustomer() {
         guard golden == nil, state.automatedRate > 0 || state.coins > 0 else { return }
         let chance = state.goldenChance * (state.isHappyHour() ? 2 : 1)
+            * Festival.modifier(seasonID: state.festival.seasonID).goldenChanceMultiplier
         guard Double.random(in: 0..<1) < chance else { return }
         golden = GoldenCustomer(seed: Int.random(in: 0..<10_000),
                                 expiresAt: state.now.addingTimeInterval(ActivePlay.goldenWindow),
@@ -1164,7 +1195,8 @@ final class GameEngine: ObservableObject {
         case .gems(let amount):
             state.gems += amount
         case .coinSeconds(let seconds):
-            addCoins(Swift.max(1_000, state.automatedRate * seconds))
+            let seasonBonus = Festival.modifier(seasonID: state.festival.seasonID).tierCoinMultiplier
+            addCoins(Swift.max(1_000, state.automatedRate * seconds) * seasonBonus)
         case .manager(let rarity):
             _ = grantManager(rarity: rarity)
         case .boost(let multiplier, let hours):

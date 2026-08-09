@@ -243,6 +243,10 @@ struct GameState: Codable, Equatable {
     var activeContract: String? = nil
     /// Legacy tree picks: perk id -> stacks taken. Permanent, like everything Legacy.
     var legacyPerks: [String: Int] = [:]
+    /// Venue id -> the station crowned as its Signature Dish (x1.5 on that station).
+    /// Unlocked by fully 3-starring the venue's recipe set; re-crownable anytime, so it's
+    /// a standing strategic knob, not a one-shot. Survives prestige like recipes do.
+    var signatureDish: [Int: Int] = [:]
 
     /// Keys of one-shot explainer moments the player has already seen - the welcome screen,
     /// the first-prestige and first-legacy alerts, the perk primer, and the first-open banner
@@ -355,7 +359,8 @@ struct GameState: Codable, Equatable {
     var offlineEfficiency: Double {
         // Floor at 5%: a contract debuff can make offline a trickle, never literally zero.
         min(1, max(0.05, Balance.offlineEfficiency + researchEffects.offlineEfficiency
-                    + (contract?.offlineEfficiencyDelta ?? 0)))
+                    + (contract?.offlineEfficiencyDelta ?? 0)
+                    + Festival.modifier(seasonID: festival.seasonID).offlineEfficiencyBonus))
     }
 
     // MARK: Cosmetics
@@ -429,6 +434,20 @@ struct GameState: Codable, Equatable {
         return effects
     }
 
+    /// Spec ids of everyone staffed in a venue - what synergy detection runs on.
+    func staffedSpecIDs(venue: Int) -> Set<String> {
+        var ids: Set<String> = []
+        for index in venues[venue].stations.indices {
+            if let spec = managerSpec(venue: venue, station: index) { ids.insert(spec.id) }
+        }
+        return ids
+    }
+
+    /// Crews fully assembled in this venue right now - see `Synergies`.
+    func activeSynergies(venue: Int) -> [ManagerSynergy] {
+        Synergies.active(in: staffedSpecIDs(venue: venue))
+    }
+
     /// Venue-wide traits only, for readouts that aren't tied to a single station.
     func venueManagerEffects(venue: Int) -> ManagerEffects {
         var effects = ManagerEffects()
@@ -468,7 +487,7 @@ struct GameState: Codable, Equatable {
         case lastPrestigeAward, landmarksCrossed, rushChain, servedAtBoardStart
         case nemesisSeed, venueMastery, bestFestivalTier, lastBondAccrualAt
         case weeklyQuest, weeklyQuestWeek
-        case activeContract, legacyPerks
+        case activeContract, legacyPerks, signatureDish
         case boardStartedAt
         case errands
         case venueSkins, unlockedSkins
@@ -547,6 +566,7 @@ struct GameState: Codable, Equatable {
         activeContract = try c.decodeIfPresent(String.self, forKey: .activeContract)
             ?? (prestigeCount > 0 ? "straight" : nil)
         legacyPerks = try c.decodeIfPresent([String: Int].self, forKey: .legacyPerks) ?? [:]
+        signatureDish = try c.decodeIfPresent([Int: Int].self, forKey: .signatureDish) ?? [:]
         if let crossed = try c.decodeIfPresent(Set<Int>.self, forKey: .landmarksCrossed) {
             landmarksCrossed = crossed
         } else {
@@ -605,9 +625,13 @@ enum IntroKey {
     static let icloudSync = "icloudSync"
     static let contracts = "contracts"
     static let legacyTree = "legacyTree"
+    static let signature = "signature"
+    static let synergies = "synergies"
+    static let seasonTwist = "seasonTwist"
 
     static let allKeys: [String] = [
         welcome, prestige, legacy, perks, research, league, festival, staff, recipes, errands,
         cosmetics, roadmap, halfwayFranchise, guestChef, icloudSync, contracts, legacyTree,
+        signature, synergies, seasonTwist,
     ]
 }

@@ -203,6 +203,46 @@ enum ManagerCatalog {
     }
 }
 
+// MARK: - Synergies
+
+/// Named crews: staff BOTH members anywhere in the same venue and the whole venue gets the
+/// bonus. Turns staffing from slot-filling into a small puzzle, and gives the bench roster
+/// a reason to exist beyond errands - the pair you're missing is suddenly worth hunting.
+struct ManagerSynergy: Identifiable, Equatable {
+    let id: String
+    let title: String
+    let memberIDs: [String]
+    let detail: String
+    /// Venue-wide profit multiplier while the crew is together.
+    let venueProfit: Double
+}
+
+enum Synergies {
+
+    static let all: [ManagerSynergy] = [
+        ManagerSynergy(id: "clockwork", title: "Clockwork Crew",
+                       memberIDs: ["sam", "otto"],
+                       detail: "Speedy Sam + Orderly Otto: +10% venue profit", venueProfit: 1.10),
+        ManagerSynergy(id: "frontline", title: "Front Line",
+                       memberIDs: ["tina", "kip"],
+                       detail: "Tips Tina + Quick-Hands Kip: +10% venue profit", venueProfit: 1.10),
+        ManagerSynergy(id: "closers", title: "The Closers",
+                       memberIDs: ["milo", "vera"],
+                       detail: "Margin Milo + Front-of-House Vera: +15% venue profit", venueProfit: 1.15),
+        ManagerSynergy(id: "nightcrew", title: "Night Crew",
+                       memberIDs: ["wren", "nova"],
+                       detail: "Night-Shift Wren + Nova the Nightowl: +15% venue profit", venueProfit: 1.15),
+        ManagerSynergy(id: "showstoppers", title: "Showstoppers",
+                       memberIDs: ["cleo", "dex", "august"],
+                       detail: "Cleo + Dex + Chef August: +25% venue profit", venueProfit: 1.25),
+    ]
+
+    /// Crews fully staffed in the given venue.
+    static func active(in venueSpecIDs: Set<String>) -> [ManagerSynergy] {
+        all.filter { synergy in synergy.memberIDs.allSatisfy(venueSpecIDs.contains) }
+    }
+}
+
 // MARK: - Trait aggregation
 
 /// Resolved manager effects for one station, so the engine never walks the roster mid-tick.

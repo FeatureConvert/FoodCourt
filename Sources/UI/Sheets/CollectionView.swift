@@ -65,6 +65,11 @@ private struct StaffSection: View {
                     detail: "A Legendary-tier hire rotates in every Monday, exclusive to this spot - no reward pool ever drops them. Buy with gems, keep forever, and next week someone new takes the stand.")
         guestChefBanner
 
+        IntroBanner(key: IntroKey.synergies, symbol: "person.3.fill",
+                    title: "Crews have chemistry",
+                    detail: "Certain managers form a named crew: staff every member anywhere in the SAME venue and the whole venue earns a bonus. The crew list below shows who belongs together.")
+        synergyBoard
+
         if engine.state.managers.isEmpty {
             emptyState
         } else {
@@ -72,6 +77,45 @@ private struct StaffSection: View {
                 row(manager)
             }
         }
+    }
+
+    /// Every crew, with its live status in the CURRENT venue - assembled crews glow, the
+    /// rest read as a checklist of who to hunt for.
+    private var synergyBoard: some View {
+        let venue = engine.state.currentVenue
+        let staffed = engine.state.staffedSpecIDs(venue: venue)
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("CREWS · \(Balance.venue(venue).name.uppercased())")
+                .font(Theme.body(10, weight: .black))
+                .tracking(0.6)
+                .foregroundStyle(Theme.textDim)
+            ForEach(Synergies.all) { synergy in
+                let active = synergy.memberIDs.allSatisfy(staffed.contains)
+                HStack(spacing: 8) {
+                    Image(systemName: active ? "checkmark.circle.fill" : "circle.dashed")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(active ? Theme.positive : Theme.textDim)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(synergy.title)
+                            .font(Theme.body(12, weight: .black))
+                            .foregroundStyle(active ? Theme.text : Theme.textDim)
+                        Text(synergy.detail)
+                            .font(Theme.body(10, weight: .medium))
+                            .foregroundStyle(Theme.textDim)
+                    }
+                    Spacer(minLength: 0)
+                    if active {
+                        Text("ACTIVE")
+                            .font(Theme.body(8, weight: .black))
+                            .foregroundStyle(Theme.ink)
+                            .padding(.horizontal, 5).padding(.vertical, 2)
+                            .background(Capsule().fill(Theme.positive))
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .panel(Theme.panel)
     }
 
     private var guestChefBanner: some View {
@@ -302,6 +346,10 @@ private struct RecipeSection: View {
                         card(venue: venue, spec: spec)
                     }
                 }
+
+                if engine.canCrownSignature(venue: venue.id) {
+                    signaturePicker(venue: venue)
+                }
             }
             .padding(12)
             .panel(unlocked ? Theme.panel : Theme.panel.opacity(0.55))
@@ -312,6 +360,50 @@ private struct RecipeSection: View {
             .foregroundStyle(Theme.textDim)
             .multilineTextAlignment(.center)
             .padding(.top, 4)
+    }
+
+    /// The fusion endgame: a fully 3-starred set lets the player crown one station as the
+    /// venue's Signature Dish. Same first-open explainer treatment as every other system.
+    @ViewBuilder
+    private func signaturePicker(venue: VenueSpec) -> some View {
+        IntroBanner(key: IntroKey.signature, symbol: "crown.fill",
+                    title: "Signature Dish unlocked",
+                    detail: "This venue's whole set is 3-starred - crown one station its Signature Dish for ×1.5 profit there. You can re-crown a different station anytime, free.")
+
+        VStack(alignment: .leading, spacing: 6) {
+            Text("SIGNATURE DISH · ×1.5")
+                .font(Theme.body(9, weight: .black))
+                .tracking(0.6)
+                .foregroundStyle(Theme.coin)
+            HStack(spacing: 6) {
+                ForEach(venue.stations) { spec in
+                    let crowned = engine.state.signatureDish[venue.id] == spec.id
+                    Button {
+                        if engine.crownSignatureDish(venue: venue.id, station: spec.id) {
+                            Haptics.success()
+                        }
+                    } label: {
+                        FoodSprite(art: spec.art, colors: spec.colors)
+                            .equatable()
+                            .frame(width: 30, height: 30)
+                            .padding(5)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(crowned ? Theme.coin.opacity(0.35) : Theme.ink.opacity(0.4)))
+                            .overlay(alignment: .topTrailing) {
+                                if crowned {
+                                    Image(systemName: "crown.fill")
+                                        .font(.system(size: 9, weight: .black))
+                                        .foregroundStyle(Theme.coin)
+                                        .offset(x: 3, y: -4)
+                                }
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Crown \(spec.name) as Signature Dish")
+                }
+            }
+        }
     }
 
     private func card(venue: VenueSpec, spec: StationSpec) -> some View {

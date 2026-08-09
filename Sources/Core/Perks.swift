@@ -6,6 +6,9 @@ enum PerkEffect: Equatable {
     case profit(Double)       // multiplier on payout
     case speed(Double)        // multiplier on cycle rate
     case doubleServe(Double)  // chance to pay twice
+    /// Both at once - the specialization tier trades one for the other in a single pick
+    /// (Batch Mode: slow and huge; Rapid Fire: fast and lean).
+    case tempo(profit: Double, speed: Double)
 }
 
 struct Perk: Identifiable, Equatable {
@@ -20,10 +23,22 @@ enum Perks {
 
     /// Deliberately the same levels as the auto milestones: hitting one is already a moment,
     /// so that is where the choice belongs. The milestone bonus still applies on top.
-    static let choiceLevels = [25, 50, 100]
+    /// Level 500 is the specialization tier - the picks there change how a station FEELS
+    /// (chunky batches, rapid fire, jackpot serves), not just its numbers, so two late-game
+    /// boards finally diverge in texture and not only in multipliers.
+    static let choiceLevels = [25, 50, 100, 500]
 
     static func choices(at level: Int) -> [Perk] {
         switch level {
+        case 500:
+            return [
+                Perk(id: 0, title: "Batch Mode", detail: "×5 cycle time, ×6 payout - big, slow, satisfying servings",
+                     symbol: "shippingbox.fill", effect: .tempo(profit: 6, speed: 0.2)),
+                Perk(id: 1, title: "Rapid Fire", detail: "Cycles ×2 as fast at 60% payout - floods of serves for goals and tickets",
+                     symbol: "bolt.horizontal.fill", effect: .tempo(profit: 0.6, speed: 2)),
+                Perk(id: 2, title: "Tip Magnet", detail: "25% chance every serve pays double",
+                     symbol: "sparkles", effect: .doubleServe(0.25)),
+            ]
         case 25:
             return [
                 Perk(id: 0, title: "Bigger Portions", detail: "+150% profit",
@@ -68,11 +83,23 @@ enum Perks {
     // MARK: Aggregation
 
     static func profitMultiplier(chosen: [Int: Int]) -> Double {
-        aggregate(chosen) { if case .profit(let v) = $0 { return v }; return nil }
+        aggregate(chosen) {
+            switch $0 {
+            case .profit(let v): return v
+            case .tempo(let profit, _): return profit
+            default: return nil
+            }
+        }
     }
 
     static func speedMultiplier(chosen: [Int: Int]) -> Double {
-        aggregate(chosen) { if case .speed(let v) = $0 { return v }; return nil }
+        aggregate(chosen) {
+            switch $0 {
+            case .speed(let v): return v
+            case .tempo(_, let speed): return speed
+            default: return nil
+            }
+        }
     }
 
     /// Chances combine as independent rolls rather than summing past 1.

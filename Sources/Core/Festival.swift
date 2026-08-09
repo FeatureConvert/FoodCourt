@@ -72,6 +72,40 @@ enum Festival {
 
     static let seasonName = "Street Food Carnival"
 
+    // MARK: Season modifiers
+
+    /// One gameplay twist per season, rotating with the season id - across the six-month
+    /// arc the carnival plays differently every week instead of re-running the same track
+    /// twenty-six times. Effects hook the same paths everything else uses.
+    struct SeasonModifier: Equatable {
+        let id: String
+        let title: String
+        let detail: String
+        var tapsPerTicket: Int? = nil          // taps also drip tickets
+        var offlineEfficiencyBonus: Double = 0
+        var goldenChanceMultiplier: Double = 1
+        var tierCoinMultiplier: Double = 1     // coin rewards on the track pay more
+    }
+
+    static let seasonModifiers: [SeasonModifier] = [
+        SeasonModifier(id: "tapfrenzy", title: "Tap Frenzy",
+                       detail: "Every 40 taps earns a festival ticket this season.",
+                       tapsPerTicket: 40),
+        SeasonModifier(id: "overtime", title: "Overtime",
+                       detail: "+25% offline earnings all season.",
+                       offlineEfficiencyBonus: 0.25),
+        SeasonModifier(id: "goldenweek", title: "Golden Week",
+                       detail: "VIP customers appear twice as often this season.",
+                       goldenChanceMultiplier: 2),
+        SeasonModifier(id: "bigspender", title: "Big Spender",
+                       detail: "Coin rewards on the track pay double this season.",
+                       tierCoinMultiplier: 2),
+    ]
+
+    static func modifier(seasonID: Int) -> SeasonModifier {
+        seasonModifiers[((seasonID % seasonModifiers.count) + seasonModifiers.count) % seasonModifiers.count]
+    }
+
     static func ticketsRequired(forTier tier: Int) -> Int {
         guard tier > 0 else { return 0 }
         return Int((70 * pow(Double(tier), 1.35)).rounded())

@@ -65,6 +65,8 @@ private struct FestivalSection: View {
 
         header
 
+        seasonTwistCard
+
         if !engine.festivalPremiumActive {
             premiumPitch
         }
@@ -72,6 +74,38 @@ private struct FestivalSection: View {
         ForEach(Festival.allTiers) { tier in
             tierRow(tier)
         }
+    }
+
+    /// This season's rotating gameplay twist, with the same first-open explainer treatment
+    /// every other system gets.
+    @ViewBuilder private var seasonTwistCard: some View {
+        let twist = Festival.modifier(seasonID: festival.seasonID)
+        IntroBanner(key: IntroKey.seasonTwist, symbol: "wand.and.stars",
+                    title: "Every season plays differently",
+                    detail: "Each carnival season carries one twist - extra tickets from tapping, richer offline hauls, doubled VIP odds. It changes every week, so check back here when a new season starts.")
+        HStack(spacing: 10) {
+            GlyphIcon("wand.and.stars", tint: Theme.gem)
+                .frame(width: 20, height: 20)
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Theme.ink.opacity(0.5)))
+            VStack(alignment: .leading, spacing: 2) {
+                Text("SEASON \(festival.seasonID) TWIST · \(twist.title.uppercased())")
+                    .font(Theme.body(10, weight: .black))
+                    .tracking(0.5)
+                    .foregroundStyle(Theme.gem)
+                Text(twist.detail)
+                    .font(Theme.body(12, weight: .bold))
+                    .foregroundStyle(Theme.text)
+                if engine.state.bestFestivalTier > 0 {
+                    Text("Personal best: Tier \(engine.state.bestFestivalTier)")
+                        .font(Theme.body(10, weight: .medium))
+                        .foregroundStyle(Theme.textDim)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .panel(Theme.panelRaised)
     }
 
     private var header: some View {

@@ -34,6 +34,17 @@ extension GameState {
             result.profit *= manager.bondProfitMultiplier
         }
 
+        // Assembled crews lift their whole venue - see `Synergies`.
+        for synergy in activeSynergies(venue: venue) {
+            result.profit *= synergy.venueProfit
+        }
+
+        // The venue's Signature Dish (a full 3-star recipe set, distilled) pays x1.5 on
+        // the one station the player chose to crown - see `signatureDish`.
+        if signatureDish[venue] == station {
+            result.profit *= 1.5
+        }
+
         // The run's Franchise Contract, if any - the whole point is that these touch the
         // same paths everything else does, so a contract run is the same game with the
         // dials moved, not a special mode.
