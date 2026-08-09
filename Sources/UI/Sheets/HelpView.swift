@@ -220,12 +220,13 @@ struct HelpView: View {
         GuideSection(
             symbol: "infinity", title: "Legacy",
             text: """
-            After your fifth franchise, a Legacy option appears on the Franchise tab. It \
-            resets stars, research, and your whole earnings history — the things an \
-            ordinary franchise reset keeps — for a permanent +20% multiplier per level \
-            PLUS one pick from the Legacy tree: permanent perks like starting capital, a \
-            later staleness tax, or richer Franchise awards. Picks stack across Legacies \
-            and never reset, so two empires at the same level can be built very differently.
+            Five franchises after your last Legacy, the option appears on the Franchise \
+            tab. It resets stars and your whole earnings history — the star climb starts \
+            over — for a permanent +20% multiplier per level PLUS one pick from the \
+            Legacy tree: perks like starting capital, a later staleness tax, or richer \
+            Franchise awards. Research is permanent knowledge and always survives. Picks \
+            stack across Legacies, so two empires at the same level can be built very \
+            differently.
             """),
         GuideSection(
             symbol: "star.circle.fill", title: "Guest Chef",
@@ -343,10 +344,11 @@ struct HelpView: View {
                 answer: """
                 Franchising resets the board — coins, station levels, and every venue but the \
                 first — while keeping stars, recipes and research (coin-hired staff is let \
-                go). Legacy is separate and far rarer, unlocking after your fifth franchise, \
-                and resets stars, research, and your entire earnings history too, in exchange \
-                for a permanent +20% per level stacked on top of the star bonus. Think of it \
-                as a second, much bigger reset for once the first one has run its course.
+                go). Legacy is separate and far rarer, and resets stars and your entire \
+                earnings history too — but never research, which is permanent knowledge — \
+                in exchange for a permanent +20% per level stacked on top of the star \
+                bonus. Think of it as a second, much bigger reset for once the first one \
+                has run its course.
                 """),
         FAQItem(question: "What are all these currencies?",
                 answer: """

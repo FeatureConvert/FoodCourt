@@ -165,7 +165,7 @@ private struct FranchiseSection: View {
                 .font(Theme.numeric(20))
                 .foregroundStyle(Theme.text)
 
-            Text("Give up your \(Format.bonus(multiplier: Balance.starMultiplier(stars: engine.state.lifetimeStars))) star bonus, every research rank, and your whole earnings history - the star climb starts over from nothing - for +\(Int(Balance.legacyMultiplier(level: 1) * 100 - 100))% more profit per level, forever.")
+            Text("Give up your \(Format.bonus(multiplier: Balance.starMultiplier(stars: engine.state.lifetimeStars))) star bonus and your whole earnings history - the star climb starts over from nothing - for +\(Int(Balance.legacyMultiplier(level: 1) * 100 - 100))% more profit per level, forever. Research and everything you've collected stay yours.")
                 .font(Theme.body(11, weight: .medium))
                 .foregroundStyle(Theme.textDim)
                 .multilineTextAlignment(.center)

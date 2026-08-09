@@ -326,7 +326,7 @@ struct RootView: View {
             BigMomentAlertView(
                 symbol: "crown.fill",
                 headline: "Legacy Unlocked",
-                detail: "Five franchises in, a Legacy reset is now open to you: trade away your star bonus, research ranks, and earnings history to start the climb again with a permanently bigger multiplier. It's optional and one-way - it's usually worth waiting until your star bonus has slowed down.",
+                detail: "Five franchises in, a Legacy reset is now open to you: trade away your star bonus and earnings history to start the climb again with a permanently bigger multiplier. Research, recipes, tools, and staff are yours forever. Optional and one-way - usually worth waiting until your star bonus has slowed down.",
                 stat: (label: "Lifetime stars", value: "\(engine.state.lifetimeStars)"),
                 ctaTitle: "See Legacy",
                 onCTA: { present(.prestige) }

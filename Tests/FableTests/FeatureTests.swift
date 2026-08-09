@@ -1551,9 +1551,12 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(e.state.stars, 0)
         XCTAssertEqual(e.state.lifetimeStars, 0)
         XCTAssertEqual(e.state.lastPrestigeAward, 0, "research prices fall back to the static floor")
-        XCTAssertTrue(e.state.research.isEmpty)
+        XCTAssertEqual(e.state.research["prep"], 4,
+                       "research is permanent knowledge - Legacy never touches it")
         XCTAssertEqual(e.state.venues[0].stations[0].level, 1)
         XCTAssertFalse(e.canPrestige, "the star climb genuinely restarts - no instant re-prestige")
+        XCTAssertFalse(e.canLegacyReset,
+                       "the gate re-locks: five NEW franchises before the next Legacy")
 
         // Collections and accomplishments are not run progress - they survive.
         XCTAssertEqual(e.state.managers.count, 1)

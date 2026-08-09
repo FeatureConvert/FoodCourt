@@ -974,19 +974,18 @@ final class GameEngine: ObservableObject {
     // MARK: Legacy (second prestige layer)
 
     var canLegacyReset: Bool {
-        state.prestigeCount >= Balance.legacyUnlockPrestigeCount
+        state.prestigeCount - state.prestigeCountAtLegacy >= Balance.legacyUnlockPrestigeCount
     }
 
     /// Trades away the accumulated star multiplier for a permanently bigger one. Unlike
-    /// `prestige()`, this also clears stars/lifetimeStars/research AND `lifetimeEarnings` -
-    /// the very things regular prestige is careful to keep - since giving those up is the
-    /// entire point. Earnings must go too: stars are computed from lifetime earnings, so
-    /// leaving them meant one quick re-prestige restored the entire multiplier for free
-    /// and the only real cost was research - not the trade the copy promised. The star
-    /// climb genuinely restarts now, which is why `Balance.legacyMultiplier` pays +20% per
-    /// level instead of the +5% priced for the old, nearly-free version. Managers, recipes,
-    /// achievements, errands, festival and league are left untouched: they are collections
-    /// and accomplishments, not run progress.
+    /// `prestige()`, this clears stars, lifetimeStars, AND `lifetimeEarnings` - stars are
+    /// computed from earnings, so leaving earnings meant one quick re-prestige restored
+    /// the whole multiplier for free. The star climb genuinely restarts, which is why
+    /// `Balance.legacyMultiplier` pays +20% per level. RESEARCH SURVIVES: the game
+    /// promises everywhere that research is permanent knowledge (and sells stars on that
+    /// promise), so Legacy's cost is the earnings/multiplier climb - weeks of momentum -
+    /// never the tree. Managers, recipes, tools, achievements, errands, festival and
+    /// league are also untouched: collections and accomplishments, not run progress.
     @discardableResult
     func legacyReset() -> Int {
         guard canLegacyReset else { return state.legacy.level }
@@ -998,7 +997,7 @@ final class GameEngine: ObservableObject {
         state.stars = 0
         state.lifetimeStars = 0
         state.lastPrestigeAward = 0
-        state.research = [:]
+        state.prestigeCountAtLegacy = state.prestigeCount
         state.venues = Balance.venues.map { VenueState.fresh(venue: $0, unlocked: $0.id == 0) }
         state.venues[0].stations[0].level = 1
         state.currentVenue = 0

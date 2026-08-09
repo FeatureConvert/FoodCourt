@@ -261,6 +261,11 @@ struct GameState: Codable, Equatable {
     var gauntletBestEver: Double = 0
     /// Pinned at sprint start so mid-sprint board changes can't game the purse.
     var gauntletBaseline: Double = 0
+    /// `prestigeCount` at the moment of the last Legacy reset - the Legacy gate requires
+    /// five NEW franchises since then, or the gate never re-locks (prestigeCount alone
+    /// made a second Legacy free the instant the first finished: everything it would wipe
+    /// was already zero, so it granted +20% and a perk for nothing, infinitely).
+    var prestigeCountAtLegacy: Int = 0
     /// Interactive perk choices spent this franchise run (see `Balance.perkChoicesPerRun`).
     /// Milestones past the cap still pay their automatic speed/profit bonuses - what runs
     /// out is the CHOICE, which turns "which four stations get a build?" into a real
@@ -512,7 +517,7 @@ struct GameState: Codable, Equatable {
         case nemesisSeed, venueMastery, bestFestivalTier, lastBondAccrualAt
         case weeklyQuest, weeklyQuestWeek
         case activeContract, legacyPerks, signatureDish, expedition, expeditionWins, catering
-        case perkChoicesUsed, tools
+        case perkChoicesUsed, tools, prestigeCountAtLegacy
         case gauntletEndsAt, gauntletScore, gauntletWeekPlayed, gauntletBestEver
         case gauntletBaseline
         case boardStartedAt
@@ -598,6 +603,9 @@ struct GameState: Codable, Equatable {
         expeditionWins = try c.decodeIfPresent(Int.self, forKey: .expeditionWins) ?? 0
         catering = try c.decodeIfPresent(CateringOrder.self, forKey: .catering)
         perkChoicesUsed = try c.decodeIfPresent(Int.self, forKey: .perkChoicesUsed) ?? 0
+        // Old saves with existing Legacy levels approximate: assume the gate's worth of
+        // franchises preceded each level, so they aren't instantly re-eligible on update.
+        prestigeCountAtLegacy = try c.decodeIfPresent(Int.self, forKey: .prestigeCountAtLegacy) ?? 0
         tools = try c.decodeIfPresent(Set<String>.self, forKey: .tools) ?? []
         gauntletEndsAt = try c.decodeIfPresent(Date.self, forKey: .gauntletEndsAt)
         gauntletScore = try c.decodeIfPresent(Double.self, forKey: .gauntletScore) ?? 0
