@@ -29,18 +29,21 @@ struct ResearchNode: Identifiable, Equatable {
     /// (and did) hand out multiples of that, so "spend your stars on research" was never a
     /// real decision - everything worth having was already affordable.
     ///
-    /// Growth went 1.6 -> 1.75 -> 1.95 in two passes. The first (1.75, ~82,000 stars for the
-    /// full tree) was tuned against small, frequent prestige payouts. Once the staleness tax
-    /// (`Balance.stalenessMultiplier`) made big, patient batches the correct cadence instead,
-    /// a single week of that cadence was clearing over half the entire tree - the payout size
-    /// had grown past what the price curve assumed, not because research got cheaper but
-    /// because the stars behind it got bigger. 1.95 (~168,000 total) re-targets full
-    /// completion at roughly a month of that same dedicated cadence, so research tracks the
-    /// same "slow climb, still rewarding early" shape as prestige itself - rank 0 on the
-    /// cheapest nodes is still just 30-40 stars, affordable off a first-ever prestige, but the
-    /// deep ranks stay a genuine many-weeks sink instead of falling in a single strong week.
+    /// Growth went 1.6 -> 1.75 -> 1.95 -> 2.4 across three passes, each retuned against how
+    /// fast stars actually arrive. 1.75 (~82,000 stars for the full tree) was priced for
+    /// small, frequent prestige payouts; once the staleness tax (`Balance.
+    /// stalenessMultiplier`) made big, patient batches the correct cadence instead, a single
+    /// week of that cadence was clearing over half the tree. 1.95 (~168,000) re-targeted a
+    /// month, but that's still a short runway for a permanent progression system meant to
+    /// carry the game long-term. 2.4 (~757,000 total) pushes full completion out to roughly
+    /// six months of a genuinely dedicated, patient-batch cadence - real play, with sleep and
+    /// gaps and less-than-optimal timing, stretches well past that, leaving room for more
+    /// venues and content to extend the tree further in a later pass rather than everything
+    /// being maxed out by then. Rank 0 on the cheapest nodes is untouched by any of this -
+    /// still 30-40 stars, affordable off a first-ever prestige - so the growth rate only ever
+    /// taxes the deep ranks, not the first taste of the system.
     func cost(forRank rank: Int) -> Int {
-        Int((Double(baseCost) * pow(1.95, Double(rank))).rounded())
+        Int((Double(baseCost) * pow(2.4, Double(rank))).rounded())
     }
 }
 
