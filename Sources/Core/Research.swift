@@ -27,11 +27,20 @@ struct ResearchNode: Identifiable, Equatable {
     /// 1.6, and baseCost values were roughly a tenth of what they are now - together the
     /// entire tree, every node at max rank, cost only ~4,700 stars. A single prestige could
     /// (and did) hand out multiples of that, so "spend your stars on research" was never a
-    /// real decision - everything worth having was already affordable. Steeper growth plus
-    /// higher baseCost puts a fully maxed tree around 80,000 stars: a genuine many-prestiges
-    /// investment instead of a rounding error off one run.
+    /// real decision - everything worth having was already affordable.
+    ///
+    /// Growth went 1.6 -> 1.75 -> 1.95 in two passes. The first (1.75, ~82,000 stars for the
+    /// full tree) was tuned against small, frequent prestige payouts. Once the staleness tax
+    /// (`Balance.stalenessMultiplier`) made big, patient batches the correct cadence instead,
+    /// a single week of that cadence was clearing over half the entire tree - the payout size
+    /// had grown past what the price curve assumed, not because research got cheaper but
+    /// because the stars behind it got bigger. 1.95 (~168,000 total) re-targets full
+    /// completion at roughly a month of that same dedicated cadence, so research tracks the
+    /// same "slow climb, still rewarding early" shape as prestige itself - rank 0 on the
+    /// cheapest nodes is still just 30-40 stars, affordable off a first-ever prestige, but the
+    /// deep ranks stay a genuine many-weeks sink instead of falling in a single strong week.
     func cost(forRank rank: Int) -> Int {
-        Int((Double(baseCost) * pow(1.75, Double(rank))).rounded())
+        Int((Double(baseCost) * pow(1.95, Double(rank))).rounded())
     }
 }
 
