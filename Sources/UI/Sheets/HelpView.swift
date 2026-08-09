@@ -75,10 +75,12 @@ struct HelpView: View {
         GuideSection(
             symbol: "flame.fill", title: "Combo and Rush Hour",
             text: """
-            Taps within a second and a half of each other build a combo, up to ×10, and it \
-            multiplies everything you earn while it lasts — even from staffed stations, so \
-            it is always worth tapping. Rush Hour is a 60-second ×5 on a 20-minute cooldown. \
-            The coffee cup is a free ×2 for 15 minutes.
+            Taps within a couple of seconds of each other build a combo, up to ×5 (deeper \
+            with research and Legacy perks), and it multiplies everything you earn while \
+            it lasts — even from staffed stations, so it is always worth tapping. Rush \
+            Hour is a 60-second ×5 on a 30-minute cooldown, and coming back promptly \
+            builds a chain worth up to +50% more. The coffee cup is a free ×2 for 15 \
+            minutes.
             """),
         GuideSection(
             symbol: "crown.fill", title: "Golden customers",
@@ -89,9 +91,10 @@ struct HelpView: View {
         GuideSection(
             symbol: "sparkles", title: "Milestones and perks",
             text: """
-            Every station gets automatic bonuses at levels 10, 25, 50, 100, 200 and 400. At \
-            25, 50 and 100 you also pick a perk: more profit, faster cycles, or a chance to \
-            serve twice. Perks are permanent for that run and stack with the milestone.
+            Every station gets automatic speed and profit bonuses at levels 40, 100, 250, \
+            500, 1000 and 2000. Levels 25, 50, 100 and 500 also offer a perk choice — but \
+            you only get four choices per franchise run, so pick which stations deserve a \
+            personal build. Perks last until your next reset and stack with the milestones.
             """),
         GuideSection(
             symbol: "person.2.fill", title: "Staff",

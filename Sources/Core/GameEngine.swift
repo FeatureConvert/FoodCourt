@@ -1775,6 +1775,11 @@ final class GameEngine: ObservableObject {
         state.weeklyQuest?.progress = state.weeklyQuest?.target ?? 0
     }
 
+    func debugEndGauntlet() {
+        guard state.gauntletEndsAt != nil else { return }
+        state.gauntletEndsAt = state.now.addingTimeInterval(-1)
+    }
+
     func debugCompleteExpedition() {
         guard let expedition = state.expedition else { return }
         state.expedition?.startedAt = state.now.addingTimeInterval(-expedition.duration - 1)

@@ -44,6 +44,7 @@
 		82502C079735B3C036B1CB55 /* VenueProps.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10AE32D35CB2E6365F4E23C /* VenueProps.swift */; };
 		8551FD91817332203E83BBFE /* GuestChef.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91FAA9E9B4F61C58F14C0EF5 /* GuestChef.swift */; };
 		877B550408BB856B16FC8443 /* FableApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F55D1F4DA01CDB0A1E3FEE /* FableApp.swift */; };
+		88DE461C0BD7460467B420B5 /* DepthSystemsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAEEE7013E714F39F25B687C /* DepthSystemsTests.swift */; };
 		8C31EA19716CB3E7952B8769 /* Managers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125320FE8C0CD27DABD2E408 /* Managers.swift */; };
 		8D110146D9A89E45D5431CD0 /* RoadmapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCCB4854B3C941890956BB3B /* RoadmapView.swift */; };
 		91A5B84C81E8EB9D5B065519 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF0115CD9E38675947B4A523 /* GameState.swift */; };
@@ -154,6 +155,7 @@
 		91FAA9E9B4F61C58F14C0EF5 /* GuestChef.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestChef.swift; sourceTree = "<group>"; };
 		97F978F2657BFE1A5089482A /* GameEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngine.swift; sourceTree = "<group>"; };
 		A6D9C15F5FAAEE676AFA42E6 /* GemSpend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GemSpend.swift; sourceTree = "<group>"; };
+		AAEEE7013E714F39F25B687C /* DepthSystemsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepthSystemsTests.swift; sourceTree = "<group>"; };
 		AB9CDFE41E11F22B7F4BB70F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		ADBF6FA651E23B2CE296686C /* SaveManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveManager.swift; sourceTree = "<group>"; };
 		AF0F3E61981543C34C90567C /* DailyRewards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRewards.swift; sourceTree = "<group>"; };
@@ -339,6 +341,7 @@
 		FBC514D14CA662703EA7BF1C /* FableTests */ = {
 			isa = PBXGroup;
 			children = (
+				AAEEE7013E714F39F25B687C /* DepthSystemsTests.swift */,
 				D6C8B5AE629838FD3011DB86 /* EconomyTests.swift */,
 				D4F2EB0B4C5701B9F89C4497 /* FeatureTests.swift */,
 				ED78409947694A96FF745DF8 /* ProgressionTests.swift */,
@@ -453,6 +456,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				88DE461C0BD7460467B420B5 /* DepthSystemsTests.swift in Sources */,
 				DE1FBDD2A5D54E8B7BB4E062 /* EconomyTests.swift in Sources */,
 				B3109EC527197FB0405AE433 /* FeatureTests.swift in Sources */,
 				1AF5363324B986459614ECC8 /* ProgressionTests.swift in Sources */,
