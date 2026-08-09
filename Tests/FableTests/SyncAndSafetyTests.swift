@@ -152,6 +152,66 @@ final class SyncAndSafetyTests: XCTestCase {
         XCTAssertEqual(state.offlineCapHours, base + Balance.mogulOfflineCapBonusHours)
     }
 
+    // MARK: Contracts and the Legacy tree
+
+    @MainActor
+    func testContractIsOwedAfterPrestigeAndAppliesItsTrade() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 10
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        state.lifetimeEarnings = Balance.minimumLifetimeForPrestige
+        let engine = GameEngine(state: state, startTimers: false,
+                                persistence: EphemeralPersistence())
+        XCTAssertNil(engine.pendingContractOffer, "no pick owed before the first franchise")
+
+        _ = engine.prestige()
+        guard let offer = engine.pendingContractOffer else { return XCTFail("pick owed after") }
+        XCTAssertEqual(offer.count, 3)
+        XCTAssertEqual(offer[0].id, "straight", "the safe pick always leads")
+
+        let baseRate: Double = {
+            var s = engine.state
+            s.activeContract = "straight"
+            s.venues[0].stations[0].level = 10
+            s.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+            return s.automatedRate
+        }()
+        var doubled = engine.state
+        doubled.activeContract = "doubletime"
+        doubled.venues[0].stations[0].level = 10
+        doubled.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        XCTAssertEqual(doubled.automatedRate, baseRate * 2 * 0.6, accuracy: baseRate * 0.001,
+                       "Double-Time: x2 speed x0.6 profit = x1.2 net rate")
+    }
+
+    @MainActor
+    func testLegacyLevelOwesExactlyOneTreePick() {
+        var state = GameState.newGame()
+        state.prestigeCount = Balance.legacyUnlockPrestigeCount
+        let engine = GameEngine(state: state, startTimers: false,
+                                persistence: EphemeralPersistence())
+        XCTAssertNil(engine.pendingLegacyPerkOffer)
+        _ = engine.legacyReset()
+        guard let offer = engine.pendingLegacyPerkOffer else { return XCTFail("pick owed") }
+        XCTAssertEqual(offer.count, 3)
+
+        engine.chooseLegacyPerk(offer[0].id)
+        XCTAssertNil(engine.pendingLegacyPerkOffer, "one level, one pick")
+        XCTAssertEqual(engine.state.legacyPerks[offer[0].id], 1)
+    }
+
+    func testLegacyTreeEffectsAggregate() {
+        let effects = LegacyTree.effects(taken: ["patience": 2, "negotiator": 1, "showman": 1])
+        XCTAssertEqual(effects.staleGraceBonusHours, 8)
+        XCTAssertEqual(effects.starAwardBonus, 0.10, accuracy: 0.0001)
+        XCTAssertEqual(effects.comboCapBonus, 2)
+        // Grace bonus actually moves the tax curve.
+        let base = Balance.stalenessMultiplier(boardAgeHours: 12)
+        let shifted = Balance.stalenessMultiplier(boardAgeHours: 12, graceBonusHours: 8)
+        XCTAssertGreaterThan(base, 1)
+        XCTAssertEqual(shifted, 1, "8 bonus hours means hour 12 is still inside grace")
+    }
+
     // MARK: New retention systems
 
     func testStaleBoardNudgeOnlySchedulesForPrestigedPlayers() {

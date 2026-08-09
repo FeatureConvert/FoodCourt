@@ -238,6 +238,11 @@ struct GameState: Codable, Equatable {
     /// so a new one rolls each week whether or not the last was finished.
     var weeklyQuest: ActiveQuest? = nil
     var weeklyQuestWeek: Int? = nil
+    /// The Franchise Contract governing this run - nil means "not chosen yet" (the picker
+    /// is owed), and the "straight" contract means an explicitly-chosen vanilla run.
+    var activeContract: String? = nil
+    /// Legacy tree picks: perk id -> stacks taken. Permanent, like everything Legacy.
+    var legacyPerks: [String: Int] = [:]
 
     /// Keys of one-shot explainer moments the player has already seen - the welcome screen,
     /// the first-prestige and first-legacy alerts, the perk primer, and the first-open banner
@@ -325,6 +330,8 @@ struct GameState: Codable, Equatable {
     }
 
     var researchEffects: ResearchEffects { Research.effects(ranks: research) }
+    var contract: FranchiseContract? { Contracts.contract(activeContract) }
+    var legacyEffects: LegacyTree.Effects { LegacyTree.effects(taken: legacyPerks) }
 
     /// Everything that scales payouts globally: boosts, prestige stars, VIP, and research.
     /// Combo is deliberately excluded - it is transient and lives on the engine.
@@ -341,10 +348,14 @@ struct GameState: Codable, Equatable {
         (entitlements.vip ? Balance.offlineCapHoursVIP : Balance.offlineCapHours)
             + (entitlements.mogul ? Balance.mogulOfflineCapBonusHours : 0)
             + researchEffects.offlineCapHours
+            + (contract?.offlineCapBonusHours ?? 0)
+            + legacyEffects.offlineCapBonusHours
     }
 
     var offlineEfficiency: Double {
-        min(1, Balance.offlineEfficiency + researchEffects.offlineEfficiency)
+        // Floor at 5%: a contract debuff can make offline a trickle, never literally zero.
+        min(1, max(0.05, Balance.offlineEfficiency + researchEffects.offlineEfficiency
+                    + (contract?.offlineEfficiencyDelta ?? 0)))
     }
 
     // MARK: Cosmetics
@@ -457,6 +468,7 @@ struct GameState: Codable, Equatable {
         case lastPrestigeAward, landmarksCrossed, rushChain, servedAtBoardStart
         case nemesisSeed, venueMastery, bestFestivalTier, lastBondAccrualAt
         case weeklyQuest, weeklyQuestWeek
+        case activeContract, legacyPerks
         case boardStartedAt
         case errands
         case venueSkins, unlockedSkins
@@ -530,6 +542,11 @@ struct GameState: Codable, Equatable {
         lastBondAccrualAt = try c.decodeIfPresent(Date.self, forKey: .lastBondAccrualAt) ?? Date()
         weeklyQuest = try c.decodeIfPresent(ActiveQuest.self, forKey: .weeklyQuest)
         weeklyQuestWeek = try c.decodeIfPresent(Int.self, forKey: .weeklyQuestWeek)
+        // Pre-contract saves with runs in flight decode as "straight" rather than nil -
+        // nil means "owes a pick", and a mid-run save was never offered one.
+        activeContract = try c.decodeIfPresent(String.self, forKey: .activeContract)
+            ?? (prestigeCount > 0 ? "straight" : nil)
+        legacyPerks = try c.decodeIfPresent([String: Int].self, forKey: .legacyPerks) ?? [:]
         if let crossed = try c.decodeIfPresent(Set<Int>.self, forKey: .landmarksCrossed) {
             landmarksCrossed = crossed
         } else {
@@ -586,9 +603,11 @@ enum IntroKey {
     static let halfwayFranchise = "halfwayFranchise"
     static let guestChef = "guestChef"
     static let icloudSync = "icloudSync"
+    static let contracts = "contracts"
+    static let legacyTree = "legacyTree"
 
     static let allKeys: [String] = [
         welcome, prestige, legacy, perks, research, league, festival, staff, recipes, errands,
-        cosmetics, roadmap, halfwayFranchise, guestChef, icloudSync,
+        cosmetics, roadmap, halfwayFranchise, guestChef, icloudSync, contracts, legacyTree,
     ]
 }

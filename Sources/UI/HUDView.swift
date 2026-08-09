@@ -105,8 +105,12 @@ struct HUDView: View {
             }
 
             if !activeBoosts.isEmpty || engine.state.entitlements.vip
-                || engine.state.entitlements.mogul || engine.state.isHappyHour() {
+                || engine.state.entitlements.mogul || engine.state.isHappyHour()
+                || activeContractBadge != nil {
                 HStack(spacing: 6) {
+                    if let contract = activeContractBadge {
+                        badge(contract, color: Theme.star)
+                    }
                     if engine.state.isHappyHour() {
                         badge("HAPPY HOUR ×\(Format.trim(ActivePlay.happyHourMultiplier))", color: Theme.positive)
                     }
@@ -178,6 +182,13 @@ struct HUDView: View {
     }
 
     private var activeBoosts: [BoostState] { engine.state.activeBoosts }
+
+    /// The run's contract, badged so its modifiers are never invisible - the vanilla
+    /// "straight" pick shows nothing, matching how no badge meant no modifiers before.
+    private var activeContractBadge: String? {
+        guard let contract = engine.state.contract, contract.id != "straight" else { return nil }
+        return contract.title.uppercased()
+    }
 
     private func currencyPill<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         HStack(spacing: 7) { content() }

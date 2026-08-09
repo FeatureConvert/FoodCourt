@@ -10,6 +10,7 @@ enum ActiveSheet: Identifiable, Equatable {
     case cosmetics(Int)
     case welcome, prestigeIntro, legacyIntro
     case runRecap
+    case contractChoice, legacyPerkChoice
 
     var id: String {
         switch self {
@@ -31,6 +32,8 @@ enum ActiveSheet: Identifiable, Equatable {
         case .prestigeIntro: return "prestige-intro"
         case .legacyIntro: return "legacy-intro"
         case .runRecap: return "run-recap"
+        case .contractChoice: return "contract-choice"
+        case .legacyPerkChoice: return "legacy-perk-choice"
         }
     }
 }
@@ -51,7 +54,12 @@ struct RootView: View {
         VenuePalette.of(Balance.venue(engine.state.currentVenue).theme)
     }
 
-    var body: some View {
+    // Split into three layers (content -> sheeted -> observed) purely for the
+    // type-checker: the single-expression body grew past what Swift will infer in
+    // reasonable time once the observer list passed a dozen entries.
+    var body: some View { observedContent }
+
+    private var mainContent: some View {
         ZStack {
             LinearGradient(colors: [palette.wallTop, palette.wallBottom],
                            startPoint: .top, endPoint: .bottom)
@@ -116,15 +124,23 @@ struct RootView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: toast)
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: engine.state.tutorial.step)
-        .animation(.easeInOut(duration: 0.25), value: engine.state.tutorial.finished)
-        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: engine.rushActive)
-        .sheet(item: $sheet, onDismiss: handleSheetDismissed) { which in
-            sheetContent(for: which)
-                .presentationDetents(detents(for: which))
-                .presentationDragIndicator(.visible)
-        }
+    }
+
+    private var sheetedContent: some View {
+        mainContent
+            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: toast)
+            .animation(.spring(response: 0.4, dampingFraction: 0.85), value: engine.state.tutorial.step)
+            .animation(.easeInOut(duration: 0.25), value: engine.state.tutorial.finished)
+            .animation(.spring(response: 0.3, dampingFraction: 0.85), value: engine.rushActive)
+            .sheet(item: $sheet, onDismiss: handleSheetDismissed) { which in
+                sheetContent(for: which)
+                    .presentationDetents(detents(for: which))
+                    .presentationDragIndicator(.visible)
+            }
+    }
+
+    private var gameplayObserved: some View {
+        sheetedContent
         .onChange(of: sheet) { _, new in if let new { lastPresented = new } }
         .onChange(of: cloud.conflict) { _, conflict in
             if conflict != nil { present(.cloudConflict) }
@@ -134,6 +150,11 @@ struct RootView: View {
         }
         .onChange(of: engine.pendingPerkStation) { _, station in
             if let station { present(.perk(station)) }
+        }
+        .onChange(of: engine.state.legacy.level) { old, new in
+            // A fresh Legacy level owes its tree pick the moment the reset lands.
+            guard new > old, engine.pendingLegacyPerkOffer != nil else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { present(.legacyPerkChoice) }
         }
         .onChange(of: engine.lastRunRecap) { _, recap in
             // The celebration half of the prestige moment - the confirm sheet showed the
@@ -156,6 +177,10 @@ struct RootView: View {
             engine.markIntroSeen(IntroKey.halfwayFranchise)
             showToast("Halfway to your first Franchise - the star pill is where the real game starts.")
         }
+    }
+
+    private var observedContent: some View {
+        gameplayObserved
         .onChange(of: engine.pendingLeagueOutcome) { _, outcome in
             if let outcome {
                 switch outcome {
@@ -230,10 +255,15 @@ struct RootView: View {
                     headline: "Franchise #\(recap.prestigeNumber) Complete",
                     detail: recapDetail(recap),
                     stat: (label: "Stars won", value: "+\(Format.count(recap.starsAwarded))"),
-                    ctaTitle: "Spend them on Research",
-                    onCTA: { present(.prestige) }
+                    ctaTitle: engine.pendingContractOffer != nil
+                        ? "Choose your Contract" : "Spend them on Research",
+                    onCTA: {
+                        present(engine.pendingContractOffer != nil ? .contractChoice : .prestige)
+                    }
                 )
             }
+        case .contractChoice: ContractChoiceView(onToast: showToast)
+        case .legacyPerkChoice: LegacyPerkChoiceView(onToast: showToast)
         case .legacyIntro:
             BigMomentAlertView(
                 symbol: "crown.fill",
@@ -313,6 +343,12 @@ struct RootView: View {
             // A brand new save also has a daily reward waiting on day one - the welcome
             // screen matters more the first time, so it goes first.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { present(.welcome) }
+        } else if engine.pendingLegacyPerkOffer != nil {
+            // Owed picks come before anything else on launch - a Legacy level without its
+            // perk, or a run without its contract, is a decision left dangling.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { present(.legacyPerkChoice) }
+        } else if engine.pendingContractOffer != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { present(.contractChoice) }
         } else if engine.dailyAvailable {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { present(.daily) }
         } else if engine.canLegacyReset && !engine.hasSeenIntro(IntroKey.legacy) {

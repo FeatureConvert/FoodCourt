@@ -446,7 +446,12 @@ final class GameEngine: ObservableObject {
 
     /// How much pricier every purchase on this board is right now, purely from having gone
     /// without a reset for a while - see `Balance.stalenessMultiplier`. 1 means no tax yet.
-    var costInflation: Double { Balance.stalenessMultiplier(boardAgeHours: boardAgeHours) }
+    var costInflation: Double {
+        Balance.stalenessMultiplier(
+            boardAgeHours: boardAgeHours,
+            graceBonusHours: (state.contract?.staleGraceDeltaHours ?? 0)
+                + state.legacyEffects.staleGraceBonusHours)
+    }
 
     func quantity(for index: Int, in venue: Int? = nil) -> Int {
         let venueID = venue ?? state.currentVenue
@@ -728,7 +733,9 @@ final class GameEngine: ObservableObject {
     /// The venue's base price, inflated by however stale the current board is - matches every
     /// other purchase on the board (see `costInflation`), so opening a new venue doesn't
     /// become the one loophole around the staleness tax.
-    func unlockCost(for venue: VenueSpec) -> Double { venue.unlockCost * costInflation }
+    func unlockCost(for venue: VenueSpec) -> Double {
+        venue.unlockCost * costInflation * (state.contract?.venueUnlockCostMultiplier ?? 1)
+    }
 
     func canUnlock(_ venue: VenueSpec) -> Bool { state.coins >= unlockCost(for: venue) }
 
@@ -824,8 +831,14 @@ final class GameEngine: ObservableObject {
 
     @discardableResult
     func prestige() -> Int {
-        let award = pendingStars
         guard canPrestige else { return 0 }
+        // Star-award bonuses (Investor Showcase contract, Master Negotiator legacy perk)
+        // pay on top of the formula. The formula's own pendingStars self-corrects: the
+        // extra stars simply mean the next award arrives a little later.
+        let bonus = (state.contract?.starAwardBonus ?? 0) + state.legacyEffects.starAwardBonus
+        let award = Int((Double(pendingStars) * (1 + bonus)).rounded(.down))
+        guard award > 0 else { return 0 }
+        let preRate = state.automatedRate
 
         lastRunRecap = RunRecap(
             duration: state.now.timeIntervalSince(state.boardStartedAt),
@@ -862,8 +875,38 @@ final class GameEngine: ObservableObject {
         // onto the new one - switchTo and adoptCloudSave already clear these.
         golden = nil
         activeOrder = nil
+        // The new run owes a Contract pick (nil = picker pending); Seed Capital banks a
+        // slice of the OLD run's hourly rate, capped per stack so it jump-starts the
+        // early board without skipping it.
+        state.activeContract = nil
+        applySeedCapital(preRate: preRate)
         save()
         return award
+    }
+
+    /// Legacy's Seed Capital perk: each stack banks up to an hour of pre-reset income,
+    /// capped at venue 2's base unlock price per stack - enough to blitz the opening
+    /// minutes, never enough to trivialize the board.
+    private func applySeedCapital(preRate: Double) {
+        let hours = state.legacyEffects.startingCapitalHours
+        guard hours > 0 else { return }
+        let capPerStack = Balance.venues[1].unlockCost
+        state.coins += Swift.min(preRate * hours * 3600, capPerStack * hours)
+    }
+
+    // MARK: Franchise Contracts
+
+    /// Non-nil when the current run still owes its Contract pick - RootView watches this.
+    var pendingContractOffer: [FranchiseContract]? {
+        guard state.prestigeCount > 0, state.activeContract == nil else { return nil }
+        return Contracts.offer(prestigeCount: state.prestigeCount)
+    }
+
+    func chooseContract(_ id: String) {
+        guard state.activeContract == nil,
+              pendingContractOffer?.contains(where: { $0.id == id }) == true else { return }
+        state.activeContract = id
+        save()
     }
 
     // MARK: Legacy (second prestige layer)
@@ -903,8 +946,27 @@ final class GameEngine: ObservableObject {
         combo.reset()
         golden = nil
         activeOrder = nil
+        state.activeContract = nil
         save()
         return state.legacy.level
+    }
+
+    // MARK: Legacy tree
+
+    /// Non-nil while the player has more Legacy levels than perk picks - each level owes
+    /// exactly one pick, presented like a perk choice. Derived, so a relaunch mid-choice
+    /// (or a pre-tree save with existing levels) simply re-offers.
+    var pendingLegacyPerkOffer: [LegacyPerk]? {
+        let owed = state.legacy.level - state.legacyPerks.values.reduce(0, +)
+        guard owed > 0 else { return nil }
+        let offer = LegacyTree.offer(level: state.legacy.level, taken: state.legacyPerks)
+        return offer.isEmpty ? nil : offer
+    }
+
+    func chooseLegacyPerk(_ id: String) {
+        guard pendingLegacyPerkOffer?.contains(where: { $0.id == id }) == true else { return }
+        state.legacyPerks[id, default: 0] += 1
+        save()
     }
 
     // MARK: Research

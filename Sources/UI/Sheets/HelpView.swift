@@ -178,13 +178,22 @@ struct HelpView: View {
             — purely visual, it never touches profit.
             """),
         GuideSection(
+            symbol: "doc.text.fill", title: "Franchise Contracts",
+            text: """
+            After every Franchise you pick a Contract for the new run: each one trades a \
+            strength for a weakness — faster cycles for lower profit, bigger payouts for \
+            an earlier staleness tax. Play It Straight is always offered for a vanilla \
+            run, and a contract only ever lasts until your next reset.
+            """),
+        GuideSection(
             symbol: "infinity", title: "Legacy",
             text: """
             After your fifth franchise, a Legacy option appears on the Franchise tab. It \
             resets stars, research, and your whole earnings history — the things an \
-            ordinary franchise reset keeps — for a permanent +20% multiplier per level, \
-            stacked on top of the star bonus. The star climb genuinely starts over, so \
-            it's a much bigger commitment than a regular reset.
+            ordinary franchise reset keeps — for a permanent +20% multiplier per level \
+            PLUS one pick from the Legacy tree: permanent perks like starting capital, a \
+            later staleness tax, or richer Franchise awards. Picks stack across Legacies \
+            and never reset, so two empires at the same level can be built very differently.
             """),
         GuideSection(
             symbol: "star.circle.fill", title: "Guest Chef",

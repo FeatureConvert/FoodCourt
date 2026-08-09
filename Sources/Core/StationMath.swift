@@ -34,6 +34,14 @@ extension GameState {
             result.profit *= manager.bondProfitMultiplier
         }
 
+        // The run's Franchise Contract, if any - the whole point is that these touch the
+        // same paths everything else does, so a contract run is the same game with the
+        // dials moved, not a special mode.
+        if let contract {
+            result.speed *= contract.speedMultiplier
+            result.profit *= contract.profitMultiplier
+        }
+
         // Collection bonuses.
         result.profit *= Recipes.stationMultiplier(recipeCards, venue: venue, station: station)
         result.profit *= Recipes.venueMultiplier(recipeCards, venue: venue)
@@ -96,6 +104,7 @@ extension GameState {
     /// What a manual tap on a station is worth, including tap-value traits and research.
     func tapMultiplier(venue: Int) -> Double {
         venueManagerEffects(venue: venue).tapValue * researchEffects.tapMultiplier
+            * (contract?.tapMultiplier ?? 1)
     }
 
     /// How long the combo window lasts here, extended by traits like Crowd-Reader Cleo.
@@ -105,6 +114,7 @@ extension GameState {
 
     var comboMaxSteps: Int {
         ActivePlay.comboBaseSteps + Int(researchEffects.comboCap)
+            + (contract?.comboCapBonus ?? 0) + legacyEffects.comboCapBonus
     }
 
     var goldenChance: Double {

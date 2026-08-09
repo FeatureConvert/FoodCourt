@@ -277,9 +277,13 @@ enum Balance {
     /// past that point. By day 3-7 a patient Franchise cadence clearly out-earns refusing to
     /// reset, while resetting too often is still roughly a wash against not resetting at all -
     /// there's a real cadence to find, not just an "always" or "never" answer.
-    static func stalenessMultiplier(boardAgeHours: Double) -> Double {
-        guard boardAgeHours > staleGraceHours else { return 1 }
-        let daysPast = (boardAgeHours - staleGraceHours) * staleDaysPerHour
+    /// `graceBonusHours` shifts when the tax begins without touching its curve - Legacy's
+    /// Slow Cooker perk adds hours, the High Roller contract subtracts them. The floor
+    /// keeps a stacked debuff from ever taxing a literally brand-new board.
+    static func stalenessMultiplier(boardAgeHours: Double, graceBonusHours: Double = 0) -> Double {
+        let grace = max(2, staleGraceHours + graceBonusHours)
+        guard boardAgeHours > grace else { return 1 }
+        let daysPast = (boardAgeHours - grace) * staleDaysPerHour
         return pow(1 + daysPast, stalePower)
     }
 
