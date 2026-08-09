@@ -29,12 +29,14 @@ enum LeagueTier: Int, CaseIterable, Codable, Identifiable {
         case .diamond: return 1.35
         }
     }
+    // Cut ~35% in the same pass as quests/achievements/festival/daily - a weekly cadence
+    // doesn't make a source exempt from the same "free gems add up too fast" problem.
     var gemReward: Int {
         switch self {
-        case .bronze: return 25
-        case .silver: return 50
-        case .gold: return 100
-        case .diamond: return 175
+        case .bronze: return 16
+        case .silver: return 32
+        case .gold: return 65
+        case .diamond: return 115
         }
     }
 }

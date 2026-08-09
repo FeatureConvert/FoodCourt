@@ -309,6 +309,10 @@ struct GameState: Codable, Equatable {
         manager(id: venues[venue].stations[station].managerID)?.spec
     }
 
+    func stationManager(venue: Int, station: Int) -> OwnedManager? {
+        manager(id: venues[venue].stations[station].managerID)
+    }
+
     var assignedManagerIDs: Set<String> {
         var ids: Set<String> = []
         for venue in venues {

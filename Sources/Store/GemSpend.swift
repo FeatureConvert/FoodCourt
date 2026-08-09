@@ -57,7 +57,7 @@ enum GemSpend {
                 return .nothingToDo("Every open station is already staffed")
             }
             guard engine.spendGems(offer.cost) else { return .insufficientGems }
-            engine.hireManager(for: target, free: true)
+            engine.hireManager(for: target, free: true, premium: true)
             let name = Balance.venue(engine.state.currentVenue).stations[target].name
             return .success("\(name) is now staffed")
 
@@ -135,7 +135,7 @@ enum GemSpend {
         let state = engine.state.venues[engine.state.currentVenue].stations[station]
         guard state.isOwned, !state.hasManager else { return .nothingToDo("Already staffed") }
         guard engine.spendGems(instantManagerGemCost) else { return .insufficientGems }
-        engine.hireManager(for: station, free: true)
+        engine.hireManager(for: station, free: true, premium: true)
         return .success("Manager hired")
     }
 }

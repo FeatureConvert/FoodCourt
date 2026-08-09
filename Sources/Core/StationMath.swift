@@ -110,8 +110,8 @@ extension GameState {
 
     /// Adds a manager to the roster and puts them straight on a station.
     @discardableResult
-    mutating func hire(specID: String, venue: Int, station: Int) -> OwnedManager {
-        let manager = OwnedManager.make(specID)
+    mutating func hire(specID: String, venue: Int, station: Int, premium: Bool = false) -> OwnedManager {
+        let manager = OwnedManager.make(specID, premium: premium)
         managers.append(manager)
         assign(managerID: manager.id, venue: venue, station: station)
         return manager
@@ -119,8 +119,8 @@ extension GameState {
 
     /// Adds a manager to the roster without putting them to work yet.
     @discardableResult
-    mutating func recruit(specID: String) -> OwnedManager {
-        let manager = OwnedManager.make(specID)
+    mutating func recruit(specID: String, premium: Bool = false) -> OwnedManager {
+        let manager = OwnedManager.make(specID, premium: premium)
         managers.append(manager)
         return manager
     }

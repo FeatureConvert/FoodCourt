@@ -88,8 +88,10 @@ private struct FranchiseSection: View {
         VStack(alignment: .leading, spacing: 6) {
             bullet("Every station, level, and manager placement resets", system: "arrow.counterclockwise")
             bullet("Coins reset to zero, venues close except the first", system: "building.2.fill")
-            bullet("Staff, recipes, and research are all kept", system: "checkmark.seal.fill", good: true)
-            bullet("Each star adds +\(Int(Balance.profitPerStar * 100))% profit forever", system: "star.fill", good: true)
+            bullet("Coin-hired staff is let go - gem, IAP, and reward staff stays",
+                   system: "person.fill.checkmark")
+            bullet("Recipes and research are kept", system: "checkmark.seal.fill", good: true)
+            bullet("More stars mean a bigger permanent profit bonus, forever", system: "star.fill", good: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)

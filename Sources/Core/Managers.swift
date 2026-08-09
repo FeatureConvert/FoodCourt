@@ -54,11 +54,52 @@ struct ManagerSpec: Identifiable, Equatable {
 struct OwnedManager: Codable, Equatable, Identifiable {
     var id: String            // unique instance id
     var specID: String
+    /// True for anything bought with gems, real money, or handed out as a reward (festival,
+    /// league, IAP) - false for a coin-hired or tutorial-free trainee. `GameEngine.prestige()`
+    /// wipes the roster back down to just this set, so staffing a reset board again costs
+    /// real coins and real time instead of being a free instant reassignment - that free
+    /// reassignment was most of why repeat prestige cycles had gotten absurdly fast.
+    var premium: Bool
+    /// Only set for Trainee hires - every other spec already has its own character name
+    /// (Rush Rosa, Chef August, ...), but Trainee is the single generic coin-hire used for
+    /// every ordinary staffing, so a player with a full venue saw a wall of identically
+    /// named "Trainee" cards with no way to tell them apart. Picked once at hire time.
+    var displayName: String?
 
     var spec: ManagerSpec { ManagerCatalog.spec(specID) }
+    var name: String { displayName ?? spec.name }
 
-    static func make(_ specID: String) -> OwnedManager {
-        OwnedManager(id: UUID().uuidString, specID: specID)
+    static func make(_ specID: String, premium: Bool = false) -> OwnedManager {
+        let displayName = specID == ManagerCatalog.traineeID ? ManagerCatalog.randomTraineeName() : nil
+        return OwnedManager(id: UUID().uuidString, specID: specID, premium: premium, displayName: displayName)
+    }
+
+    private enum CodingKeys: String, CodingKey { case id, specID, premium, displayName }
+
+    init(id: String, specID: String, premium: Bool, displayName: String? = nil) {
+        self.id = id
+        self.specID = specID
+        self.premium = premium
+        self.displayName = displayName
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        specID = try c.decode(String.self, forKey: .specID)
+        // Saves from before this field existed have no record of how a manager was acquired.
+        // Defaulting to false (coin-tier) is the conservative read: it means those managers
+        // are swept on the player's very next prestige, same as this fix intends for anyone
+        // hired from here on - there's no way to retroactively know which of them were
+        // actually gem- or IAP-bought, so this can't be perfectly fair, only consistent.
+        premium = try c.decodeIfPresent(Bool.self, forKey: .premium) ?? false
+        // Pre-existing trainees never got a name; give them one now rather than leaving them
+        // stuck as one more anonymous "Trainee" forever.
+        if let existing = try c.decodeIfPresent(String.self, forKey: .displayName) {
+            displayName = existing
+        } else {
+            displayName = specID == ManagerCatalog.traineeID ? ManagerCatalog.randomTraineeName() : nil
+        }
     }
 }
 
@@ -134,6 +175,19 @@ enum ManagerCatalog {
         let pool = specs(rarity: rarity)
         guard !pool.isEmpty else { return baseRoster[0] }
         return pool[abs(seed) % pool.count]
+    }
+
+    /// First names for Trainee hires - deliberately disjoint from every named character above
+    /// (Sam, Tina, Otto, Rosa, Milo, Wren, Kip, Vera, Dex, Pia, Cleo, August, Nova, and the
+    /// guest chefs) so a full roster never reads as two different people sharing a name.
+    private static let traineeNames = [
+        "Jordan", "Alexis", "Casey", "Priya", "Malik", "Elena", "Diego", "Noor",
+        "Finn", "Zara", "Hugo", "Amara", "Ravi", "Sofia", "Tomas", "Ingrid",
+        "Kai", "Mira", "Oscar", "Nadia", "Bruno", "Sana", "Petra", "Leila",
+    ]
+
+    static func randomTraineeName(seed: Int = Int.random(in: 0..<1_000_000)) -> String {
+        traineeNames[abs(seed) % traineeNames.count]
     }
 }
 

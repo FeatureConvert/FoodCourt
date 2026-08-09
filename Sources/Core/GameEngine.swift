@@ -413,7 +413,7 @@ final class GameEngine: ObservableObject {
     }
 
     @discardableResult
-    func hireManager(for index: Int, free: Bool = false) -> Bool {
+    func hireManager(for index: Int, free: Bool = false, premium: Bool = false) -> Bool {
         let venue = state.currentVenue
         let station = state.venues[venue].stations[index]
         guard station.isOwned, !station.isStaffed else { return false }
@@ -422,7 +422,7 @@ final class GameEngine: ObservableObject {
             guard state.coins >= cost else { return false }
             state.coins -= cost
         }
-        state.hire(specID: ManagerCatalog.traineeID, venue: venue, station: index)
+        state.hire(specID: ManagerCatalog.traineeID, venue: venue, station: index, premium: premium)
         advanceQuests(kind: .hire, to: Double(state.assignedManagerCount))
         state.tutorial.complete(.hireManager)
         // A new save locks Coffee Break out for its first 15 minutes, so the very next
@@ -439,11 +439,12 @@ final class GameEngine: ObservableObject {
         if managerID != nil { advanceQuests(kind: .hire, to: Double(state.assignedManagerCount)) }
     }
 
-    /// Adds staff from a reward source and reports who turned up.
+    /// Adds staff from a reward source and reports who turned up. Always premium - these are
+    /// rare, one-off grants (festival, league, IAP), never the coin-grind staffing loop.
     @discardableResult
     func grantManager(rarity: ManagerRarity) -> ManagerSpec {
         let spec = ManagerCatalog.random(rarity: rarity, seed: Int.random(in: 0..<10_000))
-        state.recruit(specID: spec.id)
+        state.recruit(specID: spec.id, premium: true)
         return spec
     }
 
@@ -471,7 +472,7 @@ final class GameEngine: ObservableObject {
         guard !guestChefAlreadyPurchasedThisWeek else { return nil }
         guard spendGems(GuestChef.gemPrice) else { return nil }
         let spec = currentGuestChef
-        state.recruit(specID: spec.id)
+        state.recruit(specID: spec.id, premium: true)
         state.lastGuestChefPurchaseWeek = GuestChef.weekKey(now: state.now)
         save()
         return spec
@@ -702,8 +703,15 @@ final class GameEngine: ObservableObject {
         state.venues = Balance.venues.map { VenueState.fresh(venue: $0, unlocked: $0.id == 0) }
         state.venues[0].stations[0].level = 1
         state.currentVenue = 0
-        // Staff, recipes, and research all survive a franchise reset - they are collections
-        // the player built, not station upgrades. Only the board itself resets.
+        // Recipes and research survive a franchise reset - they're collections the player
+        // built, not station upgrades. Staff only partly does: gem-bought, IAP-granted, and
+        // reward-granted managers stay, but anyone hired with plain coins (or the tutorial's
+        // free first hire) is let go. Free instant reassignment of a whole persisted roster
+        // was most of what made repeat prestige cycles run away - restaffing a reset board
+        // now costs real coins and real time again, same as the very first time through.
+        state.managers.removeAll { !$0.premium }
+        let remainingIDs = Set(state.managers.map(\.id))
+        state.errands.removeAll { !remainingIDs.contains($0.managerID) }
         lastServe.removeAll()
         pendingBursts.removeAll()
         lastBurstAt.removeAll()
@@ -978,12 +986,14 @@ final class GameEngine: ObservableObject {
         return total
     }
 
-    /// Grants managers on every currently owned station in a venue.
+    /// Grants managers on every currently owned station in a venue. Always premium - the only
+    /// callers are the "Automate Venue" gem sink and the Grand Opening Bundle / Franchise
+    /// Accelerator IAPs, never a coin hire.
     func grantManagerPack(venue id: Int = 0) {
         for spec in Balance.venue(id).stations {
             let station = state.venues[id].stations[spec.id]
             if station.isOwned && !station.isStaffed {
-                state.hire(specID: ManagerCatalog.traineeID, venue: id, station: spec.id)
+                state.hire(specID: ManagerCatalog.traineeID, venue: id, station: spec.id, premium: true)
             }
         }
         advanceQuests(kind: .hire, to: Double(state.assignedManagerCount))

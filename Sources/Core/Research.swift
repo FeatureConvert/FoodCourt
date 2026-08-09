@@ -23,9 +23,15 @@ struct ResearchNode: Identifiable, Equatable {
     let requires: [String]
     let effect: ResearchEffect
 
-    /// Ranks get steadily pricier so a branch is a commitment, not a formality.
+    /// Ranks get steadily pricier so a branch is a commitment, not a formality. Growth was
+    /// 1.6, and baseCost values were roughly a tenth of what they are now - together the
+    /// entire tree, every node at max rank, cost only ~4,700 stars. A single prestige could
+    /// (and did) hand out multiples of that, so "spend your stars on research" was never a
+    /// real decision - everything worth having was already affordable. Steeper growth plus
+    /// higher baseCost puts a fully maxed tree around 80,000 stars: a genuine many-prestiges
+    /// investment instead of a rounding error off one run.
     func cost(forRank rank: Int) -> Int {
-        Int((Double(baseCost) * pow(1.6, Double(rank))).rounded())
+        Int((Double(baseCost) * pow(1.75, Double(rank))).rounded())
     }
 }
 
@@ -55,48 +61,48 @@ enum Research {
 
     static let nodes: [ResearchNode] = [
         // Kitchen
-        ResearchNode(id: "prep", title: "Prep Stations", detail: "+8% profit everywhere",
-                     symbol: "fork.knife", branch: .kitchen, maxRank: 10, baseCost: 3,
-                     requires: [], effect: .globalProfit(0.08)),
+        ResearchNode(id: "prep", title: "Prep Stations", detail: "+4% profit everywhere",
+                     symbol: "fork.knife", branch: .kitchen, maxRank: 10, baseCost: 30,
+                     requires: [], effect: .globalProfit(0.04)),
         ResearchNode(id: "burners", title: "Extra Burners", detail: "+6% manager speed",
-                     symbol: "flame.fill", branch: .kitchen, maxRank: 8, baseCost: 5,
+                     symbol: "flame.fill", branch: .kitchen, maxRank: 8, baseCost: 50,
                      requires: ["prep"], effect: .managerSpeed(0.06)),
         ResearchNode(id: "rushline", title: "Rush Training", detail: "+5s of Rush Hour",
-                     symbol: "timer", branch: .kitchen, maxRank: 6, baseCost: 8,
+                     symbol: "timer", branch: .kitchen, maxRank: 6, baseCost: 80,
                      requires: ["burners"], effect: .rushSeconds(5)),
 
         // Service
         ResearchNode(id: "tills", title: "Faster Tills", detail: "+15% tap value",
-                     symbol: "hand.tap.fill", branch: .service, maxRank: 10, baseCost: 3,
+                     symbol: "hand.tap.fill", branch: .service, maxRank: 10, baseCost: 30,
                      requires: [], effect: .tapValue(0.15)),
         ResearchNode(id: "rhythm", title: "Kitchen Rhythm", detail: "+2 combo steps",
-                     symbol: "waveform.path", branch: .service, maxRank: 8, baseCost: 6,
+                     symbol: "waveform.path", branch: .service, maxRank: 8, baseCost: 60,
                      requires: ["tills"], effect: .comboCap(2)),
         ResearchNode(id: "regulars", title: "Loyal Regulars", detail: "+20% golden customer odds",
-                     symbol: "sparkles", branch: .service, maxRank: 6, baseCost: 9,
+                     symbol: "sparkles", branch: .service, maxRank: 6, baseCost: 90,
                      requires: ["rhythm"], effect: .goldenChance(0.2)),
 
         // Empire
-        ResearchNode(id: "brand", title: "Brand Recognition", detail: "+12% profit everywhere",
-                     symbol: "building.2.fill", branch: .empire, maxRank: 10, baseCost: 6,
-                     requires: [], effect: .globalProfit(0.12)),
+        ResearchNode(id: "brand", title: "Brand Recognition", detail: "+6% profit everywhere",
+                     symbol: "building.2.fill", branch: .empire, maxRank: 10, baseCost: 60,
+                     requires: [], effect: .globalProfit(0.06)),
         ResearchNode(id: "logistics", title: "Logistics", detail: "+25% festival tickets",
-                     symbol: "shippingbox.fill", branch: .empire, maxRank: 6, baseCost: 8,
+                     symbol: "shippingbox.fill", branch: .empire, maxRank: 6, baseCost: 80,
                      requires: ["brand"], effect: .ticketRate(0.25)),
-        ResearchNode(id: "franchise", title: "Franchise Playbook", detail: "+20% profit everywhere",
-                     symbol: "crown.fill", branch: .empire, maxRank: 5, baseCost: 15,
-                     requires: ["logistics"], effect: .globalProfit(0.2)),
+        ResearchNode(id: "franchise", title: "Franchise Playbook", detail: "+10% profit everywhere",
+                     symbol: "crown.fill", branch: .empire, maxRank: 5, baseCost: 150,
+                     requires: ["logistics"], effect: .globalProfit(0.1)),
 
         // Night shift
         ResearchNode(id: "keys", title: "Spare Keys", detail: "+2h offline cap",
-                     symbol: "key.fill", branch: .nightshift, maxRank: 8, baseCost: 4,
+                     symbol: "key.fill", branch: .nightshift, maxRank: 8, baseCost: 40,
                      requires: [], effect: .offlineCapHours(2)),
         ResearchNode(id: "handover", title: "Clean Handover", detail: "+6% offline rate",
-                     symbol: "moon.stars.fill", branch: .nightshift, maxRank: 8, baseCost: 6,
+                     symbol: "moon.stars.fill", branch: .nightshift, maxRank: 8, baseCost: 60,
                      requires: ["keys"], effect: .offlineEfficiency(0.06)),
-        ResearchNode(id: "lockin", title: "Lock-In Contracts", detail: "+10% profit everywhere",
-                     symbol: "lock.shield.fill", branch: .nightshift, maxRank: 5, baseCost: 12,
-                     requires: ["handover"], effect: .globalProfit(0.1)),
+        ResearchNode(id: "lockin", title: "Lock-In Contracts", detail: "+5% profit everywhere",
+                     symbol: "lock.shield.fill", branch: .nightshift, maxRank: 5, baseCost: 120,
+                     requires: ["handover"], effect: .globalProfit(0.05)),
     ]
 
     private static let index: [String: ResearchNode] =

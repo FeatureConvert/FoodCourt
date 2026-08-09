@@ -145,8 +145,9 @@ enum DailyRewards {
 
     /// (day, gems) milestones, uncapped and separate from the 7-day reward cycle - a long
     /// streak keeps paying out well past day 7 instead of just looping the same rewards.
+    /// Cut ~35% in the same pass as every other free gem source.
     static let streakMilestones: [(day: Int, gems: Int)] = [
-        (7, 50), (14, 100), (30, 250), (60, 500), (100, 1000),
+        (7, 32), (14, 65), (30, 160), (60, 325), (100, 650),
     ]
 
     /// Advances or resets `streakLength` based on the same calendar-day gap `status(...)`

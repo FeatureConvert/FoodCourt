@@ -227,7 +227,7 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(e.researchRank("prep"), 1)
         XCTAssertEqual(Balance.starMultiplier(stars: e.state.lifetimeStars), multiplierBefore,
                        "spending stars must not claw back the permanent bonus")
-        XCTAssertEqual(e.state.researchEffects.profitMultiplier, 1.08, accuracy: 1e-9)
+        XCTAssertEqual(e.state.researchEffects.profitMultiplier, 1.04, accuracy: 1e-9)
     }
 
     @MainActor
@@ -988,7 +988,10 @@ final class FeatureTests: XCTestCase {
         var state = GameState.newGame()
         state.venues[0].stations[0].level = 60
         state.venues[0].stations[0].perks = [25: 0]
+        // A coin-hired manager - gets let go, same as the tutorial-free trainee would.
         state.hire(specID: "dex", venue: 0, station: 0)
+        // A gem-bought manager on the same venue - survives, same as an IAP/reward grant would.
+        state.hire(specID: "vera", venue: 0, station: 1, premium: true)
         state.recipeCards[Recipes.key(venue: 0, station: 0)] = 2
         state.research["prep"] = 3
         state.venues[1].unlocked = true
@@ -998,9 +1001,9 @@ final class FeatureTests: XCTestCase {
         let awarded = e.prestige()
         XCTAssertGreaterThan(awarded, 0)
 
-        // Kept: the things the player collected.
-        XCTAssertEqual(e.state.managers.count, 1, "staff survive a franchise reset")
-        XCTAssertEqual(e.state.managers.first?.specID, "dex")
+        // Kept: the things the player collected, minus any staff paid for in plain coins.
+        XCTAssertEqual(e.state.managers.count, 1, "only the premium (gem-bought) manager survives")
+        XCTAssertEqual(e.state.managers.first?.specID, "vera")
         XCTAssertEqual(e.state.recipeCards[Recipes.key(venue: 0, station: 0)], 2)
         XCTAssertEqual(e.state.research["prep"], 3)
         XCTAssertEqual(e.state.stars, awarded)
@@ -1013,7 +1016,8 @@ final class FeatureTests: XCTestCase {
         XCTAssertFalse(e.state.venues[1].unlocked)
         XCTAssertEqual(e.state.coins, 0)
 
-        // The manager is unassigned rather than deleted, so it can be put straight back to work.
+        // The surviving manager is unassigned rather than deleted, so it can go straight back
+        // to work - the coin-hired one is gone entirely, not just benched.
         XCTAssertEqual(e.state.unassignedManagers.count, 1)
         XCTAssertEqual(e.state.assignedManagerCount, 0)
     }
@@ -1243,11 +1247,11 @@ final class FeatureTests: XCTestCase {
 
         let before = e.state.gems
         let gems = e.claimStreakMilestone(day: 7)
-        XCTAssertEqual(gems, 50)
-        XCTAssertEqual(e.state.gems, before + 50)
+        XCTAssertEqual(gems, 32)
+        XCTAssertEqual(e.state.gems, before + 32)
 
         XCTAssertNil(e.claimStreakMilestone(day: 7))
-        XCTAssertEqual(e.state.gems, before + 50)
+        XCTAssertEqual(e.state.gems, before + 32)
         XCTAssertFalse(e.claimableStreakMilestones.contains { $0.day == 7 })
     }
 

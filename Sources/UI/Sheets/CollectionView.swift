@@ -144,7 +144,7 @@ private struct StaffSection: View {
     private var sortedManagers: [OwnedManager] {
         engine.state.managers.sorted { a, b in
             if a.spec.rarity != b.spec.rarity { return a.spec.rarity > b.spec.rarity }
-            return a.spec.name < b.spec.name
+            return a.name < b.name
         }
     }
 
@@ -182,7 +182,7 @@ private struct StaffSection: View {
             .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(spec.name)
+                Text(manager.name)
                     .font(Theme.body(14, weight: .black))
                     .foregroundStyle(Theme.text)
                 Text(spec.trait.detail)
@@ -203,7 +203,7 @@ private struct StaffSection: View {
                                       venue: engine.state.currentVenue, station: index)
                         Haptics.success()
                         sound.play(.reward)
-                        onToast("\(spec.name) → \(Balance.venue(engine.state.currentVenue).stations[index].name)")
+                        onToast("\(manager.name) → \(Balance.venue(engine.state.currentVenue).stations[index].name)")
                     }
                 }
                 if placement != nil {
@@ -211,7 +211,7 @@ private struct StaffSection: View {
                     Button("Send to bench", role: .destructive) {
                         if let placement {
                             engine.assign(managerID: nil, venue: placement.venue, station: placement.station)
-                            onToast("\(spec.name) is on the bench")
+                            onToast("\(manager.name) is on the bench")
                         }
                     }
                 }
@@ -392,7 +392,7 @@ private struct ErrandsSection: View {
             .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(manager?.spec.name ?? "Manager")
+                Text(manager?.name ?? "Manager")
                     .font(Theme.body(13, weight: .black))
                     .foregroundStyle(Theme.text)
                 Text(done ? "Errand complete" : "Back in \(Format.duration(remaining))")
@@ -435,13 +435,13 @@ private struct ErrandsSection: View {
                 Text("No idle managers on the bench")
             } else {
                 ForEach(engine.state.unassignedManagers) { manager in
-                    Menu(manager.spec.name) {
+                    Menu(manager.name) {
                         ForEach(Errands.options) { option in
                             Button(option.label) {
                                 if engine.startErrand(managerID: manager.id, hours: option.hours) {
                                     Haptics.success()
                                     sound.play(.reward)
-                                    onToast("\(manager.spec.name) is out on an errand")
+                                    onToast("\(manager.name) is out on an errand")
                                 }
                             }
                         }

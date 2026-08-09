@@ -165,42 +165,44 @@ struct StageActionsView: View {
                               cooldown: Cooldown?,
                               action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 2) {
-                ZStack(alignment: .topTrailing) {
-                    Circle()
-                        .fill(tint)
-                        .frame(width: 42, height: 42)
-                        .overlay(
+            ZStack(alignment: .topTrailing) {
+                Circle()
+                    .fill(tint)
+                    .frame(width: 42, height: 42)
+                    .overlay(
+                        VStack(spacing: 1) {
                             GlyphIcon(symbol, tint: Theme.ink)
-                                .frame(width: 20, height: 20)
-                                .opacity(cooldown == nil ? 1 : 0.5)
-                        )
-                        .shadow(color: .black.opacity(0.35), radius: 4, y: 2)
-                    if let cooldown {
-                        Circle()
-                            .trim(from: 0, to: cooldown.progress)
-                            .stroke(Theme.coin, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                            .frame(width: 48, height: 48)
-                    }
-                    if badge {
-                        Circle().fill(Theme.negative)
-                            .frame(width: 10, height: 10)
-                            .overlay(Circle().stroke(Theme.ink, lineWidth: 1.5))
-                    }
-                }
-                .frame(width: 48, height: 46, alignment: .center)
-
+                                .frame(width: cooldown == nil ? 20 : 15, height: cooldown == nil ? 20 : 15)
+                                .opacity(cooldown == nil ? 1 : 0.6)
+                            if let cooldown {
+                                // Sits below the symbol, inside the same circle, rather than
+                                // as a separate label - keeps the button a single glanceable
+                                // unit instead of two things stacked on top of each other.
+                                Text(Format.clock(cooldown.remaining))
+                                    .font(.system(size: 7.5, weight: .black, design: .rounded))
+                                    .foregroundStyle(Theme.ink)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.7)
+                                    .fixedSize()
+                            }
+                        }
+                        .offset(y: cooldown == nil ? 0 : -1)
+                    )
+                    .shadow(color: .black.opacity(0.35), radius: 4, y: 2)
                 if let cooldown {
-                    Text(Format.clock(cooldown.remaining))
-                        .font(Theme.numeric(9))
-                        .foregroundStyle(Theme.text)
-                        .fixedSize()
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(Theme.ink.opacity(0.85)))
+                    Circle()
+                        .trim(from: 0, to: cooldown.progress)
+                        .stroke(Theme.coin, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 48, height: 48)
+                }
+                if badge {
+                    Circle().fill(Theme.negative)
+                        .frame(width: 10, height: 10)
+                        .overlay(Circle().stroke(Theme.ink, lineWidth: 1.5))
                 }
             }
+            .frame(width: 48, height: 46, alignment: .center)
         }
         .buttonStyle(.plain)
     }

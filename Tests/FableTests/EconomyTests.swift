@@ -113,7 +113,25 @@ final class EconomyTests: XCTestCase {
 
     func testStarMultiplier() {
         XCTAssertEqual(Balance.starMultiplier(stars: 0), 1)
-        XCTAssertEqual(Balance.starMultiplier(stars: 50), 2, accuracy: 1e-9)
+        XCTAssertEqual(Balance.starMultiplier(stars: 500), 4, accuracy: 1e-9,
+                       "the reference point the whole sqrt curve is tuned against")
+        XCTAssertEqual(Balance.starMultiplier(stars: 50), 1 + 3 * (0.1).squareRoot(), accuracy: 1e-9)
+    }
+
+    /// The bonus has to grow slower than linearly with stars, or it feeds a runaway: more
+    /// stars -> more permanent profit -> lifetime earnings climb faster -> the next prestige
+    /// lands sooner too, compounding without limit (this exact loop took a real save from
+    /// 16K stars to ~1.7e19 in one session before the fix). Doubling the star count must
+    /// never double the bonus.
+    func testStarMultiplierGrowsSlowerThanLinearly() {
+        let bonusAt1k = Balance.starMultiplier(stars: 1_000) - 1
+        let bonusAt2k = Balance.starMultiplier(stars: 2_000) - 1
+        XCTAssertLessThan(bonusAt2k, bonusAt1k * 2,
+                          "doubling stars must give less than double the profit bonus")
+
+        let bonusAt10k = Balance.starMultiplier(stars: 10_000) - 1
+        let bonusAt20k = Balance.starMultiplier(stars: 20_000) - 1
+        XCTAssertLessThan(bonusAt20k, bonusAt10k * 2)
     }
 
     // MARK: Formatting

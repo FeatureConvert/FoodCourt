@@ -214,9 +214,9 @@ struct StationCardView: View {
 
     @ViewBuilder
     private var staffLine: some View {
-        if let manager = engine.state.managerSpec(venue: venueID, station: spec.id) {
+        if let manager = engine.state.stationManager(venue: venueID, station: spec.id) {
             HStack(spacing: 4) {
-                CustomerSprite(seed: manager.portraitSeed)
+                CustomerSprite(seed: manager.spec.portraitSeed)
                     .equatable()
                     .frame(width: 12, height: 17)
                 Text(manager.name)

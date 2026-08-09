@@ -127,7 +127,20 @@ enum Balance {
     // Prestige
     static let prestigeStarDivisor: Double = 1e12
     static let prestigeStarCoefficient: Double = 150
-    static let profitPerStar: Double = 0.02
+    /// The star bonus used to be flat (+2% profit per star, uncapped) - fine near the start,
+    /// but it fed a runaway: more stars -> higher permanent profit -> lifetime earnings climb
+    /// faster -> the *next* prestige lands sooner too, and because totalStars grows with
+    /// sqrt(earnings) while the bonus grew linearly with stars, the two rates canceled out
+    /// into a constant time-per-star instead of a slowing one - the loop never decelerated on
+    /// its own. A save that legitimately reached this had gone from 16K to ~1.7e19 stars
+    /// within the same play session. Square-rooting the bonus (below) makes each further star
+    /// cost proportionally more time than the last, same shape as totalStars itself, so the
+    /// loop is self-limiting again. Tuned so the first prestige (~47 stars at the minimum
+    /// threshold) still lands close to its old +94%, and 500 stars (`legacyUnlockLifetimeStars`,
+    /// "several trips through the loop") is a strong +300% (4x) - big early payoff, still
+    /// climbing steadily after, never running away.
+    static let starBonusAtReferenceCount: Double = 3.0
+    static let starBonusReferenceCount: Double = 500
     /// Below this there is nothing to gain, so the button stays locked.
     static let minimumLifetimeForPrestige: Double = 1e11
 
@@ -282,7 +295,8 @@ enum Balance {
     }
 
     static func starMultiplier(stars: Int) -> Double {
-        1 + Double(stars) * profitPerStar
+        guard stars > 0 else { return 1 }
+        return 1 + starBonusAtReferenceCount * sqrt(Double(stars) / starBonusReferenceCount)
     }
 
     // MARK: Legacy (second prestige layer)

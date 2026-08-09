@@ -167,11 +167,12 @@ final class ProgressionTests: XCTestCase {
 
     func testGlobalMultiplierCombinesBoostsStarsAndVIP() {
         var state = GameState.newGame()
-        state.lifetimeStars = 50                          // +100%
+        state.lifetimeStars = 50
         state.entitlements.vip = true                     // +25%
         state.boosts = [BoostState(id: "b", label: "×2", multiplier: 2,
                                    expiry: state.now.addingTimeInterval(600))]
-        XCTAssertEqual(state.globalMultiplier, 2 * 2 * 1.25, accuracy: 1e-9)
+        let expected = 2 * Balance.starMultiplier(stars: 50) * 1.25
+        XCTAssertEqual(state.globalMultiplier, expected, accuracy: 1e-9)
     }
 
     // MARK: Engine
