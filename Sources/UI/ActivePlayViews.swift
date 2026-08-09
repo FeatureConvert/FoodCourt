@@ -136,6 +136,9 @@ struct StageActionsView: View {
             circleButton(symbol: "cup.and.saucer.fill",
                          tint: engine.boostReady ? Theme.positive : Theme.locked,
                          badge: engine.boostReady,
+                         cooldown: engine.boostReady ? nil :
+                            Cooldown(remaining: engine.boostCooldownRemaining,
+                                    total: ActivePlay.freeBoostCooldownMinutes * 60),
                          action: onBoost)
                 .tutorialHighlight(.coffeeButton)
 
@@ -143,29 +146,61 @@ struct StageActionsView: View {
                          tint: engine.rushActive ? Theme.negative
                                                  : (engine.rushReady ? Theme.coin : Theme.locked),
                          badge: engine.rushReady && !engine.rushActive,
+                         cooldown: (engine.rushReady || engine.rushActive) ? nil :
+                            Cooldown(remaining: engine.rushCooldownRemaining,
+                                    total: ActivePlay.rushCooldownMinutes * 60),
                          action: onRush)
         }
     }
 
+    /// How far through its cooldown a boost is, so the ring can fill toward ready rather than
+    /// just leaving the button looking permanently locked with no sense of how much longer.
+    private struct Cooldown {
+        let remaining: TimeInterval
+        let total: TimeInterval
+        var progress: Double { total > 0 ? min(1, max(0, 1 - remaining / total)) : 1 }
+    }
+
     private func circleButton(symbol: String, tint: Color, badge: Bool,
+                              cooldown: Cooldown?,
                               action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            ZStack(alignment: .topTrailing) {
-                Circle()
-                    .fill(tint)
-                    .frame(width: 42, height: 42)
-                    .overlay(
-                        GlyphIcon(symbol, tint: Theme.ink)
-                            .frame(width: 20, height: 20)
-                    )
-                    .shadow(color: .black.opacity(0.35), radius: 4, y: 2)
-                if badge {
-                    Circle().fill(Theme.negative)
-                        .frame(width: 10, height: 10)
-                        .overlay(Circle().stroke(Theme.ink, lineWidth: 1.5))
+            VStack(spacing: 2) {
+                ZStack(alignment: .topTrailing) {
+                    Circle()
+                        .fill(tint)
+                        .frame(width: 42, height: 42)
+                        .overlay(
+                            GlyphIcon(symbol, tint: Theme.ink)
+                                .frame(width: 20, height: 20)
+                                .opacity(cooldown == nil ? 1 : 0.5)
+                        )
+                        .shadow(color: .black.opacity(0.35), radius: 4, y: 2)
+                    if let cooldown {
+                        Circle()
+                            .trim(from: 0, to: cooldown.progress)
+                            .stroke(Theme.coin, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .frame(width: 48, height: 48)
+                    }
+                    if badge {
+                        Circle().fill(Theme.negative)
+                            .frame(width: 10, height: 10)
+                            .overlay(Circle().stroke(Theme.ink, lineWidth: 1.5))
+                    }
+                }
+                .frame(width: 48, height: 46, alignment: .center)
+
+                if let cooldown {
+                    Text(Format.clock(cooldown.remaining))
+                        .font(Theme.numeric(9))
+                        .foregroundStyle(Theme.text)
+                        .fixedSize()
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Theme.ink.opacity(0.85)))
                 }
             }
-            .frame(width: 48, height: 46, alignment: .center)
         }
         .buttonStyle(.plain)
     }

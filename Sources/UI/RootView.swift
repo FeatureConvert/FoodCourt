@@ -190,9 +190,10 @@ struct RootView: View {
         switch sheet {
         // .daily's content (7-day grid + claim button + streak explainer + streak row) is
         // consistently taller than .medium, which left the claim button sitting at the fold
-        // with nothing below it hinting there was more to scroll to.
-        case .venues, .collection, .events, .cloudConflict, .daily: return [.large]
-        case .perk: return [.medium, .large]
+        // with nothing below it hinting there was more to scroll to. .quests (Goals/
+        // Achievements) is the same story, worse on iPad where a .medium detent leaves even
+        // more of the list needing a scroll to reach.
+        case .venues, .collection, .events, .cloudConflict, .daily, .quests, .perk: return [.large]
         default: return [.medium, .large]
         }
     }
