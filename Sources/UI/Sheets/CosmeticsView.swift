@@ -4,6 +4,7 @@ import SwiftUI
 /// `GameEngine.skinPrice`.
 struct CosmeticsView: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     let venue: Int
     let onToast: (String) -> Void
 
@@ -46,12 +47,15 @@ struct CosmeticsView: View {
                 if unlocked {
                     if engine.setSkin(venue: venue, skin: skin) {
                         Haptics.success()
+                        sound.play(.reward)
                         onToast("\(skin.capitalized) equipped")
                     }
                 } else if engine.unlockSkin(venue: venue, skin: skin) {
                     Haptics.success()
+                    sound.play(.reward)
                     onToast("\(skin.capitalized) unlocked")
                 } else {
+                    sound.play(.denied)
                     onToast("Not enough coins")
                 }
             }

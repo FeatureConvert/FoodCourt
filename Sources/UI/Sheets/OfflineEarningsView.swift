@@ -7,6 +7,7 @@ extension OfflineReport: Identifiable {
 
 struct OfflineEarningsView: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     @Environment(\.dismiss) private var dismiss
 
     let report: OfflineReport
@@ -89,5 +90,6 @@ struct OfflineEarningsView: View {
         guard !doubled, engine.claimOfflineDouble(report) else { return }
         withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { doubled = true }
         Haptics.success()
+        sound.play(.reward)
     }
 }

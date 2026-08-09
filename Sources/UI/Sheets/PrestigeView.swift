@@ -47,6 +47,7 @@ struct PrestigeView: View {
 
 private struct FranchiseSection: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     @Environment(\.dismiss) private var dismiss
     let onToast: (String) -> Void
 
@@ -98,6 +99,7 @@ private struct FranchiseSection: View {
             if confirming {
                 let awarded = engine.prestige()
                 Haptics.success()
+                sound.play(.bigReward)
                 onToast("Franchised out for \(awarded) stars")
                 dismiss()
             } else {
@@ -149,6 +151,7 @@ private struct FranchiseSection: View {
                 if confirmingLegacy {
                     let level = engine.legacyReset()
                     Haptics.success()
+                    sound.play(.bigReward)
                     onToast("Legacy Level \(level)")
                     confirmingLegacy = false
                     dismiss()
@@ -211,6 +214,7 @@ private struct FranchiseSection: View {
 
 private struct ResearchSection: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     let onToast: (String) -> Void
 
     var body: some View {
@@ -258,10 +262,13 @@ private struct ResearchSection: View {
         return Button {
             if engine.buyResearch(node) {
                 Haptics.success()
+                sound.play(.reward)
                 onToast("\(node.title) → rank \(rank + 1)")
             } else if !unlocked {
+                sound.play(.denied)
                 onToast("Unlock the node above it first")
             } else if !maxed {
+                sound.play(.denied)
                 onToast("Need \(cost) stars")
             }
         } label: {

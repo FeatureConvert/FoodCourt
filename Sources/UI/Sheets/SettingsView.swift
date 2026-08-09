@@ -5,12 +5,14 @@ struct SettingsView: View {
     @EnvironmentObject private var store: StoreService
     @EnvironmentObject private var cloud: CloudSaveService
     @EnvironmentObject private var notifications: NotificationService
+    @EnvironmentObject private var sound: SoundService
     let onToast: (String) -> Void
     var onHelp: () -> Void = {}
 
     @State private var confirmingReset = false
     @State private var resetConfirmationText = ""
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
+    @AppStorage("soundEnabled") private var soundEnabled = true
 
     var body: some View {
         SheetScaffold(title: "Settings") {
@@ -36,9 +38,11 @@ struct SettingsView: View {
                 Button {
                     if engine.pushToCloud() {
                         Haptics.success()
+                        sound.play(.reward)
                         onToast("Synced to iCloud")
                     } else {
                         Haptics.error()
+                        sound.play(.denied)
                         onToast("Sync failed - check your iCloud connection and try again")
                     }
                 } label: {
@@ -71,6 +75,22 @@ struct SettingsView: View {
                 .font(Theme.body(11, weight: .medium))
                 .foregroundStyle(Theme.textDim)
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+            SectionLabel(text: "Sound")
+            Toggle(isOn: Binding(
+                get: { soundEnabled },
+                set: { on in
+                    soundEnabled = on
+                    if on { sound.play(.tap) }
+                }
+            )) {
+                Text("Sound effects")
+                    .font(Theme.body(13, weight: .bold))
+                    .foregroundStyle(Theme.text)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .panel(Theme.panel)
 
             SectionLabel(text: "Help")
             Button {

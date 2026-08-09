@@ -33,6 +33,7 @@ struct RootView: View {
     @EnvironmentObject private var engine: GameEngine
     @EnvironmentObject private var store: StoreService
     @EnvironmentObject private var cloud: CloudSaveService
+    @EnvironmentObject private var sound: SoundService
 
     @State private var sheet: ActiveSheet?
     @State private var toast: String?
@@ -129,7 +130,14 @@ struct RootView: View {
             if let station { present(.perk(station)) }
         }
         .onChange(of: engine.pendingLeagueOutcome) { _, outcome in
-            if let outcome { showToast(outcome.headline) }
+            if let outcome {
+                switch outcome {
+                case .promoted: sound.play(.bigReward)
+                case .held: sound.play(.reward)
+                case .relegated: sound.play(.denied)
+                }
+                showToast(outcome.headline)
+            }
         }
         .onChange(of: engine.lastRecipeDrop) { _, drop in
             if let drop { announce(drop) }
@@ -137,8 +145,12 @@ struct RootView: View {
         .onChange(of: engine.toast) { _, message in
             if let message { showToast(message); engine.toast = nil }
         }
-        .onChange(of: store.lastGrant) { _, new in if let new { showToast(new) } }
-        .onChange(of: store.errorMessage) { _, new in if let new { showToast(new) } }
+        .onChange(of: store.lastGrant) { _, new in
+            if let new { sound.play(.bigReward); showToast(new) }
+        }
+        .onChange(of: store.errorMessage) { _, new in
+            if let new { sound.play(.denied); showToast(new) }
+        }
         .onChange(of: engine.shouldNudgePrestige) { _, nudge in
             if nudge { announcePrestigeNudge() }
         }
@@ -255,10 +267,12 @@ struct RootView: View {
             if engine.state.tutorial.current == .coffeeBreak {
                 engine.completeTutorialStep(.coffeeBreak)
             }
+            sound.play(.denied)
             showToast("Coffee Break ready in \(Format.clock(engine.boostCooldownRemaining))")
             return
         }
         Haptics.success()
+        sound.play(.reward)
         showToast("Coffee Break! ×\(Format.trim(ActivePlay.freeBoostMultiplier)) for \(Int(ActivePlay.freeBoostHours * 60)) minutes")
     }
 
@@ -267,12 +281,15 @@ struct RootView: View {
             showToast("Rush Hour already running")
         } else if engine.startRush() {
             Haptics.success()
+            sound.play(.reward)
             showToast("Rush Hour! ×\(Format.trim(ActivePlay.rushMultiplier)) for \(Format.duration(engine.state.rushDuration))")
         } else if engine.spendGems(ActivePlay.rushGemCost) {
             engine.startRush(force: true)
             Haptics.success()
+            sound.play(.reward)
             showToast("Rush Hour started early")
         } else {
+            sound.play(.denied)
             showToast("Ready in \(Format.clock(engine.rushCooldownRemaining)) · or \(ActivePlay.rushGemCost) gems")
         }
     }
@@ -281,10 +298,13 @@ struct RootView: View {
         switch drop {
         case .none: return
         case .newCard(let venue, let station):
+            sound.play(.reward)
             showToast("Recipe found: \(Balance.venue(venue).stations[station].name)")
         case .upgraded(let venue, let station, let stars):
+            sound.play(.reward)
             showToast("\(Balance.venue(venue).stations[station].name) recipe → \(stars)★")
         case .duplicateGems(let gems):
+            sound.play(.reward)
             showToast("Duplicate recipe → +\(gems) gems")
         }
         engine.objectWillChange.send()

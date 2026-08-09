@@ -3,6 +3,7 @@ import SwiftUI
 struct ShopView: View {
     @EnvironmentObject private var engine: GameEngine
     @EnvironmentObject private var store: StoreService
+    @EnvironmentObject private var sound: SoundService
     let onToast: (String) -> Void
 
     var body: some View {
@@ -54,8 +55,10 @@ struct ShopView: View {
             switch GemSpend.redeem(offer, engine: engine) {
             case .success(let message):
                 Haptics.success()
+                sound.play(.reward)
                 onToast(message)
             case .insufficientGems:
+                sound.play(.denied)
                 onToast("Not enough gems")
             case .nothingToDo(let message):
                 onToast(message)

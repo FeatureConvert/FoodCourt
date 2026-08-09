@@ -4,6 +4,7 @@ import SwiftUI
 /// while the launch flow still presents it on its own.
 struct DailyRewardSection: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     let onToast: (String) -> Void
     var onClaimed: (() -> Void)? = nil
 
@@ -80,6 +81,7 @@ struct DailyRewardSection: View {
                 Button {
                     if let gems = engine.claimStreakMilestone(day: milestone.day) {
                         Haptics.success()
+                        sound.play(.reward)
                         onToast("\(milestone.day)-day streak: +\(gems) gems")
                     }
                 } label: {
@@ -175,6 +177,7 @@ struct DailyRewardSection: View {
             return
         }
         Haptics.success()
+        sound.play(.reward)
         celebrating = payout.day
 
         var parts: [String] = []

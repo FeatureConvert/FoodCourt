@@ -4,6 +4,7 @@ import SwiftUI
 /// Purely decorative, but it is what makes the numbers feel like a restaurant.
 struct VenueStageView: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     let onGolden: (Double) -> Void
     var onCustomize: (() -> Void)? = nil
 
@@ -62,6 +63,7 @@ struct VenueStageView: View {
                     GoldenCustomerView(seed: golden.seed) {
                         let earned = engine.collectGolden()
                         Haptics.success()
+                        sound.play(.reward)
                         onGolden(earned)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)

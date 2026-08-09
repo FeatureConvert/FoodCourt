@@ -3,6 +3,7 @@ import SwiftUI
 /// Shown when a station crosses a choice milestone. Three options, one pick, permanent.
 struct PerkChoiceView: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     @Environment(\.dismiss) private var dismiss
 
     let station: Int
@@ -39,6 +40,7 @@ struct PerkChoiceView: View {
                     Button {
                         engine.choosePerk(venue: venueID, station: station, level: level, index: perk.id)
                         Haptics.success()
+                        sound.play(.reward)
                         onToast("\(spec.name): \(perk.title)")
                         celebratingIndex = perk.id
                         // A beat to let the confetti actually play before the sheet closes,

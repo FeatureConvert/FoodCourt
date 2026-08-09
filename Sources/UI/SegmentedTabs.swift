@@ -7,6 +7,7 @@ import SwiftUI
 /// recognizer - the control visibly depresses but the selection doesn't always change, so a tap
 /// has to be repeated. Plain buttons don't have that conflict.
 struct SegmentedTabs<Tab: Hashable & CaseIterable & Identifiable>: View where Tab.AllCases: RandomAccessCollection {
+    @EnvironmentObject private var sound: SoundService
     @Binding var selection: Tab
     let title: (Tab) -> String
 
@@ -16,6 +17,7 @@ struct SegmentedTabs<Tab: Hashable & CaseIterable & Identifiable>: View where Ta
                 Button {
                     guard tab != selection else { return }
                     Haptics.tap()
+                    sound.play(.tap)
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
                         selection = tab
                     }

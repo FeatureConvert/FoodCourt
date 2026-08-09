@@ -53,6 +53,7 @@ struct EventsView: View {
 private struct FestivalSection: View {
     @EnvironmentObject private var engine: GameEngine
     @EnvironmentObject private var store: StoreService
+    @EnvironmentObject private var sound: SoundService
     let onToast: (String) -> Void
 
     private var festival: FestivalState { engine.state.festival }
@@ -254,6 +255,7 @@ private struct FestivalSection: View {
     private func claim(tier: Int, premium: Bool) {
         guard let reward = engine.claimFestival(tier: tier, premium: premium) else { return }
         Haptics.success()
+        sound.play(.reward)
         onToast("Tier \(tier): \(reward.label)")
     }
 }

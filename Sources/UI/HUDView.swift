@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HUDView: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     let onDebug: () -> Void
     let onSettings: () -> Void
     let onStars: () -> Void
@@ -99,6 +100,7 @@ struct HUDView: View {
         .onLongPressGesture(minimumDuration: 0.8) {
             #if DEBUG
             Haptics.thud()
+            sound.play(.purchase)
             onDebug()
             #endif
         }

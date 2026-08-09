@@ -2,6 +2,7 @@ import SwiftUI
 
 struct VenueSelectView: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     @Environment(\.dismiss) private var dismiss
     let onToast: (String) -> Void
 
@@ -23,12 +24,15 @@ struct VenueSelectView: View {
             if unlocked {
                 engine.switchTo(venue: venue.id)
                 Haptics.tap()
+                sound.play(.tap)
                 dismiss()
             } else if engine.unlock(venue) {
                 Haptics.success()
+                sound.play(.reward)
                 onToast("\(venue.name) is open for business!")
                 dismiss()
             } else {
+                sound.play(.denied)
                 onToast("Need \(Format.price(venue.unlockCost)) to open \(venue.name)")
             }
         } label: {

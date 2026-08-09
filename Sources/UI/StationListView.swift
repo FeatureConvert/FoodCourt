@@ -37,6 +37,7 @@ struct StationListView: View {
 
 struct BuyQuantityPicker: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
 
     var body: some View {
         HStack(spacing: 4) {
@@ -44,6 +45,7 @@ struct BuyQuantityPicker: View {
                 let selected = engine.buyQuantity == quantity
                 Button {
                     Haptics.tap()
+                    sound.play(.tap)
                     engine.buyQuantity = quantity
                 } label: {
                     Text(quantity.label)
@@ -64,6 +66,7 @@ struct BuyQuantityPicker: View {
 /// The card that does most of the work: cook, level up, staff, and spend perk choices.
 struct StationCardView: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     let spec: StationSpec
     let onToast: (String) -> Void
     let onChoosePerk: (Int) -> Void
@@ -135,6 +138,7 @@ struct StationCardView: View {
             if state.isOwned {
                 engine.tap(station: spec.id)
                 Haptics.tap()
+                sound.play(.tap)
             } else {
                 purchase()
             }
@@ -348,7 +352,9 @@ struct StationCardView: View {
     private func purchase() {
         if engine.buy(station: spec.id) {
             Haptics.thud()
+            sound.play(.purchase)
         } else {
+            sound.play(.denied)
             onToast("Not enough coins")
         }
     }
@@ -362,6 +368,7 @@ struct StationCardView: View {
         if engine.state.tutorial.current == .hireManager, spec.id == 0 {
             if engine.hireManager(for: spec.id, free: true) {
                 Haptics.success()
+                sound.play(.reward)
                 onToast("\(spec.name) is now staffed")
             }
             return
@@ -371,14 +378,17 @@ struct StationCardView: View {
         if engine.state.coins >= cost {
             if engine.hireManager(for: spec.id) {
                 Haptics.success()
+                sound.play(.reward)
                 onToast("\(spec.name) is now staffed")
             }
         } else {
             switch GemSpend.hireManagerWithGems(station: spec.id, engine: engine) {
             case .success:
                 Haptics.success()
+                sound.play(.reward)
                 onToast("\(spec.name) is now staffed")
             case .insufficientGems:
+                sound.play(.denied)
                 onToast("Need \(GemSpend.instantManagerGemCost) gems or \(Format.price(cost))")
             case .nothingToDo(let message):
                 onToast(message)
@@ -459,6 +469,7 @@ private struct CookerRing: View {
 /// Sits at the bottom of the station list so the next venue is always visible as a goal.
 struct NextVenueTeaser: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     let venue: VenueSpec
     let onToast: (String) -> Void
 
@@ -469,8 +480,10 @@ struct NextVenueTeaser: View {
         Button {
             if engine.unlock(venue) {
                 Haptics.success()
+                sound.play(.reward)
                 onToast("\(venue.name) is open for business!")
             } else {
+                sound.play(.denied)
                 onToast("Need \(Format.price(venue.unlockCost)) to open \(venue.name)")
             }
         } label: {

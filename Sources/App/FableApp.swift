@@ -7,6 +7,7 @@ struct FableApp: App {
     @StateObject private var cloud = CloudSaveService()
     @StateObject private var notifications = NotificationService()
     @StateObject private var gameCenter = GameCenterService()
+    @StateObject private var sound = SoundService()
 
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
@@ -21,6 +22,7 @@ struct FableApp: App {
                     .environmentObject(cloud)
                     .environmentObject(notifications)
                     .environmentObject(gameCenter)
+                    .environmentObject(sound)
 
                 if !isReady {
                     SplashView()

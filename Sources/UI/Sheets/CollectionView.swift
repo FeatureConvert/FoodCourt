@@ -50,6 +50,7 @@ struct CollectionView: View {
 
 private struct StaffSection: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     let onToast: (String) -> Void
 
     @State private var showChefConfetti = false
@@ -101,6 +102,7 @@ private struct StaffSection: View {
             Button {
                 if let hired = engine.purchaseGuestChef() {
                     Haptics.success()
+                    sound.play(.reward)
                     onToast("\(hired.name) joins your roster!")
                 }
             } label: {
@@ -200,6 +202,7 @@ private struct StaffSection: View {
                         engine.assign(managerID: manager.id,
                                       venue: engine.state.currentVenue, station: index)
                         Haptics.success()
+                        sound.play(.reward)
                         onToast("\(spec.name) → \(Balance.venue(engine.state.currentVenue).stations[index].name)")
                     }
                 }
@@ -340,6 +343,7 @@ private struct RecipeSection: View {
 
 private struct ErrandsSection: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     let onToast: (String) -> Void
 
     var body: some View {
@@ -413,6 +417,7 @@ private struct ErrandsSection: View {
                 Button("Collect") {
                     if let claimed = engine.collectErrand(id: errand.id) {
                         Haptics.success()
+                        sound.play(.reward)
                         onToast("+\(claimed.rewardGems) gems · \(Format.currency(claimed.rewardCoins)) coins")
                     }
                 }
@@ -435,6 +440,7 @@ private struct ErrandsSection: View {
                             Button(option.label) {
                                 if engine.startErrand(managerID: manager.id, hours: option.hours) {
                                     Haptics.success()
+                                    sound.play(.reward)
                                     onToast("\(manager.spec.name) is out on an errand")
                                 }
                             }

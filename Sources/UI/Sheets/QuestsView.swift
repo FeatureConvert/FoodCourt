@@ -41,6 +41,7 @@ struct QuestsView: View {
 
 private struct QuestsSection: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     let onToast: (String) -> Void
 
     var body: some View {
@@ -103,6 +104,7 @@ private struct QuestsSection: View {
                 Button {
                     if let claimed = engine.claimQuest(id: quest.id) {
                         Haptics.success()
+                        sound.play(.reward)
                         onToast("Claimed: \(claimed.title)")
                     }
                 } label: {
@@ -124,6 +126,7 @@ private struct QuestsSection: View {
 
 private struct AchievementsSection: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
     let onToast: (String) -> Void
 
     var body: some View {
@@ -183,6 +186,7 @@ private struct AchievementsSection: View {
                     Button {
                         if let claimed = engine.claimAchievement(id: spec.id) {
                             Haptics.success()
+                            sound.play(.reward)
                             onToast("Achievement: \(claimed.title)")
                         }
                     } label: {
