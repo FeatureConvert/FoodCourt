@@ -174,7 +174,9 @@ enum ManagerCatalog {
     static func random(rarity: ManagerRarity, seed: Int) -> ManagerSpec {
         let pool = specs(rarity: rarity)
         guard !pool.isEmpty else { return baseRoster[0] }
-        return pool[abs(seed) % pool.count]
+        // Double-modulo rather than abs(): abs(Int.min) is a trap, and callers' seeds are
+        // an implementation detail this shouldn't have to trust.
+        return pool[((seed % pool.count) + pool.count) % pool.count]
     }
 
     /// First names for Trainee hires - deliberately disjoint from every named character above
@@ -187,7 +189,7 @@ enum ManagerCatalog {
     ]
 
     static func randomTraineeName(seed: Int = Int.random(in: 0..<1_000_000)) -> String {
-        traineeNames[abs(seed) % traineeNames.count]
+        traineeNames[((seed % traineeNames.count) + traineeNames.count) % traineeNames.count]
     }
 }
 

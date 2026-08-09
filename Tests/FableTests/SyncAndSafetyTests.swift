@@ -63,6 +63,41 @@ final class SyncAndSafetyTests: XCTestCase {
         XCTAssertTrue(CloudSaveService.isAhead(a, of: b))
     }
 
+    // MARK: automatedRate parity with globalMultiplier
+
+    func testAutomatedRateIncludesLegacyMultiplier() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 10
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        let base = state.automatedRate
+        XCTAssertGreaterThan(base, 0)
+        state.legacy.level = 1
+        XCTAssertEqual(state.automatedRate, base * Balance.legacyMultiplier(level: 1),
+                       accuracy: base * 0.0001,
+                       "offline pay, quests, and time warps all price off automatedRate - it must scale with Legacy like live income does")
+    }
+
+    // MARK: Daily rewards route through the shared coin path
+
+    @MainActor
+    func testDailyCoinRewardCountsTowardLeagueAndEarnQuests() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 10
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        state.quests = [ActiveQuest(id: "q", kind: .earn, target: 1e12, progress: 0,
+                                    rewardGems: 1, rewardSeconds: 60)]
+        let engine = GameEngine(state: state, startTimers: false,
+                                persistence: EphemeralPersistence())
+        let leagueBefore = engine.state.league.score
+        let payout = engine.claimDaily()
+        XCTAssertNotNil(payout)
+        XCTAssertGreaterThan(payout!.coins, 0, "day 1 of the calendar pays coins")
+        XCTAssertEqual(engine.state.league.score, leagueBefore + payout!.coins,
+                       "a daily reward is a coin grant like any other and must feed the league")
+        XCTAssertEqual(engine.state.quests[0].progress, payout!.coins,
+                       "and advance earn-quests")
+    }
+
     func testOrdinaryProgressComparisonUnchanged() {
         let bigger = save(stars: 900, earnings: 5e12)
         let smaller = save(stars: 200, earnings: 1e12)

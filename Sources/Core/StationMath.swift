@@ -64,7 +64,12 @@ extension GameState {
                     / cycleTime(venue: venue.id, station: spec.id)
             }
         }
+        // Keep this list in lockstep with `globalMultiplier` (minus boosts, which tick in
+        // real time and are deliberately not paid offline): legacy was missing here for a
+        // while, which quietly underpaid every offline report, quest reward, time warp,
+        // and errand for anyone past their first Legacy reset.
         return total * Balance.starMultiplier(stars: lifetimeStars)
+            * Balance.legacyMultiplier(level: legacy.level)
             * entitlements.profitMultiplier
             * researchEffects.profitMultiplier
     }

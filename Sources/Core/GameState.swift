@@ -299,10 +299,6 @@ struct GameState: Codable, Equatable {
         min(1, Balance.offlineEfficiency + researchEffects.offlineEfficiency)
     }
 
-    func station(_ venue: Int, _ station: Int) -> StationState {
-        venues[venue].stations[station]
-    }
-
     // MARK: Cosmetics
 
     func skin(venue: Int) -> String { venueSkins[venue] ?? "classic" }

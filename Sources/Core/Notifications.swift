@@ -24,9 +24,18 @@ enum NotificationPlanner {
                               body: "Tap in to start the flood.", fireDate: state.rushAvailableAt))
         }
 
-        let capFireDate = now.addingTimeInterval(state.offlineCapHours * 3600)
-        plans.append(Plan(id: "offline-cap-full", title: "Offline earnings are capped",
-                          body: "Come collect before you lose more.", fireDate: capFireDate))
+        // Only worth saying when the player actually earns offline - a brand-new save with
+        // nothing staffed used to get "come collect" with literally nothing to collect.
+        // Teasing the concrete amount (what the capped stretch will have earned by the time
+        // this fires) pulls much harder than a generic warning.
+        let rate = state.automatedRate
+        if rate > 0 {
+            let capSeconds = state.offlineCapHours * 3600
+            let amount = rate * capSeconds * state.offlineEfficiency * state.offlineManagerBonus
+            plans.append(Plan(id: "offline-cap-full", title: "The till is full",
+                              body: "Your court earned ~\(Format.currency(amount)) while you were away - earnings stall until you collect.",
+                              fireDate: now.addingTimeInterval(capSeconds)))
+        }
 
         let festivalPremiumActive = state.festival.premiumUnlocked || state.entitlements.includesFestivalPremium
         if Festival.unclaimedCount(state.festival, premiumActive: festivalPremiumActive) > 0 {

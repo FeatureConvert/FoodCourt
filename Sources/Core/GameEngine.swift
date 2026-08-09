@@ -425,6 +425,7 @@ final class GameEngine: ObservableObject {
     @discardableResult
     func hireManager(for index: Int, free: Bool = false, premium: Bool = false) -> Bool {
         let venue = state.currentVenue
+        guard state.venues[venue].stations.indices.contains(index) else { return false }
         let station = state.venues[venue].stations[index]
         guard station.isOwned, !station.isStaffed else { return false }
         let cost = managerCost(for: index)
@@ -732,6 +733,10 @@ final class GameEngine: ObservableObject {
         pendingBursts.removeAll()
         lastBurstAt.removeAll()
         combo.reset()
+        // A golden customer or station order rolled on the old board must not survive
+        // onto the new one - switchTo and adoptCloudSave already clear these.
+        golden = nil
+        activeOrder = nil
         save()
         return award
     }
@@ -764,6 +769,8 @@ final class GameEngine: ObservableObject {
         pendingBursts.removeAll()
         lastBurstAt.removeAll()
         combo.reset()
+        golden = nil
+        activeOrder = nil
         save()
         return state.legacy.level
     }
@@ -1110,7 +1117,10 @@ final class GameEngine: ObservableObject {
     @discardableResult
     func claimDaily() -> DailyRewards.Payout? {
         let payout = DailyRewards.claim(state: &state, now: state.now)
-        if payout != nil {
+        if let payout {
+            // Through addCoins, not state.coins directly, so the reward counts toward the
+            // league and earn-quests like every other grant - claim() leaves coins to us.
+            if payout.coins > 0 { addCoins(payout.coins) }
             awardTickets(Festival.ticketsPerDaily)
             save()
         }

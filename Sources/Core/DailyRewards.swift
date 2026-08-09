@@ -126,9 +126,10 @@ enum DailyRewards {
         }
         let payout = payout(for: day, state: state, now: now)
 
-        state.coins += payout.coins
-        state.lifetimeEarnings += payout.coins
-        state.runEarnings += payout.coins
+        // Coins are deliberately NOT applied here: the caller (GameEngine.claimDaily) runs
+        // them through addCoins so a daily reward feeds the league score and earn-quests
+        // exactly like every other coin grant. This function owns only gems, boosts, and
+        // the streak bookkeeping.
         state.gems += payout.gems
         if let boost = payout.boost {
             Boosts.add(boost, to: &state)

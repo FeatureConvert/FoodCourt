@@ -144,7 +144,10 @@ enum Festival {
     }
 
     /// Rolls the season over once it lapses. Premium ownership is per-season, matching how
-    /// real passes work, so it resets too.
+    /// real passes work, so it resets too. A multi-week absence deliberately settles as a
+    /// single fresh season rather than replaying every missed one - there is nothing to
+    /// back-pay on tracks nobody played, and `endsAt = now + seasonLength` gives the
+    /// returning player a full week rather than a season already half over.
     @discardableResult
     static func rolloverIfNeeded(_ state: inout FestivalState, now: Date) -> Bool {
         guard now >= state.endsAt else { return false }

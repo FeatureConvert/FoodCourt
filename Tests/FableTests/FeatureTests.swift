@@ -1654,15 +1654,31 @@ final class FeatureTests: XCTestCase {
                        "no point reminding about something already ready")
     }
 
-    func testPlanAlwaysIncludesOfflineCapFull() {
+    func testPlanExcludesOfflineCapForPlayersWhoEarnNothingOffline() {
+        // A fresh save has no staffed stations, so there is nothing to collect - the old
+        // behavior scheduled "come collect" anyway, which read as a bug on day one.
         let state = GameState.newGame()
+        let plan = NotificationPlanner.plan(for: state, now: Date())
+        XCTAssertFalse(plan.contains { $0.id == "offline-cap-full" })
+    }
+
+    func testPlanIncludesOfflineCapOnceSomethingIsStaffed() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 5
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
         let now = Date()
         let plan = NotificationPlanner.plan(for: state, now: now)
         guard let capPlan = plan.first(where: { $0.id == "offline-cap-full" }) else {
-            return XCTFail("offline cap reminder must always be scheduled")
+            return XCTFail("a staffed board earns offline, so the cap reminder belongs")
         }
         let expected = now.addingTimeInterval(state.offlineCapHours * 3600)
         XCTAssertEqual(capPlan.fireDate.timeIntervalSince1970, expected.timeIntervalSince1970, accuracy: 1)
+        // The game renders currency without a symbol (matches the HUD), so assert the
+        // computed amount itself made it into the copy.
+        let amount = state.automatedRate * state.offlineCapHours * 3600
+            * state.offlineEfficiency * state.offlineManagerBonus
+        XCTAssertTrue(capPlan.body.contains(Format.currency(amount)),
+                      "the tease should name the concrete amount")
     }
 
     func testPlanExcludesFestivalEndingWithNoUnclaimedTiers() {
