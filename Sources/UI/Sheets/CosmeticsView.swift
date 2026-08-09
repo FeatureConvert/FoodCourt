@@ -12,6 +12,10 @@ struct CosmeticsView: View {
 
     var body: some View {
         SheetScaffold(title: "\(spec.name) Look", subtitle: "Purely cosmetic - never touches profit") {
+            IntroBanner(key: IntroKey.cosmetics, symbol: "paintpalette.fill",
+                        title: "Looks only, no power",
+                        detail: "A new coat of paint for this venue's room. It's coin-priced and purely visual - it never affects profit, speed, or anything you'd actually optimize for.")
+
             ForEach(VenuePalette.skinIDs, id: \.self) { skin in
                 row(skin)
             }

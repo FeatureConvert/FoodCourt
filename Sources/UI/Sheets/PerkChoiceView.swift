@@ -18,6 +18,10 @@ struct PerkChoiceView: View {
     var body: some View {
         SheetScaffold(title: "Level \(level.map(String.init) ?? "") Perk",
                       subtitle: "\(spec.name) — pick one, it's permanent") {
+            IntroBanner(key: IntroKey.perks, symbol: "questionmark.circle.fill",
+                        title: "What's a perk?",
+                        detail: "A permanent, station-specific upgrade. Whatever you pick here only affects \(spec.name) - other stations get their own choices as they level up, so you can specialize each one differently.")
+
             HStack(spacing: 10) {
                 FoodSprite(art: spec.art, colors: spec.colors)
                     .equatable()

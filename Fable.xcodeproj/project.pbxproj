@@ -10,9 +10,11 @@
 		03E7079F368EFFC722DF4657 /* GameCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DBBB5C3A2C9718D9BDEEE14 /* GameCenterView.swift */; };
 		052D63ED1DD4134EFFB997EA /* DebugMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69FFAD265ADEF5481F857016 /* DebugMenuView.swift */; };
 		05A2D5D1350AFA036A6949EC /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F55F8C9B507D9D7F52A49C4 /* SplashView.swift */; };
+		05EEB93DDF115946F54958A0 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DF4CC93619FDCCE0C747802 /* WelcomeView.swift */; };
 		07E54AC7BC9D690A54AE1F02 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB9CDFE41E11F22B7F4BB70F /* Assets.xcassets */; };
 		09DD0F44E7CF84B4EB5DF209 /* SoundService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C98DAA3BB768AFFC8E2F1073 /* SoundService.swift */; };
 		0FC02FF81C9838F43E3749AE /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 90ADE33E20D3F2B41202C2A1 /* Products.storekit */; };
+		16693AD597B563A3618CC9E0 /* BigMomentAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1BF9EE7260A69239205CF05 /* BigMomentAlertView.swift */; };
 		170194D21A2D534628E7C4CA /* Perks.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6C690DF5FC87BAEDABD2B2B /* Perks.swift */; };
 		1AF5363324B986459614ECC8 /* ProgressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED78409947694A96FF745DF8 /* ProgressionTests.swift */; };
 		1D2352C63B1413B836DFED9C /* CloudConflictView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40C66A8940881741C7577CF4 /* CloudConflictView.swift */; };
@@ -26,6 +28,7 @@
 		312921B8E3AE9A57B3E6EBF4 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E8833189801270C6E78D286 /* RootView.swift */; };
 		46EF0E95E698953D1B5F9277 /* CustomerSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = B56026DD041F82FCAAF814D9 /* CustomerSprite.swift */; };
 		47C8E48D0CF365D21C3AF103 /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 90ADE33E20D3F2B41202C2A1 /* Products.storekit */; };
+		4B8908E4848CB4A490472FC5 /* IntroBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E521CF8AD39B5FE5F0B87D /* IntroBanner.swift */; };
 		4BF88D6EA3891724BF93EF61 /* SegmentedTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11ACEF22BC7C73E72DBDB0A6 /* SegmentedTabs.swift */; };
 		56BD95ED366A8F35E3D7BDEF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F09D63C291B04A5F9057BC6 /* SettingsView.swift */; };
 		58B4D9A595DA981E15FFF05E /* CosmeticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B0191022A667BB5281A2549 /* CosmeticsView.swift */; };
@@ -97,6 +100,7 @@
 		14E9FBAB04997C010D88507E /* StoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreTests.swift; sourceTree = "<group>"; };
 		1837A7A9214C46DF66AA3576 /* GameCenterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameCenterService.swift; sourceTree = "<group>"; };
 		1B320AD114EF8759BA8EA4A0 /* Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatting.swift; sourceTree = "<group>"; };
+		1DF4CC93619FDCCE0C747802 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		240578676C0B706FC34950F7 /* HUDView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDView.swift; sourceTree = "<group>"; };
 		2532F7EDEF7C37C11C81E08C /* VenueStageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueStageView.swift; sourceTree = "<group>"; };
 		31DC9C30BAAF4753AAF01055 /* VenueSelectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueSelectView.swift; sourceTree = "<group>"; };
@@ -128,6 +132,7 @@
 		7C344A7F73D53DFFE26173A1 /* StoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreService.swift; sourceTree = "<group>"; };
 		7EB9330C29FF462CFB68BA4C /* CoinBurst.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinBurst.swift; sourceTree = "<group>"; };
 		86417C4E82F8DBA0FDCEE737 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
+		89E521CF8AD39B5FE5F0B87D /* IntroBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroBanner.swift; sourceTree = "<group>"; };
 		89F2E53AB8B4FAF1BD409A44 /* CollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionView.swift; sourceTree = "<group>"; };
 		8A26A43CF2C4D9BBECE52A00 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		8B0191022A667BB5281A2549 /* CosmeticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CosmeticsView.swift; sourceTree = "<group>"; };
@@ -158,6 +163,7 @@
 		E7A0D7BF8DD21A2D729B8AD2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E8A230F7E6FC4B1137C45619 /* Boosts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Boosts.swift; sourceTree = "<group>"; };
 		ED78409947694A96FF745DF8 /* ProgressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionTests.swift; sourceTree = "<group>"; };
+		F1BF9EE7260A69239205CF05 /* BigMomentAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BigMomentAlertView.swift; sourceTree = "<group>"; };
 		FCCB4854B3C941890956BB3B /* RoadmapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadmapView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -241,6 +247,7 @@
 		9DC4DC81BC1CB6163A43F7D2 /* Sheets */ = {
 			isa = PBXGroup;
 			children = (
+				F1BF9EE7260A69239205CF05 /* BigMomentAlertView.swift */,
 				40C66A8940881741C7577CF4 /* CloudConflictView.swift */,
 				89F2E53AB8B4FAF1BD409A44 /* CollectionView.swift */,
 				8B0191022A667BB5281A2549 /* CosmeticsView.swift */,
@@ -258,6 +265,7 @@
 				E16825A1724A72F0030D40D1 /* SheetScaffold.swift */,
 				D6110EAE66DAA23544163D60 /* ShopView.swift */,
 				31DC9C30BAAF4753AAF01055 /* VenueSelectView.swift */,
+				1DF4CC93619FDCCE0C747802 /* WelcomeView.swift */,
 			);
 			path = Sheets;
 			sourceTree = "<group>";
@@ -286,6 +294,7 @@
 				5C17466D04161D4F16C6110A /* ActivePlayViews.swift */,
 				0586BCCDEDBDE702E5A8337E /* AdFreeBadge.swift */,
 				240578676C0B706FC34950F7 /* HUDView.swift */,
+				89E521CF8AD39B5FE5F0B87D /* IntroBanner.swift */,
 				4E8833189801270C6E78D286 /* RootView.swift */,
 				11ACEF22BC7C73E72DBDB0A6 /* SegmentedTabs.swift */,
 				3F55F8C9B507D9D7F52A49C4 /* SplashView.swift */,
@@ -439,6 +448,7 @@
 				AF0FD8C199117D1A431555A2 /* ActivePlayViews.swift in Sources */,
 				F4F5E2480A8519A92F0C8507 /* AdFreeBadge.swift in Sources */,
 				228B89D93E112BDF014988A5 /* Balance.swift in Sources */,
+				16693AD597B563A3618CC9E0 /* BigMomentAlertView.swift in Sources */,
 				2FEFB4DEC9538D8CB0331FD2 /* Boosts.swift in Sources */,
 				1D2352C63B1413B836DFED9C /* CloudConflictView.swift in Sources */,
 				E7B5962454FC73B395E7A013 /* CloudSave.swift in Sources */,
@@ -465,6 +475,7 @@
 				94CD309B4984B1BAC6011F7B /* HUDView.swift in Sources */,
 				7D14D631059B4E9DBD2612F3 /* HelpView.swift in Sources */,
 				DAA618AE10CAE02924719006 /* Icons.swift in Sources */,
+				4B8908E4848CB4A490472FC5 /* IntroBanner.swift in Sources */,
 				BF0DF4C8E17DA444E35B346C /* League.swift in Sources */,
 				8C31EA19716CB3E7952B8769 /* Managers.swift in Sources */,
 				AEF7C22BE761419AA1FC5186 /* Notifications.swift in Sources */,
@@ -495,6 +506,7 @@
 				82502C079735B3C036B1CB55 /* VenueProps.swift in Sources */,
 				F3A571D29B7FC1381E1054FD /* VenueSelectView.swift in Sources */,
 				62E6F3569791FF240B8F752A /* VenueStageView.swift in Sources */,
+				05EEB93DDF115946F54958A0 /* WelcomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

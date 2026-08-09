@@ -220,6 +220,10 @@ private struct ResearchSection: View {
     let onToast: (String) -> Void
 
     var body: some View {
+        IntroBanner(key: IntroKey.research, symbol: "flask.fill",
+                    title: "Research is a second thing to spend stars on",
+                    detail: "Every star also counts toward your permanent profit bonus, whether you spend it here or not - so buying research never costs you that bonus. Ranks unlock top to bottom within a branch.")
+
         HStack(spacing: 10) {
             StarIcon().frame(width: 30, height: 30)
             VStack(alignment: .leading, spacing: 1) {

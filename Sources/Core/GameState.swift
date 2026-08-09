@@ -192,6 +192,12 @@ struct GameState: Codable, Equatable {
 
     var claimedAchievements: Set<String> = []
     var prestigeCount: Int = 0
+
+    /// Keys of one-shot explainer moments the player has already seen - the welcome screen,
+    /// the first-prestige and first-legacy alerts, the perk primer, and the first-open banner
+    /// on each depth tab. A set of freeform strings rather than an enum so a new explainer can
+    /// be added later without a schema migration.
+    var seenIntros: Set<String> = []
     /// Kept separately from `league.tier` because `league` is replaced wholesale every time
     /// a season settles - this is the one thing that has to survive that reassignment.
     var bestLeagueTierReached: LeagueTier = .bronze
@@ -396,7 +402,7 @@ struct GameState: Codable, Equatable {
         case lastOfflineDoubleDay
         case research, managers, recipeCards, quests, questsClaimed, festival, league, tutorial
         case rushEndsAt, rushAvailableAt, rushesCompleted, totalTaps, totalServed
-        case claimedAchievements, prestigeCount, bestLeagueTierReached
+        case claimedAchievements, prestigeCount, bestLeagueTierReached, seenIntros
         case errands
         case venueSkins, unlockedSkins
         case legacy
@@ -454,5 +460,36 @@ struct GameState: Codable, Equatable {
         legacy = try c.decodeIfPresent(LegacyState.self, forKey: .legacy) ?? LegacyState()
         lastGuestChefPurchaseWeek = try c.decodeIfPresent(Int.self, forKey: .lastGuestChefPurchaseWeek)
         lastGuestChefSpotlightWeek = try c.decodeIfPresent(Int.self, forKey: .lastGuestChefSpotlightWeek)
+
+        if let decoded = try c.decodeIfPresent(Set<String>.self, forKey: .seenIntros) {
+            seenIntros = decoded
+        } else if prestigeCount > 0 || totalTaps > 0 || tutorial.finished {
+            // A save from before the onboarding explainers existed. This player has already
+            // played - possibly for months - so backfill every explainer as seen rather than
+            // greeting a veteran with a "welcome, here's how prestige works" wall on their
+            // next launch. A save with none of those signals is indistinguishable from brand
+            // new, so it gets the real onboarding flow instead.
+            seenIntros = Set(IntroKey.allKeys)
+        }
     }
+}
+
+/// Freeform keys for one-shot onboarding explainers, shared between `GameState.seenIntros`
+/// and the UI views that check/mark them.
+enum IntroKey {
+    static let welcome = "welcome"
+    static let prestige = "prestige"
+    static let legacy = "legacy"
+    static let perks = "perks"
+    static let research = "research"
+    static let league = "league"
+    static let festival = "festival"
+    static let staff = "staff"
+    static let recipes = "recipes"
+    static let errands = "errands"
+    static let cosmetics = "cosmetics"
+
+    static let allKeys: [String] = [
+        welcome, prestige, legacy, perks, research, league, festival, staff, recipes, errands, cosmetics,
+    ]
 }

@@ -1130,6 +1130,15 @@ final class GameEngine: ObservableObject {
         save()
     }
 
+    // MARK: Onboarding explainers
+
+    func hasSeenIntro(_ key: String) -> Bool { state.seenIntros.contains(key) }
+
+    func markIntroSeen(_ key: String) {
+        guard state.seenIntros.insert(key).inserted else { return }
+        save()
+    }
+
     // MARK: Debug affordances
 
     func debugSkip(hours: Double) {

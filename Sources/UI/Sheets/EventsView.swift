@@ -59,6 +59,10 @@ private struct FestivalSection: View {
     private var festival: FestivalState { engine.state.festival }
 
     var body: some View {
+        IntroBanner(key: IntroKey.festival, symbol: "ticket.fill",
+                    title: "Seasonal, and free to fully clear",
+                    detail: "Tickets from playing unlock every tier on this track before the season ends. A Premium Pass just adds a second reward alongside each one - it never gates anything the free track already has.")
+
         header
 
         if !engine.festivalPremiumActive {
@@ -271,6 +275,10 @@ private struct LeagueSection: View {
         let league = engine.state.league
         let standings = League.standings(league)
         let rank = League.playerRank(league)
+
+        IntroBanner(key: IntroKey.league, symbol: "trophy.fill",
+                    title: "A weekly race, not a fight",
+                    detail: "Your rivals earn based on how fast you're earning, so climbing is really about growing your own income. Finish top 7 to promote a tier for bigger rewards; finish in the bottom 7 and you drop one.")
 
         VStack(spacing: 8) {
             HStack(spacing: 12) {

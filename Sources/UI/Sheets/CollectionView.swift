@@ -56,6 +56,10 @@ private struct StaffSection: View {
     @State private var showChefConfetti = false
 
     var body: some View {
+        IntroBanner(key: IntroKey.staff, symbol: "person.2.fill",
+                    title: "Your whole roster, in one place",
+                    detail: "A manager on a station automates it, even while the app is closed. Anyone on the bench isn't earning - assign them to a station, or send them on an Errand instead.")
+
         guestChefBanner
 
         if engine.state.managers.isEmpty {
@@ -263,6 +267,10 @@ private struct RecipeSection: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
 
     var body: some View {
+        IntroBanner(key: IntroKey.recipes, symbol: "star.square.fill",
+                    title: "Cards drop as you level up",
+                    detail: "Leveling a station has a chance to drop its recipe card. A duplicate upgrades that card's stars for more profit on that one station; a full set for a venue adds a bonus across the whole venue.")
+
         ForEach(Balance.venues) { venue in
             let unlocked = engine.state.venues[venue.id].unlocked
             let complete = Recipes.isSetComplete(engine.state.recipeCards, venue: venue.id)
@@ -347,6 +355,10 @@ private struct ErrandsSection: View {
     let onToast: (String) -> Void
 
     var body: some View {
+        IntroBanner(key: IntroKey.errands, symbol: "hourglass",
+                    title: "A quick lump sum, at a cost",
+                    detail: "Sending a manager on an errand pays out gems and coins when it finishes, but pulls them off their station for the whole duration - best for someone already on the bench, not one currently automating something.")
+
         ForEach(0..<Errands.maxSlots, id: \.self) { slot in
             slotView(slot)
         }

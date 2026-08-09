@@ -8,6 +8,7 @@ enum ActiveSheet: Identifiable, Equatable {
     case events(EventsView.Tab)
     case perk(Int)
     case cosmetics(Int)
+    case welcome, prestigeIntro, legacyIntro
 
     var id: String {
         switch self {
@@ -25,6 +26,9 @@ enum ActiveSheet: Identifiable, Equatable {
         case .events(let tab): return "events-\(tab.rawValue)"
         case .perk(let station): return "perk-\(station)"
         case .cosmetics(let venue): return "cosmetics-\(venue)"
+        case .welcome: return "welcome"
+        case .prestigeIntro: return "prestige-intro"
+        case .legacyIntro: return "legacy-intro"
         }
     }
 }
@@ -154,6 +158,9 @@ struct RootView: View {
         .onChange(of: engine.shouldNudgePrestige) { _, nudge in
             if nudge { announcePrestigeNudge() }
         }
+        .onChange(of: engine.canLegacyReset) { _, ready in
+            if ready && !engine.hasSeenIntro(IntroKey.legacy) { present(.legacyIntro) }
+        }
         .onAppear(perform: handleLaunch)
         .preferredColorScheme(.dark)
     }
@@ -183,6 +190,25 @@ struct RootView: View {
                 OfflineEarningsView(report: report)
             }
         case .cosmetics(let venue): CosmeticsView(venue: venue, onToast: showToast)
+        case .welcome: WelcomeView()
+        case .prestigeIntro:
+            BigMomentAlertView(
+                symbol: "star.fill",
+                headline: "Your First Franchise",
+                detail: "You've earned enough to franchise out: cash in this run for permanent Stars, then start over with a lasting profit boost that never goes away. Recipes, research, and your top-tier staff carry over.",
+                stat: (label: "Stars waiting", value: "+\(engine.pendingStars)"),
+                ctaTitle: "See the Franchise",
+                onCTA: { present(.prestige) }
+            )
+        case .legacyIntro:
+            BigMomentAlertView(
+                symbol: "crown.fill",
+                headline: "Legacy Unlocked",
+                detail: "You've earned enough lifetime stars for a Legacy reset: trade away your star bonus and research ranks for an even bigger permanent multiplier. It's optional and one-way - it's usually worth waiting until your star bonus has slowed down.",
+                stat: (label: "Lifetime stars", value: "\(engine.state.lifetimeStars)"),
+                ctaTitle: "See Legacy",
+                onCTA: { present(.prestige) }
+            )
         }
     }
 
@@ -193,7 +219,9 @@ struct RootView: View {
         // with nothing below it hinting there was more to scroll to. .quests (Goals/
         // Achievements) is the same story, worse on iPad where a .medium detent leaves even
         // more of the list needing a scroll to reach.
-        case .venues, .collection, .events, .cloudConflict, .daily, .quests, .perk: return [.large]
+        case .venues, .collection, .events, .cloudConflict, .daily, .quests, .perk,
+             .welcome, .prestigeIntro, .legacyIntro:
+            return [.large]
         default: return [.medium, .large]
         }
     }
@@ -213,6 +241,11 @@ struct RootView: View {
     private func handleSheetDismissed() {
         if lastPresented == .offline { engine.pendingOfflineReport = nil }
         if case .perk = lastPresented { engine.pendingPerkStation = nil }
+        // Marked seen on dismiss rather than the moment each sheet is presented, so an app
+        // kill mid-alert doesn't burn the one-shot before the player ever actually saw it.
+        if lastPresented == .welcome { engine.markIntroSeen(IntroKey.welcome) }
+        if lastPresented == .prestigeIntro { engine.markIntroSeen(IntroKey.prestige) }
+        if lastPresented == .legacyIntro { engine.markIntroSeen(IntroKey.legacy) }
     }
 
     private var defaultEventsTab: EventsView.Tab {
@@ -234,10 +267,16 @@ struct RootView: View {
             present(.offline)
             return
         }
-        if engine.dailyAvailable {
+        if !engine.hasSeenIntro(IntroKey.welcome) {
+            // A brand new save also has a daily reward waiting on day one - the welcome
+            // screen matters more the first time, so it goes first.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { present(.welcome) }
+        } else if engine.dailyAvailable {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { present(.daily) }
+        } else if engine.canLegacyReset && !engine.hasSeenIntro(IntroKey.legacy) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { present(.legacyIntro) }
         } else if engine.shouldNudgePrestige {
-            // Only when there's no daily-reward sheet also queued up for this launch - two
+            // Only when nothing else is already queued up for this launch - two
             // attention-grabbers landing on top of each other is worse than just letting the
             // star pill's persistent highlight (HUDView) do the reminding this time.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { announcePrestigeNudge() }
@@ -246,12 +285,17 @@ struct RootView: View {
 
     /// A player can plausibly not know prestige exists the first time they're eligible, or
     /// forget it does once they've plateaued on a fully-built board again later - `engine.
-    /// shouldNudgePrestige` (GameEngine.swift) covers both. The star pill's pulsing ring
-    /// (HUDView) is the persistent version of this; the toast is the one-shot version fired
-    /// only on the moment it becomes true.
+    /// shouldNudgePrestige` (GameEngine.swift) covers both. The very first time, a toast
+    /// alone wasn't reliably seen - it auto-dismisses in ~2s and the star pill's pulsing ring
+    /// (HUDView) only helps if the player is looking right at that moment - so that one case
+    /// gets a full sheet instead; every later nudge for the same moment still uses the toast.
     private func announcePrestigeNudge() {
         if engine.state.prestigeCount == 0 {
-            showToast("You've earned enough to prestige! Tap the star for a permanent profit boost.")
+            if engine.hasSeenIntro(IntroKey.prestige) {
+                showToast("You've earned enough to prestige! Tap the star for a permanent profit boost.")
+            } else {
+                present(.prestigeIntro)
+            }
         } else {
             showToast("Nothing left to build here — prestige again for another permanent boost.")
         }
