@@ -40,6 +40,22 @@ enum ActivePlay {
     static let freeBoostHours: Double = 0.25       // 15 minutes
     static let freeBoostCooldownMinutes: Double = 30
     static let freeBoostID = "coffee-break"
+
+    // Rush chains - starting a Rush within this window of the cooldown ending keeps the
+    // chain alive; each tier past the first adds +25% to the Rush multiplier, capped at 3.
+    static let rushChainWindowSeconds: TimeInterval = 3600
+    static let rushChainMax = 3
+
+    // VIP critic - the rare golden-customer jackpot.
+    static let criticChance = 0.05
+    static let criticMultiplier: Double = 10
+
+    // Happy Hour - a fixed daily 6-8pm local window with boosted tips and doubled golden
+    // odds. Computed from the clock, never scheduled or persisted: a time-of-day habit
+    // anchor, deliberately during the after-work stretch when a session is most plausible.
+    static let happyHourStartHour = 18
+    static let happyHourEndHour = 20
+    static let happyHourMultiplier: Double = 1.5
 }
 
 /// Transient combo state. Deliberately not persisted - a combo you left an hour ago should

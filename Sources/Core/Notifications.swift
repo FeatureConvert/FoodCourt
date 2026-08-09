@@ -52,7 +52,25 @@ enum NotificationPlanner {
                               body: "Final standings lock in soon.", fireDate: leagueFireDate))
         }
 
+        // 15 minutes before the next Happy Hour window - the appointment half of the
+        // mechanic. Only for players who actually earn (same gate as the offline tease).
+        if state.automatedRate > 0, let fireDate = nextHappyHourReminder(after: now) {
+            plans.append(Plan(id: "happy-hour", title: "Happy Hour at \(ActivePlay.happyHourStartHour - 12)pm",
+                              body: "×\(Format.trim(ActivePlay.happyHourMultiplier)) tips and double VIP odds until \(ActivePlay.happyHourEndHour - 12)pm.",
+                              fireDate: fireDate))
+        }
+
         return plans
+    }
+
+    /// The next 5:45pm local strictly after `now`.
+    static func nextHappyHourReminder(after now: Date, calendar: Calendar = .current) -> Date? {
+        var target = calendar.date(bySettingHour: ActivePlay.happyHourStartHour, minute: 0,
+                                   second: 0, of: now).map { $0.addingTimeInterval(-15 * 60) }
+        if let t = target, t <= now {
+            target = calendar.date(byAdding: .day, value: 1, to: t)
+        }
+        return target
     }
 }
 

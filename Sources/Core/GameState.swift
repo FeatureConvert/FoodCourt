@@ -216,6 +216,14 @@ struct GameState: Codable, Equatable {
     /// live `pendingStars`, so purchase timing can't game the price. Zeroed by a Legacy
     /// reset so post-Legacy early ranks fall back to the cheap static floor.
     var lastPrestigeAward: Int = 0
+    /// Exponents (10^n lifetime earnings) already celebrated - see `GameEngine.landmarkExponents`.
+    var landmarksCrossed: Set<Int> = []
+    /// Consecutive punctual Rush Hours (started within an hour of cooldown end). Max 3;
+    /// each tier past the first adds +25% to the Rush multiplier.
+    var rushChain: Int = 0
+    /// `totalServed` at the moment the current board began, so the run recap can report
+    /// dishes served this franchise rather than lifetime.
+    var servedAtBoardStart: Int = 0
 
     /// Keys of one-shot explainer moments the player has already seen - the welcome screen,
     /// the first-prestige and first-legacy alerts, the perk primer, and the first-open banner
@@ -288,6 +296,14 @@ struct GameState: Codable, Equatable {
 
     /// The engine's notion of "now", including any debug skip.
     var now: Date { Date().addingTimeInterval(timeOffset) }
+
+    /// True during the fixed daily Happy Hour window (see `ActivePlay.happyHourStartHour`).
+    /// Live payouts and golden odds only - offline math ignores it on purpose, both to keep
+    /// `automatedRate` stable and because the whole point is being present for it.
+    func isHappyHour(calendar: Calendar = .current) -> Bool {
+        let hour = calendar.component(.hour, from: now)
+        return hour >= ActivePlay.happyHourStartHour && hour < ActivePlay.happyHourEndHour
+    }
 
     var activeBoosts: [BoostState] {
         let t = now
@@ -424,7 +440,7 @@ struct GameState: Codable, Equatable {
         case research, managers, recipeCards, quests, questsClaimed, festival, league, tutorial
         case rushEndsAt, rushAvailableAt, rushesCompleted, totalTaps, totalServed
         case claimedAchievements, prestigeCount, bestLeagueTierReached, seenIntros
-        case lastPrestigeAward
+        case lastPrestigeAward, landmarksCrossed, rushChain, servedAtBoardStart
         case boardStartedAt
         case errands
         case venueSkins, unlockedSkins
@@ -489,6 +505,17 @@ struct GameState: Codable, Equatable {
         // until the first post-update Franchise records a real award. Cheap for a board or
         // two, never wrong.
         lastPrestigeAward = try c.decodeIfPresent(Int.self, forKey: .lastPrestigeAward) ?? 0
+        rushChain = try c.decodeIfPresent(Int.self, forKey: .rushChain) ?? 0
+        servedAtBoardStart = try c.decodeIfPresent(Int.self, forKey: .servedAtBoardStart) ?? 0
+        if let crossed = try c.decodeIfPresent(Set<Int>.self, forKey: .landmarksCrossed) {
+            landmarksCrossed = crossed
+        } else {
+            // Backfill for saves from before landmarks existed: silently mark everything
+            // already passed as celebrated, so a veteran doesn't get a confetti barrage.
+            landmarksCrossed = Set(GameEngine.landmarkExponents.filter {
+                lifetimeEarnings >= pow(10, Double($0))
+            })
+        }
         bestLeagueTierReached = try c.decodeIfPresent(LeagueTier.self, forKey: .bestLeagueTierReached) ?? .bronze
 
         errands = try c.decodeIfPresent([ActiveErrand].self, forKey: .errands) ?? []

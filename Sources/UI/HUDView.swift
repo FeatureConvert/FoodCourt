@@ -54,11 +54,22 @@ struct HUDView: View {
                                     .foregroundStyle(Theme.text)
                                     .lineLimit(1)
                                     .fixedSize()
-                                Text(Format.bonus(multiplier: Balance.starMultiplier(stars: engine.state.lifetimeStars)))
-                                    .font(Theme.body(10, weight: .bold))
-                                    .foregroundStyle(Theme.star)
-                                    .lineLimit(1)
-                                    .fixedSize()
+                                // The anticipation meter: pending stars accrue live, so
+                                // the payoff visibly builds between franchises - the
+                                // strongest pull the game owns, previously invisible here.
+                                if engine.pendingStars > 0 {
+                                    Text("+\(Format.count(engine.pendingStars)) ready")
+                                        .font(Theme.body(10, weight: .bold))
+                                        .foregroundStyle(Theme.positive)
+                                        .lineLimit(1)
+                                        .fixedSize()
+                                } else {
+                                    Text(Format.bonus(multiplier: Balance.starMultiplier(stars: engine.state.lifetimeStars)))
+                                        .font(Theme.body(10, weight: .bold))
+                                        .foregroundStyle(Theme.star)
+                                        .lineLimit(1)
+                                        .fixedSize()
+                                }
                             }
                         }
                     }
@@ -87,8 +98,12 @@ struct HUDView: View {
                 .buttonStyle(.plain)
             }
 
-            if !activeBoosts.isEmpty || engine.state.entitlements.vip {
+            if !activeBoosts.isEmpty || engine.state.entitlements.vip
+                || engine.state.entitlements.mogul || engine.state.isHappyHour() {
                 HStack(spacing: 6) {
+                    if engine.state.isHappyHour() {
+                        badge("HAPPY HOUR ×\(Format.trim(ActivePlay.happyHourMultiplier))", color: Theme.positive)
+                    }
                     if engine.state.entitlements.vip {
                         badge("VIP +\(Int(Balance.vipProfitBonus * 100))%", color: Theme.gem)
                     }

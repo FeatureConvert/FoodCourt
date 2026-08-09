@@ -35,6 +35,20 @@ struct GoldenCustomer: Identifiable, Equatable {
     let id = UUID()
     let seed: Int
     let expiresAt: Date
+    /// One in twenty golden customers is a VIP critic: x10 the usual payout and its own
+    /// fanfare. A rare jackpot on an existing spawn is the cheapest thrill in the game.
+    var isCritic: Bool = false
+}
+
+/// Everything the just-finished franchise run was, captured at the moment of reset for the
+/// end-of-run recap - the board wipes these numbers the same instant they become worth
+/// celebrating, so they have to be copied out first.
+struct RunRecap: Equatable {
+    let duration: TimeInterval
+    let earned: Double
+    let served: Int
+    let starsAwarded: Int
+    let prestigeNumber: Int
 }
 
 /// A specific station asking for a serve within a short window, for a coin bonus. Mirrors
@@ -66,6 +80,12 @@ final class GameEngine: ObservableObject {
     @Published var lastRecipeDrop: Recipes.Drop?
     @Published var pendingLeagueOutcome: LeagueOutcome?
     @Published var toast: String?
+    /// A lifetime-earnings landmark (1M, 1B, 1T...) crossed this session, waiting on its
+    /// celebration. Set at most once per landmark per save - see `registerLandmarks`.
+    @Published var pendingLandmark: Double?
+    /// Set by `prestige()` for the end-of-run recap the UI shows after the reset - the
+    /// numbers have to be captured BEFORE the board wipes them.
+    @Published var lastRunRecap: RunRecap?
 
     /// Payouts waiting to be shown, and when each station last showed one. A fast station
     /// completes ten-plus cycles a second; spawning a burst per cycle restarts the animation
@@ -138,6 +158,13 @@ final class GameEngine: ObservableObject {
             state.coins += report.coins
             recordEarnings(report.coins)
             pendingOfflineReport = report
+            // Win-back: three-plus days away earns a free Grand Reopening rather than a
+            // guilt trip - a returning lapsed player should land on their best day.
+            if report.elapsed >= 3 * 24 * 3600 {
+                addBoost(id: "grand-reopening", label: "Grand Reopening ×2",
+                         multiplier: 2, hours: 24)
+                toast = "Welcome back! Grand Reopening: ×2 profit for 24h, on the house."
+            }
         }
         Festival.rolloverIfNeeded(&state.festival, now: state.now)
         League.advanceRivals(&state.league, to: state.now, playerRate: state.automatedRate)
@@ -305,11 +332,29 @@ final class GameEngine: ObservableObject {
         return Double.random(in: 0..<1) < mods.doubleServeChance ? 2 : 1
     }
 
+    /// Lifetime-earnings totals worth a one-time celebration. Every crossing is permanent
+    /// (persisted in `landmarksCrossed` as the exponent), and old saves backfill silently on
+    /// decode so a veteran never gets five confetti storms on update day.
+    static let landmarkExponents: [Int] = [6, 9, 12, 15, 18, 21]
+
     private func recordEarnings(_ amount: Double) {
+        let before = state.lifetimeEarnings
         state.lifetimeEarnings += amount
         state.runEarnings += amount
         state.league.score += amount
         advanceQuests(kind: .earn, by: amount)
+        registerLandmarks(before: before)
+    }
+
+    private func registerLandmarks(before: Double) {
+        for exponent in Self.landmarkExponents where !state.landmarksCrossed.contains(exponent) {
+            let value = pow(10, Double(exponent))
+            if before < value, state.lifetimeEarnings >= value {
+                state.landmarksCrossed.insert(exponent)
+                pendingLandmark = value
+                break // one celebration at a time; the next crossing re-fires
+            }
+        }
     }
 
     private func registerServed(_ count: Int) {
@@ -339,13 +384,16 @@ final class GameEngine: ObservableObject {
         combo.isLive(at: state.now) ? combo.multiplier(maxSteps: state.comboMaxSteps) : 1
     }
 
-    /// Everything that scales a payout right now, including the transient combo.
+    /// Everything that scales a payout right now, including the transient combo and the
+    /// daily Happy Hour window.
     var payoutMultiplier: Double {
         state.globalMultiplier * comboMultiplier
+            * (state.isHappyHour() ? ActivePlay.happyHourMultiplier : 1)
     }
 
     var incomePerSecond: Double {
         state.automatedRate * activeBoostMultiplier * comboMultiplier
+            * (state.isHappyHour() ? ActivePlay.happyHourMultiplier : 1)
     }
 
     private var activeBoostMultiplier: Double {
@@ -532,15 +580,32 @@ final class GameEngine: ObservableObject {
     var rushRemaining: TimeInterval { state.rushRemaining(at: state.now) }
     var rushCooldownRemaining: TimeInterval { state.rushCooldownRemaining(at: state.now) }
 
+    /// Chain tier for the Rush about to start: returning within an hour of the cooldown
+    /// ending keeps the chain alive (max 3), each tier adding +25% to the Rush multiplier.
+    /// An appointment mechanic on a system that already exists - punctuality pays.
+    private func nextRushChain(now: Date) -> Int {
+        let punctual = now <= state.rushAvailableAt.addingTimeInterval(ActivePlay.rushChainWindowSeconds)
+        return punctual ? min(ActivePlay.rushChainMax, state.rushChain + 1) : 1
+    }
+
+    var rushChainMultiplier: Double {
+        ActivePlay.rushMultiplier * (1 + 0.25 * Double(max(0, state.rushChain - 1)))
+    }
+
     @discardableResult
     func startRush(force: Bool = false) -> Bool {
         guard force || rushReady else { return false }
         let now = state.now
+        state.rushChain = nextRushChain(now: now)
+        let multiplier = rushChainMultiplier
         state.rushEndsAt = now.addingTimeInterval(state.rushDuration)
         state.rushAvailableAt = state.rushEndsAt
             .addingTimeInterval(ActivePlay.rushCooldownMinutes * 60)
-        Boosts.add(BoostState(id: ActivePlay.rushBoostID, label: "Rush ×\(Format.trim(ActivePlay.rushMultiplier))",
-                              multiplier: ActivePlay.rushMultiplier, expiry: state.rushEndsAt), to: &state)
+        let label = state.rushChain > 1
+            ? "Rush ×\(Format.trim(multiplier)) · Chain \(state.rushChain)"
+            : "Rush ×\(Format.trim(multiplier))"
+        Boosts.add(BoostState(id: ActivePlay.rushBoostID, label: label,
+                              multiplier: multiplier, expiry: state.rushEndsAt), to: &state)
         return true
     }
 
@@ -558,23 +623,29 @@ final class GameEngine: ObservableObject {
     /// Called by the queue each time it rotates a customer out.
     func rollGoldenCustomer() {
         guard golden == nil, state.automatedRate > 0 || state.coins > 0 else { return }
-        guard Double.random(in: 0..<1) < state.goldenChance else { return }
+        let chance = state.goldenChance * (state.isHappyHour() ? 2 : 1)
+        guard Double.random(in: 0..<1) < chance else { return }
         golden = GoldenCustomer(seed: Int.random(in: 0..<10_000),
-                                expiresAt: state.now.addingTimeInterval(ActivePlay.goldenWindow))
+                                expiresAt: state.now.addingTimeInterval(ActivePlay.goldenWindow),
+                                isCritic: Double.random(in: 0..<1) < ActivePlay.criticChance)
     }
 
     private func expireGoldenIfNeeded(now: Date) {
         if let current = golden, current.expiresAt <= now { golden = nil }
     }
 
-    /// Pays out 30-120 seconds of income for catching the VIP in time.
+    /// Pays out 30-120 seconds of income for catching the VIP in time - x10 for a critic.
     @discardableResult
     func collectGolden() -> Double {
-        guard golden != nil else { return 0 }
+        guard let customer = golden else { return 0 }
         golden = nil
         let seconds = Double.random(in: ActivePlay.goldenMinSeconds...ActivePlay.goldenMaxSeconds)
         let base = Swift.max(state.automatedRate, 50)
-        let amount = base * seconds * payoutMultiplier
+        var amount = base * seconds * payoutMultiplier
+        if customer.isCritic {
+            amount *= ActivePlay.criticMultiplier
+            toast = "VIP CRITIC! ×\(Int(ActivePlay.criticMultiplier)) tip: \(Format.currency(amount))"
+        }
         addCoins(amount)
         return amount
     }
@@ -719,6 +790,14 @@ final class GameEngine: ObservableObject {
         let award = pendingStars
         guard canPrestige else { return 0 }
 
+        lastRunRecap = RunRecap(
+            duration: state.now.timeIntervalSince(state.boardStartedAt),
+            earned: state.runEarnings,
+            served: state.totalServed - state.servedAtBoardStart,
+            starsAwarded: award,
+            prestigeNumber: state.prestigeCount + 1
+        )
+        state.servedAtBoardStart = state.totalServed
         state.stars += award            // spendable
         state.lifetimeStars += award    // permanent multiplier
         state.lastPrestigeAward = award // prices the next research ranks

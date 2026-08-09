@@ -9,6 +9,7 @@ enum ActiveSheet: Identifiable, Equatable {
     case perk(Int)
     case cosmetics(Int)
     case welcome, prestigeIntro, legacyIntro
+    case runRecap
 
     var id: String {
         switch self {
@@ -29,6 +30,7 @@ enum ActiveSheet: Identifiable, Equatable {
         case .welcome: return "welcome"
         case .prestigeIntro: return "prestige-intro"
         case .legacyIntro: return "legacy-intro"
+        case .runRecap: return "run-recap"
         }
     }
 }
@@ -133,6 +135,21 @@ struct RootView: View {
         .onChange(of: engine.pendingPerkStation) { _, station in
             if let station { present(.perk(station)) }
         }
+        .onChange(of: engine.lastRunRecap) { _, recap in
+            // The celebration half of the prestige moment - the confirm sheet showed the
+            // decision, this shows what the run WAS. Delayed so the prestige sheet's
+            // dismissal finishes before a new sheet presents.
+            guard recap != nil else { return }
+            sound.play(.bigReward)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { present(.runRecap) }
+        }
+        .onChange(of: engine.pendingLandmark) { _, landmark in
+            guard let landmark else { return }
+            sound.play(.bigReward)
+            Haptics.success()
+            showToast("LANDMARK: first time past \(Format.currency(landmark)) lifetime earnings!")
+            engine.pendingLandmark = nil
+        }
         .onChange(of: engine.halfwayToFirstFranchise) { _, halfway in
             // Late tutorial beat: name the "real game" the moment it's half in reach.
             guard halfway, !engine.hasSeenIntro(IntroKey.halfwayFranchise) else { return }
@@ -206,6 +223,17 @@ struct RootView: View {
                 ctaTitle: "See the Franchise",
                 onCTA: { present(.prestige) }
             )
+        case .runRecap:
+            if let recap = engine.lastRunRecap {
+                BigMomentAlertView(
+                    symbol: "star.fill",
+                    headline: "Franchise #\(recap.prestigeNumber) Complete",
+                    detail: recapDetail(recap),
+                    stat: (label: "Stars won", value: "+\(Format.count(recap.starsAwarded))"),
+                    ctaTitle: "Spend them on Research",
+                    onCTA: { present(.prestige) }
+                )
+            }
         case .legacyIntro:
             BigMomentAlertView(
                 symbol: "crown.fill",
@@ -259,6 +287,14 @@ struct RootView: View {
         if Festival.unclaimedCount(engine.state.festival,
                                    premiumActive: engine.festivalPremiumActive) > 0 { return .festival }
         return .league
+    }
+
+    private func recapDetail(_ recap: RunRecap) -> String {
+        var text = "This run: \(Format.duration(recap.duration)) · \(Format.currency(recap.earned)) earned · \(Format.count(recap.served)) dishes served."
+        if recap.prestigeNumber == 1 {
+            text += " Stars never reset. Research never sleeps. Go again, bigger."
+        }
+        return text
     }
 
     private func handleLaunch() {
