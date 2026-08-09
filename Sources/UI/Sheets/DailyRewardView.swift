@@ -7,6 +7,9 @@ struct DailyRewardSection: View {
     @EnvironmentObject private var sound: SoundService
     let onToast: (String) -> Void
     var onClaimed: (() -> Void)? = nil
+    /// Deep-links for the Today's Plan checklist - only the launch presentation wires
+    /// this; embedded uses (Events tab) leave it nil and the plan hides its chevrons.
+    var onNavigate: ((ActiveSheet) -> Void)? = nil
 
     @State private var celebrating: Int?
 
@@ -55,6 +58,63 @@ struct DailyRewardSection: View {
             .multilineTextAlignment(.center)
 
         streakRow
+
+        todaysPlan
+    }
+
+    /// The morning ritual, consolidated: everything claimable across the game in one
+    /// checklist, each row one tap from the thing itself. Five sheet visits become one
+    /// glance - the sheet a returning player already opens first thing.
+    @ViewBuilder private var todaysPlan: some View {
+        let quests = engine.claimableQuests
+        let errands = engine.claimableErrands.count
+        let festival = Festival.unclaimedCount(engine.state.festival,
+                                               premiumActive: engine.festivalPremiumActive)
+        if quests > 0 || errands > 0 || festival > 0 {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("TODAY'S PLAN")
+                    .font(Theme.body(10, weight: .black))
+                    .tracking(0.6)
+                    .foregroundStyle(Theme.textDim)
+                if quests > 0 {
+                    planRow("checkmark.circle.fill", "\(Format.plural(quests, "goal")) ready to claim",
+                            destination: .quests(.quests))
+                }
+                if errands > 0 {
+                    planRow("hourglass", "\(Format.plural(errands, "errand")) finished",
+                            destination: .collection)
+                }
+                if festival > 0 {
+                    planRow("ticket.fill", "\(Format.plural(festival, "festival reward")) waiting",
+                            destination: .events(.festival))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .panel(Theme.panel)
+        }
+    }
+
+    private func planRow(_ symbol: String, _ text: String, destination: ActiveSheet) -> some View {
+        Button {
+            onNavigate?(destination)
+        } label: {
+            HStack(spacing: 8) {
+                GlyphIcon(symbol, tint: Theme.coin)
+                    .frame(width: 15, height: 15)
+                Text(text)
+                    .font(Theme.body(12, weight: .bold))
+                    .foregroundStyle(Theme.text)
+                Spacer(minLength: 0)
+                if onNavigate != nil {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundStyle(Theme.textDim)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(onNavigate == nil)
     }
 
     private var streakRow: some View {
@@ -201,12 +261,17 @@ struct DailyRewardView: View {
     @EnvironmentObject private var engine: GameEngine
     @Environment(\.dismiss) private var dismiss
     let onToast: (String) -> Void
+    var onNavigate: ((ActiveSheet) -> Void)? = nil
 
     var body: some View {
         SheetScaffold(title: "Daily Rewards", subtitle: subtitle) {
-            DailyRewardSection(onToast: onToast) {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { dismiss() }
-            }
+            DailyRewardSection(
+                onToast: onToast,
+                onClaimed: {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { dismiss() }
+                },
+                onNavigate: onNavigate
+            )
         }
     }
 

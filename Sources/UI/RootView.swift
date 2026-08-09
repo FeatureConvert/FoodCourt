@@ -205,7 +205,7 @@ struct RootView: View {
             if let remote = cloud.conflict {
                 CloudConflictView(remote: remote, onToast: showToast)
             }
-        case .daily: DailyRewardView(onToast: showToast)
+        case .daily: DailyRewardView(onToast: showToast, onNavigate: { present($0) })
         case .events(let tab): EventsView(initialTab: tab, onToast: showToast)
         case .perk(let station): PerkChoiceView(station: station, onToast: showToast)
         case .offline:

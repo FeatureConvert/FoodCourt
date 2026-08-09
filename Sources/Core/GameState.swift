@@ -233,6 +233,11 @@ struct GameState: Codable, Equatable {
     var bestFestivalTier: Int = 0
     /// Bond accrual bookkeeping - see `GameEngine.accrueBondTime`.
     var lastBondAccrualAt: Date = Date()
+    /// The big weekly challenge - one oversized quest per calendar week with a
+    /// premium-feel reward, separate from the three fast slots. Keyed by `GuestChef.weekKey`
+    /// so a new one rolls each week whether or not the last was finished.
+    var weeklyQuest: ActiveQuest? = nil
+    var weeklyQuestWeek: Int? = nil
 
     /// Keys of one-shot explainer moments the player has already seen - the welcome screen,
     /// the first-prestige and first-legacy alerts, the perk primer, and the first-open banner
@@ -451,6 +456,7 @@ struct GameState: Codable, Equatable {
         case claimedAchievements, prestigeCount, bestLeagueTierReached, seenIntros
         case lastPrestigeAward, landmarksCrossed, rushChain, servedAtBoardStart
         case nemesisSeed, venueMastery, bestFestivalTier, lastBondAccrualAt
+        case weeklyQuest, weeklyQuestWeek
         case boardStartedAt
         case errands
         case venueSkins, unlockedSkins
@@ -522,6 +528,8 @@ struct GameState: Codable, Equatable {
         venueMastery = try c.decodeIfPresent([Int: Int].self, forKey: .venueMastery) ?? [:]
         bestFestivalTier = try c.decodeIfPresent(Int.self, forKey: .bestFestivalTier) ?? 0
         lastBondAccrualAt = try c.decodeIfPresent(Date.self, forKey: .lastBondAccrualAt) ?? Date()
+        weeklyQuest = try c.decodeIfPresent(ActiveQuest.self, forKey: .weeklyQuest)
+        weeklyQuestWeek = try c.decodeIfPresent(Int.self, forKey: .weeklyQuestWeek)
         if let crossed = try c.decodeIfPresent(Set<Int>.self, forKey: .landmarksCrossed) {
             landmarksCrossed = crossed
         } else {

@@ -122,6 +122,7 @@ final class GameEngine: ObservableObject {
                                           nemesisSeed: state.nemesisSeed)
         }
         Festival.rolloverIfNeeded(&state.festival, now: state.now)
+        rollWeeklyQuestIfNeeded()
     }
 
     func start() {
@@ -186,6 +187,7 @@ final class GameEngine: ObservableObject {
         Festival.rolloverIfNeeded(&state.festival, now: state.now)
         League.advanceRivals(&state.league, to: state.now, playerRate: state.automatedRate)
         settleLeagueIfFinished()
+        rollWeeklyQuestIfNeeded()
         state.lastSeen = state.now
         lastTickTime = CACurrentMediaTimeCompat()
     }
@@ -959,15 +961,49 @@ final class GameEngine: ObservableObject {
         for index in state.quests.indices where state.quests[index].kind == kind {
             state.quests[index].progress += amount
         }
+        if state.weeklyQuest?.kind == kind { state.weeklyQuest?.progress += amount }
     }
 
     private func advanceQuests(kind: QuestKind, to value: Double) {
         for index in state.quests.indices where state.quests[index].kind == kind {
             state.quests[index].progress = Swift.max(state.quests[index].progress, value)
         }
+        if state.weeklyQuest?.kind == kind {
+            state.weeklyQuest?.progress = Swift.max(state.weeklyQuest?.progress ?? 0, value)
+        }
     }
 
-    var claimableQuests: Int { state.quests.filter(\.isComplete).count }
+    var claimableQuests: Int {
+        state.quests.filter(\.isComplete).count
+            + ((state.weeklyQuest?.isComplete ?? false) ? 1 : 0)
+    }
+
+    // MARK: Weekly challenge
+
+    /// One oversized quest per calendar week: a serve target sized to ~6 active-ish hours
+    /// of the player's current throughput, paying 150 gems - premium-feel, weekly cadence,
+    /// same claim flow as everything else. Rolls in `bootstrapSystems`/foreground so it's
+    /// always current; an unfinished week simply expires.
+    func rollWeeklyQuestIfNeeded() {
+        let week = GuestChef.weekKey(now: state.now)
+        guard state.weeklyQuestWeek != week else { return }
+        state.weeklyQuestWeek = week
+        let target = Swift.max(2_000, (state.automatedServeRate * 6 * 3600).rounded())
+        state.weeklyQuest = ActiveQuest(
+            id: "weekly-\(week)", kind: .serve, target: target, progress: 0,
+            rewardGems: 150, rewardSeconds: 600
+        )
+    }
+
+    @discardableResult
+    func claimWeeklyQuest() -> ActiveQuest? {
+        guard let quest = state.weeklyQuest, quest.isComplete else { return nil }
+        state.gems += quest.rewardGems
+        addCoins(Swift.max(1_000, state.automatedRate * quest.rewardSeconds))
+        state.weeklyQuest = nil // done for the week; next Monday rolls a fresh one
+        save()
+        return quest
+    }
 
     @discardableResult
     func claimQuest(id: String) -> ActiveQuest? {

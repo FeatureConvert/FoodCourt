@@ -45,6 +45,10 @@ private struct QuestsSection: View {
     let onToast: (String) -> Void
 
     var body: some View {
+        if let weekly = engine.state.weeklyQuest {
+            weeklyRow(weekly)
+        }
+
         ForEach(engine.state.quests) { quest in
             row(quest)
         }
@@ -59,6 +63,74 @@ private struct QuestsSection: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 8)
+    }
+
+    /// The oversized once-a-week challenge - same anatomy as a regular row, framed as an
+    /// event with its own badge and claim path (`claimWeeklyQuest`).
+    private func weeklyRow(_ quest: ActiveQuest) -> some View {
+        let done = quest.isComplete
+        return VStack(spacing: 10) {
+            HStack(spacing: 6) {
+                Text("WEEKLY CHALLENGE")
+                    .font(Theme.body(9, weight: .black))
+                    .tracking(0.6)
+                    .foregroundStyle(Theme.ink)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Capsule().fill(Theme.gem))
+                Spacer(minLength: 0)
+                Text("resets Monday")
+                    .font(Theme.body(9, weight: .medium))
+                    .foregroundStyle(Theme.textDim)
+            }
+            HStack(spacing: 12) {
+                GlyphIcon(quest.kind.symbol, tint: done ? Theme.positive : Theme.gem)
+                    .frame(width: 20, height: 20)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Theme.ink.opacity(0.5)))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(quest.title)
+                        .font(Theme.body(14, weight: .black))
+                        .foregroundStyle(Theme.text)
+                    Text(quest.progressLabel)
+                        .font(Theme.body(11, weight: .bold))
+                        .foregroundStyle(done ? Theme.positive : Theme.textDim)
+                }
+                Spacer(minLength: 0)
+                HStack(spacing: 3) {
+                    GemIcon().frame(width: 13, height: 13)
+                    Text("\(quest.rewardGems)")
+                        .font(Theme.numeric(13))
+                        .foregroundStyle(Theme.text)
+                }
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Theme.ink.opacity(0.7))
+                    Capsule()
+                        .fill(done ? Theme.positive : Theme.gem)
+                        .frame(width: geo.size.width * quest.fraction)
+                }
+            }
+            .frame(height: 6)
+            if done {
+                Button {
+                    if engine.claimWeeklyQuest() != nil {
+                        Haptics.success()
+                        sound.play(.bigReward)
+                        onToast("Weekly Challenge complete! +\(quest.rewardGems) gems")
+                    }
+                } label: {
+                    Text("Claim")
+                        .font(Theme.body(13, weight: .black))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
+                .buttonStyle(ChunkyButtonStyle(fill: Theme.positive,
+                                               shadow: Theme.positive.opacity(0.5), radius: 12))
+            }
+        }
+        .padding(12)
+        .panel(done ? Theme.panelRaised : Theme.panel)
     }
 
     private func row(_ quest: ActiveQuest) -> some View {
