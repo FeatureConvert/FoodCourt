@@ -311,11 +311,39 @@ enum Balance {
 
     // MARK: Prestige
 
+    /// A ceiling no legitimate trajectory could reach - simulated two full years of
+    /// maximally optimal, uninterrupted, perfectly-timed prestiging (the fastest anyone could
+    /// conceivably go) tops out around 13.5 million lifetime stars, well under this.
+    ///
+    /// This exists because of a real incident: a since-fixed linear (not sqrt-scaled) star
+    /// bonus let a compounding loop push a live save's lifetime stars into the 1e19 range
+    /// within a single session - large enough that converting the raw `Double` below to `Int`
+    /// would **trap and crash the app outright**, on every launch, the instant any view
+    /// (the HUD included) computed `pendingStars`. That crash happens deep inside a SwiftUI
+    /// computed property and isn't something a decode-error catch block can recover from -
+    /// `Int(aDoubleTooLargeToFit)` is a fatal runtime trap, not a throwable error.
+    ///
+    /// `totalStars` below refuses to ever compute past this ceiling, and `GameState`'s
+    /// decoder clamps any save that already has more back down to it - so a save already
+    /// hit by the old bug becomes safe and playable again (with a still-enormous but sane
+    /// permanent bonus) instead of crash-looping forever, and the same failure mode can't
+    /// recur even if some future change reopens unbounded growth.
+    static let maxSaneLifetimeStars = 100_000_000
+
+    /// The lifetime-earnings figure that maps to `maxSaneLifetimeStars` under the formula
+    /// below - derived, not hardcoded, so it can never drift out of sync with `totalStars`.
+    static var maxSaneLifetimeEarnings: Double {
+        let stars = Double(maxSaneLifetimeStars) / prestigeStarCoefficient
+        return prestigeStarDivisor * stars * stars
+    }
+
     /// Total stars the player's lifetime earnings entitle them to.
     static func totalStars(lifetimeEarnings: Double) -> Int {
         guard lifetimeEarnings > 0 else { return 0 }
         let raw = prestigeStarCoefficient * sqrt(lifetimeEarnings / prestigeStarDivisor)
-        guard raw.isFinite else { return Int.max }
+        // Comparing as Doubles is always safe, however large `raw` is - it's only the
+        // Double -> Int conversion below that can trap, so nothing unbounded ever reaches it.
+        guard raw.isFinite, raw < Double(maxSaneLifetimeStars) else { return maxSaneLifetimeStars }
         return Int(raw.rounded(.down))
     }
 

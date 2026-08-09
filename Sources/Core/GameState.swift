@@ -431,6 +431,18 @@ struct GameState: Codable, Equatable {
         lifetimeEarnings = try c.decodeIfPresent(Double.self, forKey: .lifetimeEarnings) ?? 0
         runEarnings = try c.decodeIfPresent(Double.self, forKey: .runEarnings) ?? 0
 
+        // One-time repair for a save corrupted by the since-fixed star-multiplier runaway -
+        // see `Balance.maxSaneLifetimeStars`. A legitimate save can never actually cross
+        // that ceiling, so this only ever touches a save that already got hit by the bug;
+        // everyone else decodes through untouched. Without also capping `lifetimeEarnings`
+        // here, the very next prestige would just recompute an equally absurd star award
+        // from the still-corrupted total and undo the repair immediately.
+        if lifetimeStars > Balance.maxSaneLifetimeStars || lifetimeEarnings > Balance.maxSaneLifetimeEarnings {
+            lifetimeStars = min(lifetimeStars, Balance.maxSaneLifetimeStars)
+            lifetimeEarnings = min(lifetimeEarnings, Balance.maxSaneLifetimeEarnings)
+            stars = min(stars, lifetimeStars)
+        }
+
         venues = try c.decodeIfPresent([VenueState].self, forKey: .venues) ?? []
         currentVenue = try c.decodeIfPresent(Int.self, forKey: .currentVenue) ?? 0
         boosts = try c.decodeIfPresent([BoostState].self, forKey: .boosts) ?? []

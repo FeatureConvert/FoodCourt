@@ -134,6 +134,68 @@ final class EconomyTests: XCTestCase {
         XCTAssertLessThan(bonusAt20k, bonusAt10k * 2)
     }
 
+    /// Lifetime earnings large enough to reproduce the incident referenced above - a real
+    /// save's star count reached ~1.7e19, which means its `lifetimeEarnings` (stars scale
+    /// with its square root) was around 1.28e46. Converting a raw value that size straight
+    /// to `Int` traps (Int64.max is ~9.22e18), which would crash any view that computes
+    /// `pendingStars`, not just misbehave. Must clamp, never crash.
+    func testTotalStarsNeverCrashesOnAstronomicalEarnings() {
+        XCTAssertEqual(Balance.totalStars(lifetimeEarnings: 1.28e46), Balance.maxSaneLifetimeStars)
+        XCTAssertEqual(Balance.totalStars(lifetimeEarnings: 1e300), Balance.maxSaneLifetimeStars)
+        XCTAssertEqual(Balance.totalStars(lifetimeEarnings: .infinity), Balance.maxSaneLifetimeStars)
+        // Comfortably below the ceiling should still compute normally, not just always
+        // return the cap - the guard is a ceiling, not a replacement for the real formula.
+        XCTAssertLessThan(Balance.totalStars(lifetimeEarnings: 1e15), Balance.maxSaneLifetimeStars)
+    }
+
+    /// `maxSaneLifetimeEarnings` must actually map back to `maxSaneLifetimeStars` under the
+    /// real formula, or the two ceilings could silently drift apart after a future retune.
+    func testSaneCeilingsStayConsistentWithEachOther() {
+        XCTAssertEqual(Balance.totalStars(lifetimeEarnings: Balance.maxSaneLifetimeEarnings),
+                       Balance.maxSaneLifetimeStars, accuracy: 1)
+    }
+
+    private func roundTrip(_ state: GameState) throws -> GameState {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(GameState.self, from: encoder.encode(state))
+    }
+
+    /// The actual repair path: a save whose numbers are still representable (so it decodes
+    /// cleanly, unlike the still-worse case of a literal too large for `Int` to parse at
+    /// all) but were corrupted by the runaway must come back down to the sane ceiling on
+    /// load, not just at display time - otherwise the very next prestige recomputes an
+    /// equally absurd award from the still-corrupted `lifetimeEarnings` and undoes nothing.
+    func testDecodingRepairsACorruptedSave() throws {
+        var state = GameState.newGame()
+        state.lifetimeStars = 5_000_000_000
+        state.stars = 5_000_000_000
+        state.lifetimeEarnings = 1e30
+
+        let decoded = try roundTrip(state)
+
+        XCTAssertEqual(decoded.lifetimeStars, Balance.maxSaneLifetimeStars)
+        XCTAssertEqual(decoded.lifetimeEarnings, Balance.maxSaneLifetimeEarnings, accuracy: 1)
+        XCTAssertLessThanOrEqual(decoded.stars, decoded.lifetimeStars)
+    }
+
+    /// The repair check must never touch a save that never crossed the line - it should be
+    /// invisible to every normal player, not just harmless.
+    func testDecodingLeavesNormalSavesUntouched() throws {
+        var state = GameState.newGame()
+        state.lifetimeStars = 500
+        state.stars = 200
+        state.lifetimeEarnings = 5e12
+
+        let decoded = try roundTrip(state)
+
+        XCTAssertEqual(decoded.lifetimeStars, 500)
+        XCTAssertEqual(decoded.stars, 200)
+        XCTAssertEqual(decoded.lifetimeEarnings, 5e12, accuracy: 1)
+    }
+
     // MARK: Staleness (organic-growth cap)
 
     func testStalenessMultiplierIsFlatWithinTheGracePeriod() {
