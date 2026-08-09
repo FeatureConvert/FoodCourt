@@ -229,12 +229,15 @@ private struct FranchiseSection: View {
 private struct ResearchSection: View {
     @EnvironmentObject private var engine: GameEngine
     @EnvironmentObject private var sound: SoundService
+    @EnvironmentObject private var store: StoreService
     let onToast: (String) -> Void
 
     var body: some View {
         IntroBanner(key: IntroKey.research, symbol: "flask.fill",
                     title: "Research is a second thing to spend stars on",
                     detail: "Every star also counts toward your permanent profit bonus, whether you spend it here or not - so buying research never costs you that bonus. Ranks unlock top to bottom within a branch.")
+
+        researchGrantPitch
 
         HStack(spacing: 10) {
             StarIcon().frame(width: 30, height: 30)
@@ -268,6 +271,50 @@ private struct ResearchSection: View {
             .padding(12)
             .panel(Theme.panel)
         }
+    }
+
+    private func purchaseResearchGrant() {
+        guard let item = ShopCatalog.item(for: "com.fable.foodcourt.pack.research") else { return }
+        Task { await store.purchase(item) }
+    }
+
+    /// Placed right where the grind is actually felt, not just buried in the general Shop -
+    /// a player who's stuck staring at an unaffordable node is a far better moment to offer
+    /// this than a generic browse-the-shop listing ever is.
+    private var researchGrantPitch: some View {
+        let item = ShopCatalog.item(for: "com.fable.foodcourt.pack.research")
+        return Button(action: purchaseResearchGrant) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle().fill(Theme.ink.opacity(0.18))
+                    GlyphIcon("flask.fill", tint: Theme.ink)
+                        .frame(width: 22, height: 22)
+                }
+                .frame(width: 44, height: 44)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("SKIP THE GRIND")
+                        .font(Theme.body(9, weight: .black))
+                        .tracking(0.6)
+                        .foregroundStyle(Theme.ink.opacity(0.6))
+                    Text("Research Grant")
+                        .font(Theme.body(15, weight: .black))
+                        .foregroundStyle(Theme.ink)
+                    Text("+2,500 stars, research only - buy again anytime")
+                        .font(Theme.body(11, weight: .medium))
+                        .foregroundStyle(Theme.ink.opacity(0.75))
+                        .lineLimit(2).multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
+                Text(item.map { store.displayPrice(for: $0) } ?? "$9.99")
+                    .font(Theme.numeric(15))
+                    .foregroundStyle(Theme.text)
+                    .padding(.horizontal, 13).padding(.vertical, 8)
+                    .background(Capsule().fill(Theme.ink))
+            }
+            .padding(13)
+        }
+        .buttonStyle(ChunkyButtonStyle(fill: Theme.gem, shadow: Theme.gemDeep, radius: 16))
     }
 
     private func nodeRow(_ node: ResearchNode) -> some View {

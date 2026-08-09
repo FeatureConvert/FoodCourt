@@ -1048,6 +1048,16 @@ final class GameEngine: ObservableObject {
         addBoost(id: "grand-opening", label: "Grand Opening ×2", multiplier: 2, hours: 72)
     }
 
+    /// Adds spendable-only stars: usable on research immediately, but never added to
+    /// `lifetimeStars`. The permanent profit multiplier stays something only a real Franchise
+    /// reset can grow - this lets a purchase (gems or real money) shorten the research grind
+    /// without ever letting it buy the core prestige decision itself.
+    func grantResearchStars(_ amount: Int) {
+        guard amount > 0 else { return }
+        state.stars += amount
+        save()
+    }
+
     // MARK: Free boost (Coffee Break)
 
     var boostReady: Bool { state.now >= state.boostAvailableAt }

@@ -16,6 +16,11 @@ enum ShopReward: Equatable {
     case accelerator
     /// The one-time anchor purchase. See `GameEngine.grantGrandOpeningBundle`.
     case grandOpeningBundle
+    /// Spendable-only stars for research - see `GameEngine.grantResearchStars`. Deliberately
+    /// repeatable (Consumable): with the full research tree now a many-months sink, a single
+    /// one-time purchase would barely register against it, and the whole point is to let a
+    /// player buy back time, not to sell the tree's completion outright.
+    case researchGrant
 }
 
 struct ShopItem: Identifiable, Equatable {
@@ -33,7 +38,7 @@ struct ShopItem: Identifiable, Equatable {
     /// festival season, so restoring it would hand out every later season free.
     var isConsumable: Bool {
         switch reward {
-        case .gems, .festivalPass, .legendaryManager, .accelerator: return true
+        case .gems, .festivalPass, .legendaryManager, .accelerator, .researchGrant: return true
         case .starterPack, .vip, .grandOpeningBundle: return false
         }
     }
@@ -76,6 +81,9 @@ enum ShopCatalog {
         ShopItem(id: prefix + "pack.grandopening", title: "Grand Opening Bundle",
                  subtitle: "1,500 gems · a manager for every open station in every venue · ×2 for 72h",
                  reward: .grandOpeningBundle, fallbackPrice: "$9.99", badge: "ONE TIME", magnitude: 3),
+        ShopItem(id: prefix + "pack.research", title: "Research Grant",
+                 subtitle: "+2,500 stars, spend on research only - repeatable",
+                 reward: .researchGrant, fallbackPrice: "$9.99", badge: "SHORTCUT", magnitude: 2),
     ]
 
     static let all: [ShopItem] = offers + gemPacks
@@ -136,7 +144,7 @@ final class StoreService: ObservableObject {
     func isOwned(_ item: ShopItem) -> Bool {
         guard let engine else { return false }
         switch item.reward {
-        case .gems, .legendaryManager, .accelerator: return false
+        case .gems, .legendaryManager, .accelerator, .researchGrant: return false
         case .starterPack: return engine.state.entitlements.starterPack
         case .vip: return engine.state.entitlements.vip
         case .grandOpeningBundle: return engine.state.entitlements.grandOpeningBundle
@@ -261,6 +269,10 @@ final class StoreService: ObservableObject {
             engine.setEntitlement(grandOpeningBundle: true)
             if firstTime { engine.grantGrandOpeningBundle() }
             if announce { lastGrant = "Grand Opening Bundle unlocked" }
+
+        case .researchGrant:
+            engine.grantResearchStars(2_500)
+            if announce { lastGrant = "+2,500 research stars" }
         }
         engine.save()
     }

@@ -150,6 +150,21 @@
       "type" : "NonConsumable"
     },
     {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "1000000013",
+      "localizations" : [
+        {
+          "description" : "2,500 stars to spend on research, on top of whatever you've already earned.",
+          "displayName" : "Research Grant",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fable.foodcourt.pack.research",
+      "referenceName" : "Research Grant",
+      "type" : "Consumable"
+    },
+    {
       "displayPrice" : "4.99",
       "familyShareable" : false,
       "internalID" : "1000000005",
