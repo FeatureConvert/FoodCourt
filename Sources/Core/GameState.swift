@@ -259,6 +259,8 @@ struct GameState: Codable, Equatable {
     var gauntletScore: Double = 0
     var gauntletWeekPlayed: Int? = nil
     var gauntletBestEver: Double = 0
+    /// Pinned at sprint start so mid-sprint board changes can't game the purse.
+    var gauntletBaseline: Double = 0
     /// Interactive perk choices spent this franchise run (see `Balance.perkChoicesPerRun`).
     /// Milestones past the cap still pay their automatic speed/profit bonuses - what runs
     /// out is the CHOICE, which turns "which four stations get a build?" into a real
@@ -512,6 +514,7 @@ struct GameState: Codable, Equatable {
         case activeContract, legacyPerks, signatureDish, expedition, expeditionWins, catering
         case perkChoicesUsed, tools
         case gauntletEndsAt, gauntletScore, gauntletWeekPlayed, gauntletBestEver
+        case gauntletBaseline
         case boardStartedAt
         case errands
         case venueSkins, unlockedSkins
@@ -600,6 +603,7 @@ struct GameState: Codable, Equatable {
         gauntletScore = try c.decodeIfPresent(Double.self, forKey: .gauntletScore) ?? 0
         gauntletWeekPlayed = try c.decodeIfPresent(Int.self, forKey: .gauntletWeekPlayed)
         gauntletBestEver = try c.decodeIfPresent(Double.self, forKey: .gauntletBestEver) ?? 0
+        gauntletBaseline = try c.decodeIfPresent(Double.self, forKey: .gauntletBaseline) ?? 0
         if let crossed = try c.decodeIfPresent(Set<Int>.self, forKey: .landmarksCrossed) {
             landmarksCrossed = crossed
         } else {

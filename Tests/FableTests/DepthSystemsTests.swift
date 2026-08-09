@@ -173,6 +173,41 @@ final class DepthSystemsTests: XCTestCase {
         XCTAssertFalse(engine.startGauntlet(), "played this week - locked until Monday")
     }
 
+    @MainActor
+    func testGauntletBaselineIsPinnedAgainstUnstaffCheese() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 100
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        let engine = GameEngine(state: state, startTimers: false,
+                                persistence: EphemeralPersistence())
+        XCTAssertTrue(engine.startGauntlet())
+        let pinned = engine.state.gauntletBaseline
+        XCTAssertGreaterThan(pinned, 1)
+
+        // Unstaff mid-sprint: live rate collapses, the pinned baseline must not.
+        engine.assign(managerID: nil, venue: 0, station: 0)
+        XCTAssertEqual(engine.state.automatedRate, 0)
+        engine.addCoins(pinned * 1.5) // 1.5x the honest baseline
+        let gems = engine.state.gems
+        engine.debugEndGauntlet()
+        engine.advance(by: 0.1)
+        XCTAssertEqual(engine.state.gems, gems + 15,
+                       "1.5x the PINNED baseline is one multiple - not a maxed purse")
+    }
+
+    @MainActor
+    func testCateringOrderSurvivesMidnight() {
+        var state = GameState.newGame()
+        state.venues[0].stations[1].level = 1
+        let engine = GameEngine(state: state, startTimers: false,
+                                persistence: EphemeralPersistence())
+        guard let order = engine.state.catering else { return XCTFail("order rolled") }
+        // A new day arriving while the order is live and unfinished must NOT replace it.
+        engine.rollCateringIfNeeded()
+        XCTAssertEqual(engine.state.catering?.day, order.day,
+                       "a live unfinished order keeps its full window")
+    }
+
     func testGauntletPurseCapsAtNinety() {
         // min(90, multiples * 15): 6+ multiples hit the cap.
         XCTAssertEqual(min(90, 7 * 15), 90)

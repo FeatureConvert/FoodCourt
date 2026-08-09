@@ -1113,7 +1113,9 @@ final class GameEngine: ObservableObject {
         let week = GuestChef.weekKey(now: state.now)
         guard state.weeklyQuestWeek != week else { return }
         state.weeklyQuestWeek = week
-        let target = Swift.max(2_000, (state.automatedServeRate * 6 * 3600).rounded())
+        // ~10 online-equivalent hours of throughput (offline serves don't count toward
+        // serve quests), so 150 gems asks for a real week of showing up, not a freebie.
+        let target = Swift.max(2_000, (state.automatedServeRate * 10 * 3600).rounded())
         state.weeklyQuest = ActiveQuest(
             id: "weekly-\(week)", kind: .serve, target: target, progress: 0,
             rewardGems: 150, rewardSeconds: 600
@@ -1258,6 +1260,9 @@ final class GameEngine: ObservableObject {
         guard !gauntletActive, !gauntletPlayedThisWeek else { return false }
         state.gauntletWeekPlayed = GuestChef.weekKey(now: state.now)
         state.gauntletScore = 0
+        // Baseline pinned NOW: computing it at settle time let a player unstaff the board
+        // just before the horn to crater the baseline and max the purse.
+        state.gauntletBaseline = Swift.max(1, state.automatedRate * Self.gauntletSeconds)
         state.gauntletEndsAt = state.now.addingTimeInterval(Self.gauntletSeconds)
         save()
         return true
@@ -1272,7 +1277,7 @@ final class GameEngine: ObservableObject {
         // Purse: baseline is ten idle minutes; every full multiple of it earned pays 15
         // gems, capped at 90 - an all-out sprint roughly doubles-to-triples idle, so the
         // cap needs real play to reach without being farmable.
-        let baseline = Swift.max(1, state.automatedRate * Self.gauntletSeconds)
+        let baseline = Swift.max(1, state.gauntletBaseline)
         let multiples = Int(score / baseline)
         let gems = Swift.min(90, multiples * 15)
         if gems > 0 { state.gems += gems }
@@ -1314,7 +1319,13 @@ final class GameEngine: ObservableObject {
     /// unclaimed order simply expires - tomorrow brings a fresh one.
     func rollCateringIfNeeded(calendar: Calendar = .current) {
         let day = calendar.ordinality(of: .day, in: .era, for: state.now) ?? 0
-        if let current = state.catering, current.day == day { return }
+        // A live unfinished order keeps its full 24 hours even across midnight - the old
+        // day-key-only check silently replaced an 11pm order one hour in. A resolved
+        // (claimed or expired) order still only re-rolls once per calendar day.
+        if let current = state.catering {
+            if !current.claimed, current.expiresAt > state.now { return }
+            if current.day == day { return }
+        }
         state.catering = Catering.roll(day: day, state: state, now: state.now)
     }
 
