@@ -9,10 +9,20 @@ struct StationListView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            HStack {
+            HStack(spacing: 6) {
                 Text("STATIONS")
                     .font(Theme.body(12, weight: .black))
                     .foregroundStyle(Theme.textDim)
+                if engine.costInflation > 1.01 {
+                    // A board that's gone a long time without a franchise reset gets
+                    // proportionally pricier - this is the one place that's visible during
+                    // normal play rather than only inside the Franchise sheet.
+                    Text("+\(Int((engine.costInflation - 1) * 100))% COSTS")
+                        .font(Theme.body(9, weight: .black))
+                        .foregroundStyle(Theme.negative)
+                        .padding(.horizontal, 6).padding(.vertical, 3)
+                        .background(Capsule().fill(Theme.negative.opacity(0.16)))
+                }
                 Spacer()
                 BuyQuantityPicker()
             }
@@ -484,7 +494,7 @@ struct NextVenueTeaser: View {
                 onToast("\(venue.name) is open for business!")
             } else {
                 sound.play(.denied)
-                onToast("Need \(Format.price(venue.unlockCost)) to open \(venue.name)")
+                onToast("Need \(Format.price(engine.unlockCost(for: venue))) to open \(venue.name)")
             }
         } label: {
             HStack(spacing: 12) {
@@ -506,7 +516,7 @@ struct NextVenueTeaser: View {
                         .foregroundStyle(Theme.textDim)
                 }
                 Spacer(minLength: 0)
-                Text(Format.price(venue.unlockCost))
+                Text(Format.price(engine.unlockCost(for: venue)))
                     .font(Theme.numeric(14))
                     .foregroundStyle(affordable ? Theme.coin : Theme.textDim)
             }

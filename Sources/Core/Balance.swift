@@ -247,6 +247,36 @@ enum Balance {
         spec.baseCost * (spec.id == 0 ? firstStationManagerFactor : managerCostFactor)
     }
 
+    // MARK: Staleness (organic-growth cap)
+
+    /// Hours a fresh board gets before the staleness tax below starts - long enough that even
+    /// an unhurried first-time player (simulated at ~9h to their first Franchise) reaches it
+    /// before ever paying this, so it never touches a brand new save.
+    static let staleGraceHours: Double = 8
+    /// Scales how many "tax days" one real hour past the grace period counts as.
+    static let staleDaysPerHour: Double = 1.0 / 6.0
+    static let stalePower: Double = 3.0
+
+    /// Every purchase on the SAME board (stations, managers, venue unlocks) gets
+    /// proportionally pricier the longer that board goes without a Franchise or Legacy reset.
+    ///
+    /// A single station's cost curve already compounds forever on its own, and with thirty
+    /// stations across five venues all drawing from one shared, ever-growing income pool, the
+    /// portfolio as a whole compounds faster still - simulated against the real curves, a
+    /// player who simply never resets out-earns *every* Franchise cadence tested, at every
+    /// checkpoint from a day out to a week, which made "never prestige" the strictly correct
+    /// answer instead of prestige being a real decision. This tax targets exactly that: it
+    /// only starts after `staleGraceHours` (well past even a slow first Franchise, verified by
+    /// simulation not to change that number), then grows with the cube of days spent stalling
+    /// past that point. By day 3-7 a patient Franchise cadence clearly out-earns refusing to
+    /// reset, while resetting too often is still roughly a wash against not resetting at all -
+    /// there's a real cadence to find, not just an "always" or "never" answer.
+    static func stalenessMultiplier(boardAgeHours: Double) -> Double {
+        guard boardAgeHours > staleGraceHours else { return 1 }
+        let daysPast = (boardAgeHours - staleGraceHours) * staleDaysPerHour
+        return pow(1 + daysPast, stalePower)
+    }
+
     // MARK: Milestones
 
     static func profitMultiplier(level: Int) -> Double {

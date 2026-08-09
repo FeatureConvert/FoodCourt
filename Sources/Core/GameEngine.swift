@@ -374,19 +374,29 @@ final class GameEngine: ObservableObject {
         return true
     }
 
+    /// Hours since the current board (last Franchise/Legacy reset, or save creation) began.
+    var boardAgeHours: Double { state.now.timeIntervalSince(state.boardStartedAt) / 3600 }
+
+    /// How much pricier every purchase on this board is right now, purely from having gone
+    /// without a reset for a while - see `Balance.stalenessMultiplier`. 1 means no tax yet.
+    var costInflation: Double { Balance.stalenessMultiplier(boardAgeHours: boardAgeHours) }
+
     func quantity(for index: Int, in venue: Int? = nil) -> Int {
         let venueID = venue ?? state.currentVenue
         let spec = Balance.venue(venueID).stations[index]
         let level = state.venues[venueID].stations[index].level
         if let fixed = buyQuantity.fixedAmount { return fixed }
-        return Swift.max(1, Balance.maxAffordable(spec: spec, level: level, coins: state.coins))
+        // Multiplying every cost by `costInflation` is equivalent to dividing spending power
+        // by it when inverting for an affordable quantity - keeps Balance's closed-form cost
+        // curve untouched and correct for any inflation level.
+        return Swift.max(1, Balance.maxAffordable(spec: spec, level: level, coins: state.coins / costInflation))
     }
 
     func price(for index: Int, in venue: Int? = nil) -> Double {
         let venueID = venue ?? state.currentVenue
         let spec = Balance.venue(venueID).stations[index]
         let level = state.venues[venueID].stations[index].level
-        return Balance.cost(spec: spec, level: level, quantity: quantity(for: index, in: venueID))
+        return Balance.cost(spec: spec, level: level, quantity: quantity(for: index, in: venueID)) * costInflation
     }
 
     func canAfford(index: Int) -> Bool { state.coins >= price(for: index) }
@@ -409,7 +419,7 @@ final class GameEngine: ObservableObject {
     }
 
     func managerCost(for index: Int) -> Double {
-        Balance.managerCost(spec: Balance.venue(state.currentVenue).stations[index])
+        Balance.managerCost(spec: Balance.venue(state.currentVenue).stations[index]) * costInflation
     }
 
     @discardableResult
@@ -606,12 +616,17 @@ final class GameEngine: ObservableObject {
         Balance.venues.first { !state.venues[$0.id].unlocked }
     }
 
-    func canUnlock(_ venue: VenueSpec) -> Bool { state.coins >= venue.unlockCost }
+    /// The venue's base price, inflated by however stale the current board is - matches every
+    /// other purchase on the board (see `costInflation`), so opening a new venue doesn't
+    /// become the one loophole around the staleness tax.
+    func unlockCost(for venue: VenueSpec) -> Double { venue.unlockCost * costInflation }
+
+    func canUnlock(_ venue: VenueSpec) -> Bool { state.coins >= unlockCost(for: venue) }
 
     @discardableResult
     func unlock(_ venue: VenueSpec) -> Bool {
         guard !state.venues[venue.id].unlocked, canUnlock(venue) else { return false }
-        state.coins -= venue.unlockCost
+        state.coins -= unlockCost(for: venue)
         state.venues[venue.id].unlocked = true
         state.venues[venue.id].stations[0].level = 1
         switchTo(venue: venue.id)
@@ -703,6 +718,7 @@ final class GameEngine: ObservableObject {
         state.venues = Balance.venues.map { VenueState.fresh(venue: $0, unlocked: $0.id == 0) }
         state.venues[0].stations[0].level = 1
         state.currentVenue = 0
+        state.boardStartedAt = state.now
         // Recipes and research survive a franchise reset - they're collections the player
         // built, not station upgrades. Staff only partly does: gem-bought, IAP-granted, and
         // reward-granted managers stay, but anyone hired with plain coins (or the tutorial's
@@ -743,6 +759,7 @@ final class GameEngine: ObservableObject {
         state.venues = Balance.venues.map { VenueState.fresh(venue: $0, unlocked: $0.id == 0) }
         state.venues[0].stations[0].level = 1
         state.currentVenue = 0
+        state.boardStartedAt = state.now
         lastServe.removeAll()
         pendingBursts.removeAll()
         lastBurstAt.removeAll()

@@ -153,6 +153,13 @@ struct GameState: Codable, Equatable {
     var lastOfflineDoubleDay: Date? = nil
     var timeOffset: TimeInterval = 0
 
+    /// When the current board (since the last Franchise or Legacy reset, or the start of a
+    /// brand new save) began. Drives `Balance.stalenessMultiplier` - see that doc comment for
+    /// why a board's own cost curve needs a second, time-based brake. Old saves decode this as
+    /// "right now," which starts them with a full fresh grace period rather than retroactively
+    /// taxing a board they were already partway through.
+    var boardStartedAt: Date = Date()
+
     // Depth systems
     var research: [String: Int] = [:]
     var managers: [OwnedManager] = []
@@ -403,6 +410,7 @@ struct GameState: Codable, Equatable {
         case research, managers, recipeCards, quests, questsClaimed, festival, league, tutorial
         case rushEndsAt, rushAvailableAt, rushesCompleted, totalTaps, totalServed
         case claimedAchievements, prestigeCount, bestLeagueTierReached, seenIntros
+        case boardStartedAt
         case errands
         case venueSkins, unlockedSkins
         case legacy
@@ -460,6 +468,9 @@ struct GameState: Codable, Equatable {
         legacy = try c.decodeIfPresent(LegacyState.self, forKey: .legacy) ?? LegacyState()
         lastGuestChefPurchaseWeek = try c.decodeIfPresent(Int.self, forKey: .lastGuestChefPurchaseWeek)
         lastGuestChefSpotlightWeek = try c.decodeIfPresent(Int.self, forKey: .lastGuestChefSpotlightWeek)
+        // Missing key means a save from before the staleness tax existed - treat its board as
+        // freshly started rather than backdating a tax onto progress the player already made.
+        boardStartedAt = try c.decodeIfPresent(Date.self, forKey: .boardStartedAt) ?? Date()
 
         if let decoded = try c.decodeIfPresent(Set<String>.self, forKey: .seenIntros) {
             seenIntros = decoded

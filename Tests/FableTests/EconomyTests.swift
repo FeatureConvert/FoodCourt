@@ -134,6 +134,22 @@ final class EconomyTests: XCTestCase {
         XCTAssertLessThan(bonusAt20k, bonusAt10k * 2)
     }
 
+    // MARK: Staleness (organic-growth cap)
+
+    func testStalenessMultiplierIsFlatWithinTheGracePeriod() {
+        XCTAssertEqual(Balance.stalenessMultiplier(boardAgeHours: 0), 1)
+        XCTAssertEqual(Balance.stalenessMultiplier(boardAgeHours: Balance.staleGraceHours), 1)
+        XCTAssertEqual(Balance.stalenessMultiplier(boardAgeHours: Balance.staleGraceHours - 0.01), 1)
+    }
+
+    func testStalenessMultiplierGrowsPastTheGracePeriod() {
+        let atGrace = Balance.stalenessMultiplier(boardAgeHours: Balance.staleGraceHours)
+        let aDayPast = Balance.stalenessMultiplier(boardAgeHours: Balance.staleGraceHours + 24)
+        let aWeekPast = Balance.stalenessMultiplier(boardAgeHours: Balance.staleGraceHours + 24 * 7)
+        XCTAssertGreaterThan(aDayPast, atGrace)
+        XCTAssertGreaterThan(aWeekPast, aDayPast, "further stalling keeps getting pricier, not flattening out")
+    }
+
     // MARK: Formatting
 
     func testNumberAbbreviation() {

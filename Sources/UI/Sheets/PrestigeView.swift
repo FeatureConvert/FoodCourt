@@ -82,8 +82,20 @@ private struct FranchiseSection: View {
             statRow("Lifetime earnings", Format.currency(engine.state.lifetimeEarnings))
             divider
             statRow("This run", Format.currency(engine.state.runEarnings))
+            if engine.costInflation > 1.01 {
+                divider
+                statRow("Board costs", "+\(Int((engine.costInflation - 1) * 100))%", warning: true)
+            }
         }
         .panel(Theme.panel)
+
+        if engine.costInflation > 1.01 {
+            Text("This board has gone a while without a franchise reset, so everything on it costs more than it used to. A reset always starts back at the normal price.")
+                .font(Theme.body(11, weight: .medium))
+                .foregroundStyle(Theme.textDim)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+        }
 
         VStack(alignment: .leading, spacing: 6) {
             bullet("Every station, level, and manager placement resets", system: "arrow.counterclockwise")
@@ -184,7 +196,7 @@ private struct FranchiseSection: View {
         Rectangle().fill(Theme.stroke.opacity(0.5)).frame(height: 1).padding(.horizontal, 14)
     }
 
-    private func statRow(_ label: String, _ value: String, highlight: Bool = false) -> some View {
+    private func statRow(_ label: String, _ value: String, highlight: Bool = false, warning: Bool = false) -> some View {
         HStack {
             Text(label)
                 .font(Theme.body(12, weight: .medium))
@@ -192,7 +204,7 @@ private struct FranchiseSection: View {
             Spacer()
             Text(value)
                 .font(Theme.numeric(14))
-                .foregroundStyle(highlight ? Theme.star : Theme.text)
+                .foregroundStyle(warning ? Theme.negative : (highlight ? Theme.star : Theme.text))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)

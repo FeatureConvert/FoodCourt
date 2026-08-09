@@ -1022,6 +1022,26 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(e.state.assignedManagerCount, 0)
     }
 
+    @MainActor
+    func testStaleBoardCostsMoreAndFranchisingResetsIt() {
+        let e = engine()
+        XCTAssertEqual(e.costInflation, 1, accuracy: 1e-9, "a brand new board isn't taxed yet")
+        let freshPrice = e.price(for: 0)
+
+        e.debugSkip(hours: Balance.staleGraceHours + 24 * 3)
+        XCTAssertGreaterThan(e.costInflation, 1, "a board that's sat for days should cost more")
+        XCTAssertEqual(e.price(for: 0), freshPrice * e.costInflation, accuracy: freshPrice * 0.01,
+                       "the station price scales with the same inflation factor")
+        XCTAssertGreaterThan(e.managerCost(for: 0), Balance.managerCost(spec: Balance.venue(0).stations[0]),
+                             "manager hire cost is taxed too")
+        XCTAssertGreaterThan(e.unlockCost(for: Balance.venue(1)), Balance.venue(1).unlockCost,
+                             "venue unlock cost is taxed too, so it can't dodge the tax")
+
+        e.addCoins(4e12)
+        _ = e.prestige()
+        XCTAssertEqual(e.costInflation, 1, accuracy: 1e-9, "franchising starts a fresh, untaxed board")
+    }
+
     // MARK: Cloud sync
 
     func testCloudPicksTheSaveThatHasSeenMoreOfTheGame() {
