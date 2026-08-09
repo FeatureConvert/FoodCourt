@@ -123,6 +123,7 @@ final class GameEngine: ObservableObject {
         }
         Festival.rolloverIfNeeded(&state.festival, now: state.now)
         rollWeeklyQuestIfNeeded()
+        rollCateringIfNeeded()
     }
 
     func start() {
@@ -188,6 +189,7 @@ final class GameEngine: ObservableObject {
         League.advanceRivals(&state.league, to: state.now, playerRate: state.automatedRate)
         settleLeagueIfFinished()
         rollWeeklyQuestIfNeeded()
+        rollCateringIfNeeded()
         state.lastSeen = state.now
         lastTickTime = CACurrentMediaTimeCompat()
     }
@@ -278,6 +280,7 @@ final class GameEngine: ObservableObject {
                         let payout = revenue * completions * doubleServeFactor(mods, servings: served)
                         earned += payout
                         totalServed += served
+                        advanceCatering(venue: venue.id, station: spec.id, served: served)
                         if venue.id == state.currentVenue {
                             serves[spec.id] = ServeEvent(station: spec.id, amount: payout, count: served)
                         }
@@ -290,6 +293,7 @@ final class GameEngine: ObservableObject {
                         let payout = revenue * doubleServeFactor(mods, servings: 1)
                         earned += payout
                         totalServed += 1
+                        advanceCatering(venue: venue.id, station: spec.id, served: 1)
                         if venue.id == state.currentVenue {
                             serves[spec.id] = ServeEvent(station: spec.id, amount: payout, count: 1)
                         }
@@ -1163,6 +1167,43 @@ final class GameEngine: ObservableObject {
         addCoins(errand.rewardCoins)
         save()
         return errand
+    }
+
+    // MARK: Catering
+
+    /// One order per calendar day, rolled against the current venue. An unfinished or
+    /// unclaimed order simply expires - tomorrow brings a fresh one.
+    func rollCateringIfNeeded(calendar: Calendar = .current) {
+        let day = calendar.ordinality(of: .day, in: .era, for: state.now) ?? 0
+        if let current = state.catering, current.day == day { return }
+        state.catering = Catering.roll(day: day, state: state, now: state.now)
+    }
+
+    /// Called from the tick loop with each station's completed serves.
+    private func advanceCatering(venue: Int, station: Int, served: Int) {
+        guard var order = state.catering, !order.claimed,
+              order.venue == venue,
+              order.requirements[station] != nil,
+              order.expiresAt > state.now else { return }
+        let before = order.isComplete
+        order.progress[station, default: 0] += served
+        state.catering = order
+        if !before, order.isComplete {
+            toast = "Catering order filled! Collect it in Goals."
+        }
+    }
+
+    @discardableResult
+    func claimCatering() -> CateringOrder? {
+        guard var order = state.catering, order.isComplete, !order.claimed,
+              order.expiresAt > state.now else { return nil }
+        order.claimed = true
+        state.catering = order
+        state.gems += order.rewardGems
+        addCoins(Swift.max(2_000, state.automatedRate * order.rewardIncomeSeconds))
+        awardTickets(Festival.ticketsPerQuest)
+        save()
+        return order
     }
 
     // MARK: Expeditions (Food Court Face-Offs)

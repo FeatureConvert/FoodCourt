@@ -22,6 +22,90 @@ struct FranchiseContract: Identifiable, Equatable {
     var starAwardBonus: Double = 0         // fraction added to the NEXT prestige award
 }
 
+// MARK: - Catering
+
+/// A daily multi-station order: "the school fair needs 800 fries and 500 sodas by
+/// tonight." Fills the mid-term gap between 90-second quests and week-long seasons, and -
+/// unlike every other goal - cares about the COMPOSITION of your board: the stations named
+/// have to actually be running.
+struct CateringOrder: Codable, Equatable {
+    /// Day ordinal it was rolled for - one order per day.
+    var day: Int
+    var venue: Int
+    /// Station id -> dishes required.
+    var requirements: [Int: Int]
+    var progress: [Int: Int] = [:]
+    var expiresAt: Date
+    var rewardGems: Int
+    var rewardIncomeSeconds: Double
+    var claimed: Bool = false
+
+    enum CodingKeys: String, CodingKey {
+        case day, venue, requirements, progress, expiresAt, rewardGems, rewardIncomeSeconds, claimed
+    }
+
+    init(day: Int, venue: Int, requirements: [Int: Int], expiresAt: Date,
+         rewardGems: Int, rewardIncomeSeconds: Double) {
+        self.day = day
+        self.venue = venue
+        self.requirements = requirements
+        self.expiresAt = expiresAt
+        self.rewardGems = rewardGems
+        self.rewardIncomeSeconds = rewardIncomeSeconds
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        day = try c.decodeIfPresent(Int.self, forKey: .day) ?? 0
+        venue = try c.decodeIfPresent(Int.self, forKey: .venue) ?? 0
+        requirements = try c.decodeIfPresent([Int: Int].self, forKey: .requirements) ?? [:]
+        progress = try c.decodeIfPresent([Int: Int].self, forKey: .progress) ?? [:]
+        expiresAt = try c.decodeIfPresent(Date.self, forKey: .expiresAt) ?? Date()
+        rewardGems = try c.decodeIfPresent(Int.self, forKey: .rewardGems) ?? 0
+        rewardIncomeSeconds = try c.decodeIfPresent(Double.self, forKey: .rewardIncomeSeconds) ?? 0
+        claimed = try c.decodeIfPresent(Bool.self, forKey: .claimed) ?? false
+    }
+
+    var isComplete: Bool {
+        requirements.allSatisfy { (progress[$0.key] ?? 0) >= $0.value }
+    }
+
+    func fraction(station: Int) -> Double {
+        guard let need = requirements[station], need > 0 else { return 0 }
+        return min(1, Double(progress[station] ?? 0) / Double(need))
+    }
+}
+
+enum Catering {
+
+    /// Rolls the day's order against the player's CURRENT venue: two owned stations,
+    /// targets sized to a few active-ish hours of each station's own throughput. Returns
+    /// nil when the venue can't support one yet (fewer than two owned stations).
+    static func roll(day: Int, state: GameState, now: Date) -> CateringOrder? {
+        let venue = state.currentVenue
+        let owned = Balance.venue(venue).stations.filter { state.venues[venue].stations[$0.id].isOwned }
+        guard owned.count >= 2 else { return nil }
+
+        let rng = SeededRandom(seed: day &* 31 &+ venue &* 7)
+        var picks: Set<Int> = []
+        while picks.count < 2 { picks.insert(owned[rng.next(owned.count)].id) }
+
+        var requirements: [Int: Int] = [:]
+        for id in picks {
+            let level = state.venues[venue].stations[id].level
+            let spec = Balance.venue(venue).stations[id]
+            let cycle = max(Balance.minimumCycle, Balance.cycleTime(spec: spec, level: level))
+            // ~4 hours of that station's own pace, floored so early boards still get a
+            // real ask rather than a freebie.
+            requirements[id] = max(150, Int((4 * 3600 / cycle).rounded()))
+        }
+        return CateringOrder(
+            day: day, venue: venue, requirements: requirements,
+            expiresAt: now.addingTimeInterval(24 * 3600),
+            rewardGems: 25, rewardIncomeSeconds: 900)
+    }
+}
+
 enum Contracts {
 
     static let all: [FranchiseContract] = [

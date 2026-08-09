@@ -49,6 +49,13 @@ private struct QuestsSection: View {
             weeklyRow(weekly)
         }
 
+        if let order = engine.state.catering, order.expiresAt > engine.state.now, !order.claimed {
+            IntroBanner(key: IntroKey.catering, symbol: "takeoutbag.and.cup.and.straw.fill",
+                        title: "Catering orders",
+                        detail: "One big order a day, naming specific stations - the named counters have to actually run to fill it. Finish before it expires for gems, coins, and tickets; a new order arrives every day either way.")
+            cateringRow(order)
+        }
+
         ForEach(engine.state.quests) { quest in
             row(quest)
         }
@@ -63,6 +70,78 @@ private struct QuestsSection: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 8)
+    }
+
+    /// Today's catering order: per-station progress toward a composed, expiring ask.
+    private func cateringRow(_ order: CateringOrder) -> some View {
+        let done = order.isComplete
+        return VStack(spacing: 10) {
+            HStack(spacing: 6) {
+                Text("CATERING · \(Balance.venue(order.venue).name.uppercased())")
+                    .font(Theme.body(9, weight: .black))
+                    .tracking(0.6)
+                    .foregroundStyle(Theme.ink)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Capsule().fill(Theme.coin))
+                Spacer(minLength: 0)
+                Text("\(Format.duration(order.expiresAt.timeIntervalSince(engine.state.now))) left")
+                    .font(Theme.body(9, weight: .medium))
+                    .foregroundStyle(Theme.textDim)
+            }
+            ForEach(order.requirements.keys.sorted(), id: \.self) { station in
+                let spec = Balance.venue(order.venue).stations[station]
+                let need = order.requirements[station] ?? 0
+                let have = min(order.progress[station] ?? 0, need)
+                VStack(spacing: 4) {
+                    HStack(spacing: 8) {
+                        FoodSprite(art: spec.art, colors: spec.colors)
+                            .equatable()
+                            .frame(width: 22, height: 22)
+                        Text(spec.name)
+                            .font(Theme.body(12, weight: .bold))
+                            .foregroundStyle(Theme.text)
+                        Spacer(minLength: 0)
+                        Text("\(Format.count(have)) / \(Format.count(need))")
+                            .font(Theme.numeric(11))
+                            .foregroundStyle(have >= need ? Theme.positive : Theme.textDim)
+                    }
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Theme.ink.opacity(0.7))
+                            Capsule()
+                                .fill(have >= need ? Theme.positive : Theme.coin)
+                                .frame(width: geo.size.width * order.fraction(station: station))
+                        }
+                    }
+                    .frame(height: 5)
+                }
+            }
+            HStack(spacing: 4) {
+                GemIcon().frame(width: 13, height: 13)
+                Text("\(order.rewardGems) + \(Format.trim(order.rewardIncomeSeconds / 60))m income + tickets")
+                    .font(Theme.body(10, weight: .bold))
+                    .foregroundStyle(Theme.textDim)
+                Spacer(minLength: 0)
+            }
+            if done {
+                Button {
+                    if engine.claimCatering() != nil {
+                        Haptics.success()
+                        sound.play(.bigReward)
+                        onToast("Catering delivered! +\(order.rewardGems) gems")
+                    }
+                } label: {
+                    Text("Deliver")
+                        .font(Theme.body(13, weight: .black))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
+                .buttonStyle(ChunkyButtonStyle(fill: Theme.positive,
+                                               shadow: Theme.positive.opacity(0.5), radius: 12))
+            }
+        }
+        .padding(12)
+        .panel(done ? Theme.panelRaised : Theme.panel)
     }
 
     /// The oversized once-a-week challenge - same anatomy as a regular row, framed as an

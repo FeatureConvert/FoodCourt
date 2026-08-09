@@ -250,6 +250,8 @@ struct GameState: Codable, Equatable {
     /// The one in-flight Face-Off, if any - see `Expeditions`.
     var expedition: ActiveExpedition? = nil
     var expeditionWins: Int = 0
+    /// Today's catering order - see `Catering`.
+    var catering: CateringOrder? = nil
 
     /// Keys of one-shot explainer moments the player has already seen - the welcome screen,
     /// the first-prestige and first-legacy alerts, the perk primer, and the first-open banner
@@ -492,7 +494,7 @@ struct GameState: Codable, Equatable {
         case lastPrestigeAward, landmarksCrossed, rushChain, servedAtBoardStart
         case nemesisSeed, venueMastery, bestFestivalTier, lastBondAccrualAt
         case weeklyQuest, weeklyQuestWeek
-        case activeContract, legacyPerks, signatureDish, expedition, expeditionWins
+        case activeContract, legacyPerks, signatureDish, expedition, expeditionWins, catering
         case boardStartedAt
         case errands
         case venueSkins, unlockedSkins
@@ -574,6 +576,7 @@ struct GameState: Codable, Equatable {
         signatureDish = try c.decodeIfPresent([Int: Int].self, forKey: .signatureDish) ?? [:]
         expedition = try c.decodeIfPresent(ActiveExpedition.self, forKey: .expedition)
         expeditionWins = try c.decodeIfPresent(Int.self, forKey: .expeditionWins) ?? 0
+        catering = try c.decodeIfPresent(CateringOrder.self, forKey: .catering)
         if let crossed = try c.decodeIfPresent(Set<Int>.self, forKey: .landmarksCrossed) {
             landmarksCrossed = crossed
         } else {
@@ -636,10 +639,11 @@ enum IntroKey {
     static let synergies = "synergies"
     static let seasonTwist = "seasonTwist"
     static let expeditions = "expeditions"
+    static let catering = "catering"
 
     static let allKeys: [String] = [
         welcome, prestige, legacy, perks, research, league, festival, staff, recipes, errands,
         cosmetics, roadmap, halfwayFranchise, guestChef, icloudSync, contracts, legacyTree,
-        signature, synergies, seasonTwist, expeditions,
+        signature, synergies, seasonTwist, expeditions, catering,
     ]
 }
