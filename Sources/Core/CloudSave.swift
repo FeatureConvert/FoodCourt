@@ -70,14 +70,34 @@ final class CloudSaveService: ObservableObject {
         return remote
     }
 
-    /// Which save to trust. Lifetime earnings only ever go up, so it is the one field that
-    /// reliably says which device has seen more of the game - unlike a timestamp, which a
-    /// device with a wrong clock can win with nothing to show for it.
+    /// Which save to trust. Progress fields that only ever go up (with one deliberate
+    /// exception, below) say which device has seen more of the game - unlike a timestamp,
+    /// which a device with a wrong clock can win with nothing to show for it.
+    ///
+    /// Ordering matters and each step exists for a failure that was real:
+    /// - `legacy.level` first, because `legacyReset()` deliberately zeroes stars - compared
+    ///   stars-first, the device that just performed a Legacy reset looked *behind* any
+    ///   stale device that hadn't synced yet, which could clobber the reset.
+    /// - `prestigeCount` and research ranks as tiebreakers, because two saves clamped by
+    ///   the corruption repair in `GameState.init(from:)` tie exactly on stars AND
+    ///   earnings, and without a further tiebreaker a genuinely different remote was
+    ///   silently ignored.
     nonisolated static func isAhead(_ candidate: GameState, of current: GameState) -> Bool {
+        if candidate.legacy.level != current.legacy.level {
+            return candidate.legacy.level > current.legacy.level
+        }
         if candidate.lifetimeStars != current.lifetimeStars {
             return candidate.lifetimeStars > current.lifetimeStars
         }
-        return candidate.lifetimeEarnings > current.lifetimeEarnings
+        if candidate.lifetimeEarnings != current.lifetimeEarnings {
+            return candidate.lifetimeEarnings > current.lifetimeEarnings
+        }
+        if candidate.prestigeCount != current.prestigeCount {
+            return candidate.prestigeCount > current.prestigeCount
+        }
+        let candidateRanks = candidate.research.values.reduce(0, +)
+        let currentRanks = current.research.values.reduce(0, +)
+        return candidateRanks > currentRanks
     }
 
     /// Called on launch. A brand new local save adopts the cloud silently — that is the

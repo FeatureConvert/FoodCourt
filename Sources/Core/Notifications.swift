@@ -61,6 +61,31 @@ final class NotificationService: ObservableObject {
 
     private let center = UNUserNotificationCenter.current()
 
+    /// The cached `authStatus` used to start every launch at `.notDetermined` and nothing
+    /// ever asked the system for the real answer - so a player who enabled notifications,
+    /// killed the app, and relaunched had every `reschedule` silently no-op forever (the
+    /// guard saw `.notDetermined`) until they re-toggled the setting. Read the truth on
+    /// init, and have `reschedule` check the live settings rather than the cache.
+    init() {
+        refreshAuthStatus()
+    }
+
+    func refreshAuthStatus() {
+        center.getNotificationSettings { [weak self] settings in
+            Task { @MainActor in
+                self?.authStatus = Self.status(from: settings.authorizationStatus)
+            }
+        }
+    }
+
+    private static func status(from system: UNAuthorizationStatus) -> AuthStatus {
+        switch system {
+        case .authorized, .provisional, .ephemeral: return .authorized
+        case .denied: return .denied
+        default: return .notDetermined
+        }
+    }
+
     func requestAuthorizationIfNeeded() {
         center.requestAuthorization(options: [.alert, .sound]) { [weak self] granted, _ in
             Task { @MainActor in
@@ -71,12 +96,23 @@ final class NotificationService: ObservableObject {
 
     /// Cancels anything previously scheduled and re-schedules from the current state. Fixed
     /// identifiers per notification type mean a repeated call never stacks duplicates.
+    /// Authorization is checked against the live system settings inside the callback, not
+    /// the cached `authStatus` - see `init` for the relaunch bug the cache caused.
     func reschedule(for state: GameState, now: Date = Date()) {
         let ids = ["rush-ready", "offline-cap-full", "festival-ending", "league-ending"]
         center.removePendingNotificationRequests(withIdentifiers: ids)
 
-        guard authStatus == .authorized else { return }
+        center.getNotificationSettings { [weak self] settings in
+            Task { @MainActor in
+                let status = Self.status(from: settings.authorizationStatus)
+                self?.authStatus = status
+                guard status == .authorized else { return }
+                self?.schedule(for: state, now: now)
+            }
+        }
+    }
 
+    private func schedule(for state: GameState, now: Date) {
         for plan in NotificationPlanner.plan(for: state, now: now) {
             let content = UNMutableNotificationContent()
             content.title = plan.title

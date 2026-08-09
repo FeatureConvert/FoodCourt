@@ -108,6 +108,12 @@ final class StoreService: ObservableObject {
     /// `Transaction.updates`. Granting gems twice for one payment would be a real bug, so
     /// every id is only ever honoured once.
     private var processedTransactions: Set<UInt64> = []
+    /// Verified transactions that arrived before `attach(engine:)` ran. `Transaction.updates`
+    /// starts delivering in `init`, but the app wires the engine in a later `.task` - and
+    /// finishing a consumable in that window without granting it would eat a paid purchase
+    /// permanently. Held un-finished here and drained the moment the engine attaches;
+    /// if the app dies first, StoreKit simply redelivers on next launch.
+    private var deferredTransactions: [Transaction] = []
 
     init(engine: GameEngine? = nil) {
         self.engine = engine
@@ -118,6 +124,11 @@ final class StoreService: ObservableObject {
 
     func attach(engine: GameEngine) {
         self.engine = engine
+        let queued = deferredTransactions
+        deferredTransactions = []
+        for transaction in queued {
+            Task { await self.deliver(transaction) }
+        }
     }
 
     // MARK: Products
@@ -186,7 +197,9 @@ final class StoreService: ObservableObject {
         do {
             try await AppStore.sync()
         } catch {
-            // Sync throwing usually means the user cancelled the sign-in sheet.
+            // Sync throwing usually means the user cancelled the sign-in sheet - stay
+            // silent rather than toasting either success or failure for their own cancel.
+            return
         }
         await refreshEntitlements()
         lastGrant = "Purchases restored"
@@ -214,18 +227,31 @@ final class StoreService: ObservableObject {
 
     private func finalize(_ result: VerificationResult<Transaction>) async {
         switch result {
-        case .unverified:
-            // Failed signature check - never grant on these.
+        case .unverified(let transaction, _):
+            // Failed signature check - never grant on these. But finish anyway: a
+            // transaction that fails verification will never pass by waiting, and leaving
+            // it in the queue redelivered it (and this error toast) on every launch forever.
             errorMessage = "That purchase couldn't be verified."
-        case .verified(let transaction):
-            let isNew = processedTransactions.insert(transaction.id).inserted
-            if isNew, let item = ShopCatalog.item(for: transaction.productID) {
-                grant(item, announce: true)
-            }
-            // Finishing is what removes the transaction from the queue; skipping it makes
-            // StoreKit redeliver it forever.
             await transaction.finish()
+        case .verified(let transaction):
+            await deliver(transaction)
         }
+    }
+
+    /// Grants and finishes one verified transaction - unless the engine isn't wired yet,
+    /// in which case the transaction is parked un-finished (see `deferredTransactions`).
+    private func deliver(_ transaction: Transaction) async {
+        guard engine != nil else {
+            deferredTransactions.append(transaction)
+            return
+        }
+        let isNew = processedTransactions.insert(transaction.id).inserted
+        if isNew, let item = ShopCatalog.item(for: transaction.productID) {
+            grant(item, announce: true)
+        }
+        // Finishing is what removes the transaction from the queue; skipping it makes
+        // StoreKit redeliver it forever.
+        await transaction.finish()
     }
 
     private func grant(_ item: ShopItem, announce: Bool) {
