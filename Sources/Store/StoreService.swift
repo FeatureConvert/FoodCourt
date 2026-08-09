@@ -94,9 +94,12 @@ enum ShopCatalog {
         ShopItem(id: prefix + "pack.accelerator", title: "Franchise Accelerator",
                  subtitle: "2,500 gems · 8 hours of income banked now · ×2 profit for 48h",
                  reward: .accelerator, fallbackPrice: "$19.99", badge: "BUNDLE", magnitude: 4),
+        // $14.99, up from $9.99: at the same price as the plain 1,200-gem Chest, this
+        // bundle's 1,500 gems PLUS managers PLUS 72h of double profit made Chest strictly
+        // dominated - no first $9.99 should have two answers where one is always wrong.
         ShopItem(id: prefix + "pack.grandopening", title: "Grand Opening Bundle",
                  subtitle: "1,500 gems · a manager for every open station in every venue · ×2 for 72h",
-                 reward: .grandOpeningBundle, fallbackPrice: "$9.99", badge: "ONE TIME", magnitude: 3),
+                 reward: .grandOpeningBundle, fallbackPrice: "$14.99", badge: "ONE TIME", magnitude: 3),
         ShopItem(id: prefix + "pack.research", title: "Research Grant",
                  subtitle: "Research stars scaled to your empire - 60% of your last Franchise, repeatable",
                  reward: .researchGrant, fallbackPrice: "$9.99", badge: "SHORTCUT", magnitude: 2),

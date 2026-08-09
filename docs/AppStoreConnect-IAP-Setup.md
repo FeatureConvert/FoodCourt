@@ -56,7 +56,7 @@ character for character, or the app will never find the product.
 | `com.fable.foodcourt.pack.festival` | Consumable | $3.99 | Carnival Pass | Carnival Pass |
 | `com.fable.foodcourt.pack.legendary` | Consumable | $9.99 | Legendary Chef Crate | Legendary Chef Crate |
 | `com.fable.foodcourt.pack.accelerator` | Consumable | $19.99 | Franchise Accelerator | Franchise Accelerator |
-| `com.fable.foodcourt.pack.grandopening` | Non-Consumable | $9.99 | Grand Opening Bundle | Grand Opening Bundle |
+| `com.fable.foodcourt.pack.grandopening` | Non-Consumable | $14.99 | Grand Opening Bundle | Grand Opening Bundle |
 | `com.fable.foodcourt.vip.pass` | Non-Consumable | $14.99 | VIP Pass | VIP Pass |
 | `com.fable.foodcourt.pack.research` | Consumable | $9.99 | Research Grant | Research Grant |
 | `com.fable.foodcourt.gems.dynasty` | Consumable | $199.99 | Dynasty of Gems | Dynasty of Gems |

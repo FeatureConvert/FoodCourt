@@ -60,12 +60,16 @@ enum Errands {
         ErrandOption(id: "long", label: "12 hours", hours: 12),
     ]
 
+    /// Cut ~40% in the August review: this was the one gem source the deliberate
+    /// faucet-nerf pass (quests -50%, achievements -30%, festival -40%, daily -35%,
+    /// league -35%) never touched, and two 12h legendary slots were quietly out-earning
+    /// every nerfed source combined at up to 288 gems a day.
     private static func gemsPerHour(_ rarity: ManagerRarity) -> Double {
         switch rarity {
-        case .common: return 2
-        case .rare: return 4
-        case .epic: return 7
-        case .legendary: return 12
+        case .common: return 1
+        case .rare: return 2
+        case .epic: return 4
+        case .legendary: return 7
         }
     }
 

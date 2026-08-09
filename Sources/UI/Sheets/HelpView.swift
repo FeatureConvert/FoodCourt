@@ -137,8 +137,8 @@ struct HelpView: View {
             symbol: "flame.circle.fill", title: "Login streak",
             text: """
             Claiming a daily reward on consecutive days builds a streak on top of the 7-day \
-            cycle — it never resets to day 1, so a long streak keeps paying at 7, 14, 30, 60 \
-            and 100 days. A Streak Freeze, bought with gems, forgives exactly one missed day.
+            cycle — it never resets to day 1, and milestone chests keep coming all the way \
+            to day 300. A Streak Freeze, bought with gems, forgives exactly one missed day.
             """),
         GuideSection(
             symbol: "map.fill", title: "Roadmap",

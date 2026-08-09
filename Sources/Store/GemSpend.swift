@@ -88,6 +88,10 @@ enum GemSpend {
             return .success("Rush Hour started")
 
         case "automate":
+            // Deliberately NOT scaled by the staleness tax, unlike coin hires: gems buying
+            // a way around part of the tax's pressure is a monetization valve the tax was
+            // priced with in mind - the tax's real job (making "never franchise" lose) is
+            // done by station and unlock costs, which gems can't touch.
             let venue = engine.state.currentVenue
             guard engine.hasUnstaffedStation(venue: venue) else {
                 return .nothingToDo("This venue is already fully staffed")
