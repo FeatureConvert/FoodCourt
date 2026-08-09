@@ -111,7 +111,7 @@ struct HelpView: View {
         GuideSection(
             symbol: "scope", title: "What's the goal?",
             text: """
-            Build a food court that runs itself, open all five venues, then Franchise: \
+            Build a food court that runs itself, open all seven venues, then Franchise: \
             reset the board for Stars, a permanent profit bonus that makes every future \
             run bigger. Stars fund permanent research; five franchises unlock Legacy, an \
             even bigger reset. Maxing all of it is a months-long journey — the Next Goal \

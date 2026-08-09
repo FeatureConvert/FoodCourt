@@ -72,6 +72,16 @@ struct VenuePalette {
                                 floor: Color(hex: "#E8D3C4"), counter: Color(hex: "#E88AA8"),
                                 counterEdge: Color(hex: "#B45E7C"), accent: Color(hex: "#9BD4C8"),
                                 sign: Color(hex: "#FFE7F0"))
+        case .diner:
+            return VenuePalette(wallTop: Color(hex: "#1E2A4A"), wallBottom: Color(hex: "#101830"),
+                                floor: Color(hex: "#C9C2B8"), counter: Color(hex: "#5B8BD9"),
+                                counterEdge: Color(hex: "#33528C"), accent: Color(hex: "#F26D9C"),
+                                sign: Color(hex: "#D8E6FF"))
+        case .foodtruck:
+            return VenuePalette(wallTop: Color(hex: "#6B3A2A"), wallBottom: Color(hex: "#42200F"),
+                                floor: Color(hex: "#B8B0A4"), counter: Color(hex: "#E07A3C"),
+                                counterEdge: Color(hex: "#A9532A"), accent: Color(hex: "#5BD6E8"),
+                                sign: Color(hex: "#FFEFD1"))
         }
     }
 
@@ -104,6 +114,16 @@ struct VenuePalette {
                                 floor: Color(hex: "#F5E0EC"), counter: Color(hex: "#FF5FA0"),
                                 counterEdge: Color(hex: "#C22E70"), accent: Color(hex: "#5FE8D8"),
                                 sign: Color(hex: "#FFEAF5"))
+        case .diner:
+            return VenuePalette(wallTop: Color(hex: "#141F42"), wallBottom: Color(hex: "#0A0F24"),
+                                floor: Color(hex: "#D8D2C8"), counter: Color(hex: "#3B9CFF"),
+                                counterEdge: Color(hex: "#1F5CB0"), accent: Color(hex: "#FF4F94"),
+                                sign: Color(hex: "#E6F0FF"))
+        case .foodtruck:
+            return VenuePalette(wallTop: Color(hex: "#803A18"), wallBottom: Color(hex: "#4A1E08"),
+                                floor: Color(hex: "#CFC5B4"), counter: Color(hex: "#FF8A2B"),
+                                counterEdge: Color(hex: "#C25512"), accent: Color(hex: "#3BFFD1"),
+                                sign: Color(hex: "#FFF5DC"))
         }
     }
 }

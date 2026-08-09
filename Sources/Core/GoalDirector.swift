@@ -52,7 +52,7 @@ enum GoalDirector {
                         detail: "Spend the Stars you just earned - research is permanent and survives every reset. Tap the star pill, then Research.")
         }
         if venuesOpen < 5 {
-            return Goal(id: "all-venues", title: "Open all five venues",
+            return Goal(id: "all-venues", title: "Open five venues",
                         detail: "The full food court. Each venue multiplies what a run can earn - and what your next Franchise awards.")
         }
         if state.prestigeCount < Balance.legacyUnlockPrestigeCount {

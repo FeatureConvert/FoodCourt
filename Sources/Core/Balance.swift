@@ -11,7 +11,7 @@ enum FoodArt: String, Codable, CaseIterable {
 
 /// Venue-level look, mapped to a concrete palette in `Theme`.
 enum VenueTheme: String, Codable, CaseIterable {
-    case burger, sushi, pizza, taco, dessert
+    case burger, sushi, pizza, taco, dessert, diner, foodtruck
 }
 
 // MARK: - Specs
@@ -200,7 +200,35 @@ enum Balance {
             ("Cheesecake Slice",   .wedge,   ["#F6E3A8", "#E8734A", "#F3E0C7"]),
             ("Grand Dessert Tower", .plate,  ["#F5A9C0", "#9BD4C8", "#F5D547"]),
         ], venue: 4)),
+
+        // The two twist venues: each teaches a new rule instead of just paying more.
+        // The Midnight Diner's stations earn at FULL offline rate (see OfflineEarnings);
+        // the Food Truck Rally crowns a rotating Daily Special station at x3 (see
+        // `Balance.dailySpecialStation`).
+        VenueSpec(id: 5, name: "Midnight Diner", tagline: "Never closes, never sleeps", theme: .diner, stations: build([
+            ("Bottomless Coffee",  .cup,     ["#6B4A32", "#F3E0C7", "#3B2C26"]),
+            ("Blue Plate Special", .plate,   ["#5B8BD9", "#F7F2E7", "#C0392B"]),
+            ("Pancake Stack",      .roll,    ["#E8B84B", "#8B4A2B", "#F6E3A8"]),
+            ("Patty Melt Press",   .bun,     ["#D9903F", "#F3D9A4", "#5C9E4A"]),
+            ("Pie Case",           .wedge,   ["#C0503A", "#F6E3A8", "#7A4A28"]),
+            ("Graveyard Platter",  .plate,   ["#3E4A6B", "#F3D9A4", "#E4453A"]),
+        ], venue: 5)),
+
+        VenueSpec(id: 6, name: "Food Truck Rally", tagline: "Follow the crowd", theme: .foodtruck, stations: build([
+            ("Street Corn Cart",   .stick,   ["#F5D547", "#E07A3C", "#5C9E4A"]),
+            ("Smash Burger Truck", .bun,     ["#E4453A", "#F3D9A4", "#3B2C26"]),
+            ("Banh Mi Window",     .wrap,    ["#F0E4CE", "#C0503A", "#5C9E4A"]),
+            ("Poke Bowl Stand",    .bowl,    ["#F4A9A0", "#2E4A3C", "#F5D547"]),
+            ("Churro Fryer",       .fries,   ["#D9A15C", "#C98A50", "#F5A9C0"]),
+            ("Fusion Feast Truck", .plate,   ["#5BD6E8", "#E4453A", "#F5D547"]),
+        ], venue: 6)),
     ]
+
+    /// The Food Truck Rally's Daily Special: one of its six stations pays x3 today,
+    /// rotating by calendar day - a reason to visit the rally every single day.
+    static func dailySpecialStation(day: Int) -> Int {
+        ((day % 6) + 6) % 6
+    }
 
     private static func build(_ rows: [(String, FoodArt, [String])], venue: Int) -> [StationSpec] {
         let costScale = pow(25, Double(venue))

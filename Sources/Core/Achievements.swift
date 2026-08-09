@@ -86,8 +86,10 @@ enum AchievementCatalog {
                         metric: .venuesUnlocked, threshold: 2, rewardGems: 15, symbol: "map.fill"),
         AchievementSpec(id: "venue_2", title: "Almost There", detail: "Unlock 4 venues",
                         metric: .venuesUnlocked, threshold: 4, rewardGems: 45, symbol: "map.fill"),
-        AchievementSpec(id: "venue_3", title: "Full Franchise", detail: "Unlock all 5 venues",
+        AchievementSpec(id: "venue_3", title: "Full Franchise", detail: "Unlock 5 venues",
                         metric: .venuesUnlocked, threshold: 5, rewardGems: 120, symbol: "map.fill"),
+        AchievementSpec(id: "venue_4", title: "The Whole Court", detail: "Unlock all 7 venues",
+                        metric: .venuesUnlocked, threshold: 7, rewardGems: 250, symbol: "map.fill"),
 
         // League
         AchievementSpec(id: "league_1", title: "Silver Standing", detail: "Reach the Silver league",

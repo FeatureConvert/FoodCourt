@@ -59,7 +59,7 @@ struct VenuePropsView: View {
 
             switch theme {
 
-            case .burger:
+            case .burger, .diner:
                 openStroke(outline, width: line) { path in
                     path.move(to: p(2, 10))
                     path.addQuadCurve(to: p(50, 16), control: p(26, 28))
@@ -137,7 +137,7 @@ struct VenuePropsView: View {
                 }, Color(hex: "#6E8C3A"))
                 overlay(circle(10, 48, 3), Color.white.opacity(0.3))
 
-            case .taco:
+            case .taco, .foodtruck:
                 openStroke(outline, width: line) { path in
                     path.move(to: p(2, 8)); path.addQuadCurve(to: p(98, 8), control: p(50, 26))
                 }

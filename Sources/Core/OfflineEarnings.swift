@@ -27,9 +27,12 @@ enum OfflineEarnings {
         let capHours = state.offlineCapHours
         let cap = capHours * 3600
         let credited = min(elapsed, cap)
-        let coins = automatedIncomePerSecond(state)
+        // The Midnight Diner never sleeps: its stations pay at FULL rate offline (the
+        // venue's whole twist), while everything else takes the usual efficiency discount.
+        let dinerRate = state.automatedRate(venueID: 5)
+        let restRate = max(0, automatedIncomePerSecond(state) - dinerRate)
+        let coins = (restRate * state.offlineEfficiency + dinerRate)
             * credited
-            * state.offlineEfficiency
             * state.offlineManagerBonus
         guard coins > 0 else { return nil }
 

@@ -16,8 +16,8 @@ struct WelcomeView: View {
     private let journey: [(number: String, symbol: String, title: String, text: String)] = [
         ("1", "takeoutbag.and.cup.and.straw.fill", "Serve and staff",
          "Earn coins, buy levels, and hire managers so stations run themselves - even while the app is closed."),
-        ("2", "building.2.fill", "Open all five venues",
-         "From Burger Shack to the Grand Food Hall. Each venue multiplies what a run can earn."),
+        ("2", "building.2.fill", "Open every venue",
+         "From Burger Shack to the Midnight Diner and the Food Truck Rally - each venue multiplies what a run can earn, and the later ones bend the rules."),
         ("3", "star.fill", "Franchise, forever",
          "Reset the board for Stars: a permanent profit bonus plus research that never resets. Every run starts bigger. Maxing that empire is the game."),
     ]

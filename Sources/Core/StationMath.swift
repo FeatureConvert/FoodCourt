@@ -45,6 +45,12 @@ extension GameState {
             result.profit *= 1.5
         }
 
+        // The Food Truck Rally's twist: one of its stations is today's Daily Special at
+        // x3, rotating by (UTC) day - cheap to compute, and a reason to swing by daily.
+        if venue == 6, station == Balance.dailySpecialStation(day: Int(now.timeIntervalSince1970 / 86400)) {
+            result.profit *= 3
+        }
+
         // The run's Franchise Contract, if any - the whole point is that these touch the
         // same paths everything else does, so a contract run is the same game with the
         // dials moved, not a special mode.
@@ -91,6 +97,24 @@ extension GameState {
         // real time and are deliberately not paid offline): legacy was missing here for a
         // while, which quietly underpaid every offline report, quest reward, time warp,
         // and errand for anyone past their first Legacy reset.
+        return total * Balance.starMultiplier(stars: lifetimeStars)
+            * Balance.legacyMultiplier(level: legacy.level)
+            * entitlements.profitMultiplier
+            * researchEffects.profitMultiplier
+            * toolEffects.profitMultiplier
+    }
+
+    /// One venue's slice of `automatedRate`, same multipliers - what the Midnight Diner's
+    /// full-rate offline twist needs (see OfflineEarnings).
+    func automatedRate(venueID: Int) -> Double {
+        guard venues.indices.contains(venueID), venues[venueID].unlocked else { return 0 }
+        var total: Double = 0
+        for spec in Balance.venue(venueID).stations {
+            let station = venues[venueID].stations[spec.id]
+            guard station.isStaffed, station.isOwned else { continue }
+            total += baseRevenue(venue: venueID, station: spec.id)
+                / cycleTime(venue: venueID, station: spec.id)
+        }
         return total * Balance.starMultiplier(stars: lifetimeStars)
             * Balance.legacyMultiplier(level: legacy.level)
             * entitlements.profitMultiplier
