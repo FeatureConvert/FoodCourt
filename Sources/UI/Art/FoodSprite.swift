@@ -19,6 +19,20 @@ struct FoodSprite: View, Equatable {
             let rect = CGRect(origin: .zero, size: size).insetBy(dx: size.width * 0.06,
                                                                  dy: size.height * 0.06)
             FoodArtRenderer.draw(art, in: rect, context: context, colors: resolved)
+
+            // Shared dimension pass over every sprite: a soft top-left sheen and a whisper
+            // of under-shade. One place instead of re-shading forty Canvas drawings - the
+            // flat fills read as "lit" without any sprite knowing about it.
+            let sheen = Path(ellipseIn: CGRect(x: rect.minX + rect.width * 0.08,
+                                               y: rect.minY + rect.height * 0.02,
+                                               width: rect.width * 0.56,
+                                               height: rect.height * 0.42))
+            context.fill(sheen, with: .color(.white.opacity(0.10)))
+            let shade = Path(ellipseIn: CGRect(x: rect.minX + rect.width * 0.18,
+                                               y: rect.minY + rect.height * 0.74,
+                                               width: rect.width * 0.64,
+                                               height: rect.height * 0.24))
+            context.fill(shade, with: .color(.black.opacity(0.08)))
         }
         .accessibilityHidden(true)
     }
