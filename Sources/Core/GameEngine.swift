@@ -83,6 +83,9 @@ final class GameEngine: ObservableObject {
     /// A lifetime-earnings landmark (1M, 1B, 1T...) crossed this session, waiting on its
     /// celebration. Set at most once per landmark per save - see `registerLandmarks`.
     @Published var pendingLandmark: Double?
+    /// A kitchen tool that just dropped (newly found, not a duplicate), waiting on its
+    /// celebration - the Gold Spatula gets the biggest moment in the game.
+    @Published var pendingToolDrop: ToolItem?
     /// Set by `prestige()` for the end-of-run recap the UI shows after the reset - the
     /// numbers have to be captured BEFORE the board wipes them.
     @Published var lastRunRecap: RunRecap?
@@ -391,7 +394,8 @@ final class GameEngine: ObservableObject {
         if state.festival.serveCounter >= per {
             let tickets = state.festival.serveCounter / per
             state.festival.serveCounter %= per
-            let scaled = Int((Double(tickets) * state.researchEffects.ticketMultiplier).rounded())
+            let scaled = Int((Double(tickets) * state.researchEffects.ticketMultiplier
+                              * state.toolEffects.ticketMultiplier).rounded())
             let headroom = Swift.max(0, Festival.maxTicketsFromServing - state.festival.ticketsFromServing)
             let granted = Swift.min(scaled, headroom)
             if granted > 0 {
@@ -699,6 +703,7 @@ final class GameEngine: ObservableObject {
         state.rushesCompleted += 1
         advanceQuests(kind: .rush, by: 1)
         awardTickets(Festival.ticketsPerRush)
+        rollToolDrop(.rushComplete)
         toast = "Rush Hour complete"
     }
 
@@ -732,6 +737,7 @@ final class GameEngine: ObservableObject {
             toast = "VIP CRITIC! ×\(Int(ActivePlay.criticMultiplier)) tip: \(Format.currency(amount))"
         }
         addCoins(amount)
+        rollToolDrop(.goldenCollect)
         return amount
     }
 
@@ -1196,6 +1202,23 @@ final class GameEngine: ObservableObject {
         return errand
     }
 
+    // MARK: Kitchen tools
+
+    /// Rolls the drop table at one of the game's event moments. New finds celebrate via
+    /// `pendingToolDrop`; duplicates quietly convert to gems with a toast.
+    private func rollToolDrop(_ moment: Tools.DropMoment) {
+        guard let tool = Tools.roll(moment: moment,
+                                    roll1: Double.random(in: 0..<1),
+                                    roll2: Double.random(in: 0..<1)) else { return }
+        if state.tools.insert(tool.id).inserted {
+            pendingToolDrop = tool
+        } else {
+            let gems = Tools.duplicateGems(tool.rarity)
+            state.gems += gems
+            toast = "Duplicate \(tool.name) - traded for \(gems) gems"
+        }
+    }
+
     // MARK: Catering
 
     /// One order per calendar day, rolled against the current venue. An unfinished or
@@ -1229,6 +1252,7 @@ final class GameEngine: ObservableObject {
         state.gems += order.rewardGems
         addCoins(Swift.max(2_000, state.automatedRate * order.rewardIncomeSeconds))
         awardTickets(Festival.ticketsPerQuest)
+        rollToolDrop(.cateringDelivered)
         save()
         return order
     }
@@ -1278,6 +1302,7 @@ final class GameEngine: ObservableObject {
             if Double.random(in: 0..<1) < tier.recruitChance {
                 recruit = grantManager(rarity: .epic)
             }
+            rollToolDrop(.expeditionWin)
         }
         toast = won
             ? "Face-Off won! +\(gems) gems\(recruit.map { " · \($0.name) joins!" } ?? "")"

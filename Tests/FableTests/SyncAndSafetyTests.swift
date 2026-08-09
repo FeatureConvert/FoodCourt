@@ -152,6 +152,40 @@ final class SyncAndSafetyTests: XCTestCase {
         XCTAssertEqual(state.offlineCapHours, base + Balance.mogulOfflineCapBonusHours)
     }
 
+    // MARK: Kitchen tools
+
+    func testGoldSpatulaIsTheRarestAndBestDrop() {
+        let spatula = Tools.tool("goldspatula")!
+        XCTAssertEqual(spatula.rarity, .legendary)
+        XCTAssertEqual(spatula.weight, Tools.all.map(\.weight).min(),
+                       "nothing may out-rare the Gold Spatula")
+        XCTAssertEqual(spatula.profitBonus, Tools.all.map(\.profitBonus).max(),
+                       "and nothing may out-perk it")
+        let total = Tools.all.reduce(0) { $0 + $1.weight }
+        XCTAssertLessThan(spatula.weight / total, 0.01, "under 1% of drops")
+    }
+
+    func testToolRollGateAndTableAreDeterministic() {
+        XCTAssertNil(Tools.roll(moment: .rushComplete, roll1: 0.99, roll2: 0.5),
+                     "roll1 above the gate means no drop")
+        // roll2 at the very end of the table lands the last (rarest) entry.
+        XCTAssertEqual(Tools.roll(moment: .expeditionWin, roll1: 0, roll2: 0.9999)?.id,
+                       "goldspatula")
+        XCTAssertEqual(Tools.roll(moment: .expeditionWin, roll1: 0, roll2: 0)?.id,
+                       Tools.all[0].id)
+    }
+
+    func testToolEffectsAggregateAndReachTheEconomy() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 10
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        let base = state.automatedRate
+        state.tools = ["goldspatula", "spoon"]
+        XCTAssertEqual(state.automatedRate, base * 1.25 * 1.03, accuracy: base * 0.001,
+                       "owned tools multiply into the same rate everything else uses")
+        XCTAssertEqual(state.toolEffects.comboWindowBonus, 1.0)
+    }
+
     // MARK: Perk choice budget
 
     @MainActor

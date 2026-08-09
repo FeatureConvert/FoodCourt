@@ -14,6 +14,9 @@ struct PerkChoiceView: View {
     private var level: Int? { engine.pendingPerkLevel(venue: venueID, station: station) }
 
     @State private var celebratingIndex: Int?
+    /// Two-tap confirmation: with only four choices per run, a mis-tap burning one would
+    /// hurt - same tap-again pattern the Franchise and Legacy buttons already use.
+    @State private var armedIndex: Int?
 
     var body: some View {
         SheetScaffold(title: "Level \(level.map(String.init) ?? "") Perk",
@@ -41,50 +44,69 @@ struct PerkChoiceView: View {
 
             if let level {
                 ForEach(Perks.choices(at: level)) { perk in
+                    let armed = armedIndex == perk.id
                     Button {
-                        engine.choosePerk(venue: venueID, station: station, level: level, index: perk.id)
-                        Haptics.success()
-                        sound.play(.reward)
-                        onToast("\(spec.name): \(perk.title)")
-                        celebratingIndex = perk.id
-                        // A beat to let the confetti actually play before the sheet closes,
-                        // matching DailyRewardView's own claim-then-dismiss timing.
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { dismiss() }
+                        if armed {
+                            engine.choosePerk(venue: venueID, station: station, level: level, index: perk.id)
+                            Haptics.success()
+                            sound.play(.reward)
+                            onToast("\(spec.name): \(perk.title)")
+                            celebratingIndex = perk.id
+                            // A beat to let the confetti actually play before the sheet
+                            // closes, matching DailyRewardView's claim-then-dismiss timing.
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { dismiss() }
+                        } else {
+                            Haptics.tap()
+                            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                armedIndex = perk.id
+                            }
+                        }
                     } label: {
                         HStack(spacing: 12) {
-                            GlyphIcon(perk.symbol, tint: Theme.star)
+                            GlyphIcon(perk.symbol, tint: armed ? Theme.ink : Theme.star)
                                 .frame(width: 22, height: 22)
                                 .frame(width: 40, height: 40)
-                                .background(Circle().fill(Theme.ink.opacity(0.5)))
+                                .background(Circle().fill(armed ? Theme.star : Theme.ink.opacity(0.5)))
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(perk.title)
                                     .font(Theme.body(14, weight: .black))
                                     .foregroundStyle(Theme.text)
-                                Text(perk.detail)
+                                Text(armed ? "Tap again to lock it in - this spends 1 of \(engine.perkChoicesRemaining) choices" : perk.detail)
                                     .font(Theme.body(11, weight: .bold))
-                                    .foregroundStyle(Theme.positive)
+                                    .foregroundStyle(armed ? Theme.coin : Theme.positive)
                             }
                             Spacer(minLength: 0)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .black))
-                                .foregroundStyle(Theme.textDim)
+                            Image(systemName: armed ? "checkmark.circle.fill" : "chevron.right")
+                                .font(.system(size: armed ? 16 : 12, weight: .black))
+                                .foregroundStyle(armed ? Theme.positive : Theme.textDim)
                         }
                         .padding(12)
                     }
-                    .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
+                    .buttonStyle(ChunkyButtonStyle(fill: armed ? Theme.panelRaised.opacity(0.9) : Theme.panelRaised,
+                                                   shadow: armed ? Theme.star.opacity(0.6) : Theme.ink))
                     .overlay {
                         if celebratingIndex == perk.id { ConfettiBurstView() }
                     }
                 }
             }
 
-            Text("Perks stack with the milestone bonus you just earned.")
+            // Choices are precious now - walking away and deciding later is always allowed.
+            Button {
+                dismiss()
+            } label: {
+                Text("Decide later")
+                    .font(Theme.body(13, weight: .bold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+            }
+            .buttonStyle(ChunkyButtonStyle(fill: Theme.panel, shadow: Theme.ink, radius: 12))
+
+            Text("Perks stack with the milestone bonus you just earned. This station keeps the offer - come back anytime from its row.")
                 .font(Theme.body(11, weight: .medium))
                 .foregroundStyle(Theme.textDim)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
         }
-        .interactiveDismissDisabled(true)
     }
 }

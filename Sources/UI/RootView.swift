@@ -11,6 +11,7 @@ enum ActiveSheet: Identifiable, Equatable {
     case welcome, prestigeIntro, legacyIntro
     case runRecap
     case contractChoice, legacyPerkChoice
+    case toolDrop
 
     var id: String {
         switch self {
@@ -34,6 +35,7 @@ enum ActiveSheet: Identifiable, Equatable {
         case .runRecap: return "run-recap"
         case .contractChoice: return "contract-choice"
         case .legacyPerkChoice: return "legacy-perk-choice"
+        case .toolDrop: return "tool-drop"
         }
     }
 }
@@ -164,6 +166,20 @@ struct RootView: View {
             sound.play(.bigReward)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { present(.runRecap) }
         }
+        .onChange(of: engine.pendingToolDrop) { _, tool in
+            guard let tool else { return }
+            if tool.rarity == .legendary {
+                // The Gold Spatula moment - the rarest thing in the game gets the
+                // biggest celebration in the game.
+                sound.play(.bigReward)
+                Haptics.success()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { present(.toolDrop) }
+            } else {
+                sound.play(.reward)
+                showToast("\(tool.name) found! \(tool.detail)")
+                engine.pendingToolDrop = nil
+            }
+        }
         .onChange(of: engine.pendingLandmark) { _, landmark in
             guard let landmark else { return }
             sound.play(.bigReward)
@@ -264,6 +280,17 @@ struct RootView: View {
             }
         case .contractChoice: ContractChoiceView(onToast: showToast)
         case .legacyPerkChoice: LegacyPerkChoiceView(onToast: showToast)
+        case .toolDrop:
+            if let tool = engine.pendingToolDrop {
+                BigMomentAlertView(
+                    symbol: tool.symbol,
+                    headline: "\(tool.name) Found!",
+                    detail: "A \(tool.rarity.label.lowercased()) kitchen tool - \(tool.detail). Tools are permanent: no slots, no upkeep, just yours. The collection lives in the Recipes tab.",
+                    stat: (label: "Rarity", value: tool.rarity.label),
+                    ctaTitle: "Beautiful",
+                    onCTA: { engine.pendingToolDrop = nil }
+                )
+            }
         case .legacyIntro:
             BigMomentAlertView(
                 symbol: "crown.fill",

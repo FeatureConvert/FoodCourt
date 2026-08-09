@@ -252,6 +252,8 @@ struct GameState: Codable, Equatable {
     var expeditionWins: Int = 0
     /// Today's catering order - see `Catering`.
     var catering: CateringOrder? = nil
+    /// Kitchen tools found so far - permanent, no slots, owning them IS the build.
+    var tools: Set<String> = []
     /// Interactive perk choices spent this franchise run (see `Balance.perkChoicesPerRun`).
     /// Milestones past the cap still pay their automatic speed/profit bonuses - what runs
     /// out is the CHOICE, which turns "which four stations get a build?" into a real
@@ -346,6 +348,7 @@ struct GameState: Codable, Equatable {
     var researchEffects: ResearchEffects { Research.effects(ranks: research) }
     var contract: FranchiseContract? { Contracts.contract(activeContract) }
     var legacyEffects: LegacyTree.Effects { LegacyTree.effects(taken: legacyPerks) }
+    var toolEffects: Tools.Effects { Tools.effects(owned: tools) }
 
     /// Everything that scales payouts globally: boosts, prestige stars, VIP, and research.
     /// Combo is deliberately excluded - it is transient and lives on the engine.
@@ -356,6 +359,7 @@ struct GameState: Codable, Equatable {
             * Balance.legacyMultiplier(level: legacy.level)
             * entitlements.profitMultiplier
             * researchEffects.profitMultiplier
+            * toolEffects.profitMultiplier
     }
 
     var offlineCapHours: Double {
@@ -370,7 +374,8 @@ struct GameState: Codable, Equatable {
         // Floor at 5%: a contract debuff can make offline a trickle, never literally zero.
         min(1, max(0.05, Balance.offlineEfficiency + researchEffects.offlineEfficiency
                     + (contract?.offlineEfficiencyDelta ?? 0)
-                    + Festival.modifier(seasonID: festival.seasonID).offlineEfficiencyBonus))
+                    + Festival.modifier(seasonID: festival.seasonID).offlineEfficiencyBonus
+                    + toolEffects.offlineEfficiencyBonus))
     }
 
     // MARK: Cosmetics
@@ -500,7 +505,7 @@ struct GameState: Codable, Equatable {
         case nemesisSeed, venueMastery, bestFestivalTier, lastBondAccrualAt
         case weeklyQuest, weeklyQuestWeek
         case activeContract, legacyPerks, signatureDish, expedition, expeditionWins, catering
-        case perkChoicesUsed
+        case perkChoicesUsed, tools
         case boardStartedAt
         case errands
         case venueSkins, unlockedSkins
@@ -584,6 +589,7 @@ struct GameState: Codable, Equatable {
         expeditionWins = try c.decodeIfPresent(Int.self, forKey: .expeditionWins) ?? 0
         catering = try c.decodeIfPresent(CateringOrder.self, forKey: .catering)
         perkChoicesUsed = try c.decodeIfPresent(Int.self, forKey: .perkChoicesUsed) ?? 0
+        tools = try c.decodeIfPresent(Set<String>.self, forKey: .tools) ?? []
         if let crossed = try c.decodeIfPresent(Set<Int>.self, forKey: .landmarksCrossed) {
             landmarksCrossed = crossed
         } else {
@@ -647,10 +653,11 @@ enum IntroKey {
     static let seasonTwist = "seasonTwist"
     static let expeditions = "expeditions"
     static let catering = "catering"
+    static let tools = "tools"
 
     static let allKeys: [String] = [
         welcome, prestige, legacy, perks, research, league, festival, staff, recipes, errands,
         cosmetics, roadmap, halfwayFranchise, guestChef, icloudSync, contracts, legacyTree,
-        signature, synergies, seasonTwist, expeditions, catering,
+        signature, synergies, seasonTwist, expeditions, catering, tools,
     ]
 }

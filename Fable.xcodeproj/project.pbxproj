@@ -17,6 +17,7 @@
 		16693AD597B563A3618CC9E0 /* BigMomentAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1BF9EE7260A69239205CF05 /* BigMomentAlertView.swift */; };
 		170194D21A2D534628E7C4CA /* Perks.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6C690DF5FC87BAEDABD2B2B /* Perks.swift */; };
 		1AF5363324B986459614ECC8 /* ProgressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED78409947694A96FF745DF8 /* ProgressionTests.swift */; };
+		1BDD16F0763B17FCEBB85DEA /* Tools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BE8419271E21B36DE2B62E6 /* Tools.swift */; };
 		1D2352C63B1413B836DFED9C /* CloudConflictView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40C66A8940881741C7577CF4 /* CloudConflictView.swift */; };
 		1E72DAC185AFED13C6E14B82 /* EventsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37515A3266C48B43461F8FFF /* EventsView.swift */; };
 		228B89D93E112BDF014988A5 /* Balance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C207BD78124374F04BB52A /* Balance.swift */; };
@@ -113,6 +114,7 @@
 		240578676C0B706FC34950F7 /* HUDView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDView.swift; sourceTree = "<group>"; };
 		2532F7EDEF7C37C11C81E08C /* VenueStageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueStageView.swift; sourceTree = "<group>"; };
 		28BB845D19A7F52C212C6646 /* SyncAndSafetyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncAndSafetyTests.swift; sourceTree = "<group>"; };
+		2BE8419271E21B36DE2B62E6 /* Tools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tools.swift; sourceTree = "<group>"; };
 		31DC9C30BAAF4753AAF01055 /* VenueSelectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueSelectView.swift; sourceTree = "<group>"; };
 		37515A3266C48B43461F8FFF /* EventsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsView.swift; sourceTree = "<group>"; };
 		388AFC1D19065A136570A153 /* PerkChoiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerkChoiceView.swift; sourceTree = "<group>"; };
@@ -223,6 +225,7 @@
 				ADBF6FA651E23B2CE296686C /* SaveManager.swift */,
 				C98DAA3BB768AFFC8E2F1073 /* SoundService.swift */,
 				40A09664AFA96F68507B8608 /* StationMath.swift */,
+				2BE8419271E21B36DE2B62E6 /* Tools.swift */,
 				11B682FDA317BA51DA412FEA /* Tutorial.swift */,
 			);
 			path = Core;
@@ -525,6 +528,7 @@
 				9DF42692F52099B94D787E87 /* StationMath.swift in Sources */,
 				BD63725F9DAA622F590E4F60 /* StoreService.swift in Sources */,
 				79C4CA2410441F131686D40E /* Theme.swift in Sources */,
+				1BDD16F0763B17FCEBB85DEA /* Tools.swift in Sources */,
 				AE6D607423F0E3DCC735265B /* Tutorial.swift in Sources */,
 				ECC05541EDFB311DC4CD681E /* TutorialOverlay.swift in Sources */,
 				82502C079735B3C036B1CB55 /* VenueProps.swift in Sources */,

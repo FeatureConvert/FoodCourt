@@ -360,6 +360,70 @@ private struct RecipeSection: View {
             .foregroundStyle(Theme.textDim)
             .multilineTextAlignment(.center)
             .padding(.top, 4)
+
+        IntroBanner(key: IntroKey.tools, symbol: "wrench.and.screwdriver.fill",
+                    title: "Kitchen Tools",
+                    detail: "Rare equipment drops from the game's big moments - Rush Hours, VIP catches, Face-Off wins, catering deliveries. Once found, a tool works forever. Somewhere out there is a Gold Spatula.")
+        toolShelf
+    }
+
+    /// The tool collection: owned tools glow with their effects, unfound ones are dark
+    /// silhouettes with a hint. The Gold Spatula row is deliberately visible from day one -
+    /// a chase you can see is a chase you feel.
+    private var toolShelf: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("KITCHEN TOOLS")
+                    .font(Theme.body(10, weight: .black))
+                    .tracking(0.6)
+                    .foregroundStyle(Theme.textDim)
+                Spacer()
+                Text("\(engine.state.tools.count) / \(Tools.all.count)")
+                    .font(Theme.numeric(11))
+                    .foregroundStyle(Theme.textDim)
+            }
+            ForEach(Tools.all) { tool in
+                let owned = engine.state.tools.contains(tool.id)
+                HStack(spacing: 10) {
+                    GlyphIcon(tool.symbol, tint: owned ? rarityColor(tool.rarity) : Theme.locked)
+                        .frame(width: 18, height: 18)
+                        .frame(width: 34, height: 34)
+                        .background(Circle().fill(Theme.ink.opacity(0.5)))
+                        .saturation(owned ? 1 : 0)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(owned ? tool.name : "???")
+                            .font(Theme.body(12, weight: .black))
+                            .foregroundStyle(owned ? Theme.text : Theme.textDim)
+                        Text(owned ? tool.detail : hint(for: tool))
+                            .font(Theme.body(10, weight: .medium))
+                            .foregroundStyle(owned ? Theme.positive : Theme.textDim)
+                    }
+                    Spacer(minLength: 0)
+                    Text(tool.rarity.label)
+                        .font(Theme.body(8, weight: .black))
+                        .foregroundStyle(owned ? Theme.ink : Theme.textDim)
+                        .padding(.horizontal, 5).padding(.vertical, 2)
+                        .background(Capsule().fill(owned ? rarityColor(tool.rarity) : Theme.ink.opacity(0.4)))
+                }
+            }
+        }
+        .padding(12)
+        .panel(Theme.panel)
+    }
+
+    private func rarityColor(_ rarity: ToolItem.Rarity) -> Color {
+        switch rarity {
+        case .common: return Theme.positive
+        case .rare: return Theme.gem
+        case .epic: return Color(hex: "#B07BE8")
+        case .legendary: return Theme.coin
+        }
+    }
+
+    private func hint(for tool: ToolItem) -> String {
+        tool.rarity == .legendary
+            ? "The rarest thing in the game. Keep playing the big moments."
+            : "Drops from Rush Hours, VIPs, Face-Offs, and catering."
     }
 
     /// The fusion endgame: a fully 3-starred set lets the player crown one station as the

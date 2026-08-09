@@ -95,6 +95,7 @@ extension GameState {
             * Balance.legacyMultiplier(level: legacy.level)
             * entitlements.profitMultiplier
             * researchEffects.profitMultiplier
+            * toolEffects.profitMultiplier
     }
 
     /// Dishes per second from staffed stations only - unlike automatedRate this is a pure
@@ -115,12 +116,12 @@ extension GameState {
     /// What a manual tap on a station is worth, including tap-value traits and research.
     func tapMultiplier(venue: Int) -> Double {
         venueManagerEffects(venue: venue).tapValue * researchEffects.tapMultiplier
-            * (contract?.tapMultiplier ?? 1)
+            * (contract?.tapMultiplier ?? 1) * toolEffects.tapMultiplier
     }
 
     /// How long the combo window lasts here, extended by traits like Crowd-Reader Cleo.
     func comboWindowBonus(venue: Int) -> TimeInterval {
-        venueManagerEffects(venue: venue).comboRetention
+        venueManagerEffects(venue: venue).comboRetention + toolEffects.comboWindowBonus
     }
 
     var comboMaxSteps: Int {
@@ -129,7 +130,8 @@ extension GameState {
     }
 
     var goldenChance: Double {
-        min(0.5, ActivePlay.goldenBaseChance * (1 + researchEffects.goldenChance))
+        min(0.5, ActivePlay.goldenBaseChance * (1 + researchEffects.goldenChance)
+            * toolEffects.goldenChanceMultiplier)
     }
 
     var rushDuration: TimeInterval {
