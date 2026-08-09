@@ -10,6 +10,9 @@ struct ShopView: View {
         SheetScaffold(title: "Shop", subtitle: "Gems keep the kitchen moving") {
             AdFreeBadge()
 
+            SectionLabel(text: "Today's deal")
+            dailyDealRow
+
             SectionLabel(text: "Spend gems")
             ForEach(GemOffer.allSortedByCost) { offer in
                 gemSinkRow(offer)
@@ -48,6 +51,33 @@ struct ShopView: View {
     }
 
     // MARK: Rows
+
+    /// The rotating 30%-off sink - same row as any other, wrapped with the deal framing
+    /// (badge, struck-through regular price). Rotates by calendar day; see
+    /// `GemOffer.dailyDeal`.
+    private var dailyDealRow: some View {
+        let deal = GemOffer.dailyDeal(now: engine.state.now)
+        let regular = GemOffer.all.first { $0.id == deal.id }?.cost ?? deal.cost
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text("DAILY DEAL · 30% OFF")
+                    .font(Theme.body(9, weight: .black))
+                    .tracking(0.6)
+                    .foregroundStyle(Theme.ink)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Capsule().fill(Theme.positive))
+                Text("was \(regular)")
+                    .font(Theme.body(10, weight: .bold))
+                    .strikethrough()
+                    .foregroundStyle(Theme.textDim)
+                Spacer(minLength: 0)
+                Text("new deal tomorrow")
+                    .font(Theme.body(9, weight: .medium))
+                    .foregroundStyle(Theme.textDim)
+            }
+            gemSinkRow(deal)
+        }
+    }
 
     private func gemSinkRow(_ offer: GemOffer) -> some View {
         let affordable = engine.state.gems >= offer.cost

@@ -224,6 +224,15 @@ struct GameState: Codable, Equatable {
     /// `totalServed` at the moment the current board began, so the run recap can report
     /// dishes served this franchise rather than lifetime.
     var servedAtBoardStart: Int = 0
+    /// Seeds the persistent league nemesis (name + pace), stable for this save's lifetime.
+    var nemesisSeed: Int = Int.random(in: 0..<1_000_000)
+    /// Venue id -> mastery tier (1 bronze / 2 silver / 3 gold), earned by taking every
+    /// station in the venue to Lv 50/100/250. Survives prestige - it's an accomplishment.
+    var venueMastery: [Int: Int] = [:]
+    /// Highest festival tier ever reached, across all seasons - the personal best.
+    var bestFestivalTier: Int = 0
+    /// Bond accrual bookkeeping - see `GameEngine.accrueBondTime`.
+    var lastBondAccrualAt: Date = Date()
 
     /// Keys of one-shot explainer moments the player has already seen - the welcome screen,
     /// the first-prestige and first-legacy alerts, the perk primer, and the first-open banner
@@ -441,6 +450,7 @@ struct GameState: Codable, Equatable {
         case rushEndsAt, rushAvailableAt, rushesCompleted, totalTaps, totalServed
         case claimedAchievements, prestigeCount, bestLeagueTierReached, seenIntros
         case lastPrestigeAward, landmarksCrossed, rushChain, servedAtBoardStart
+        case nemesisSeed, venueMastery, bestFestivalTier, lastBondAccrualAt
         case boardStartedAt
         case errands
         case venueSkins, unlockedSkins
@@ -507,6 +517,11 @@ struct GameState: Codable, Equatable {
         lastPrestigeAward = try c.decodeIfPresent(Int.self, forKey: .lastPrestigeAward) ?? 0
         rushChain = try c.decodeIfPresent(Int.self, forKey: .rushChain) ?? 0
         servedAtBoardStart = try c.decodeIfPresent(Int.self, forKey: .servedAtBoardStart) ?? 0
+        nemesisSeed = try c.decodeIfPresent(Int.self, forKey: .nemesisSeed)
+            ?? Int.random(in: 0..<1_000_000)
+        venueMastery = try c.decodeIfPresent([Int: Int].self, forKey: .venueMastery) ?? [:]
+        bestFestivalTier = try c.decodeIfPresent(Int.self, forKey: .bestFestivalTier) ?? 0
+        lastBondAccrualAt = try c.decodeIfPresent(Date.self, forKey: .lastBondAccrualAt) ?? Date()
         if let crossed = try c.decodeIfPresent(Set<Int>.self, forKey: .landmarksCrossed) {
             landmarksCrossed = crossed
         } else {

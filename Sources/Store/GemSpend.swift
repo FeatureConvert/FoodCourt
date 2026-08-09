@@ -40,6 +40,17 @@ struct GemOffer: Identifiable, Equatable {
     /// What the shop actually displays - cheapest first, so the list reads as a ladder
     /// instead of whatever order they happened to be declared in above.
     static var allSortedByCost: [GemOffer] { all.sorted { $0.cost < $1.cost } }
+
+    /// One sink per day at 30% off, rotating deterministically through the catalog by day
+    /// number - same deal for everyone on a given day, a fresh reason to open the shop
+    /// tomorrow, zero new content. The returned offer carries the discounted cost, so
+    /// `GemSpend.redeem` charges the deal price with no special casing.
+    static func dailyDeal(now: Date, calendar: Calendar = .current) -> GemOffer {
+        let day = calendar.ordinality(of: .day, in: .era, for: now) ?? 0
+        let base = allSortedByCost[day % allSortedByCost.count]
+        return GemOffer(id: base.id, title: base.title, subtitle: base.subtitle,
+                        cost: Int((Double(base.cost) * 0.7).rounded()), symbol: base.symbol)
+    }
 }
 
 enum GemSpendResult: Equatable {

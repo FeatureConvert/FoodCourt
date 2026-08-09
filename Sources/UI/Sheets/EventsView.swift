@@ -374,6 +374,14 @@ private struct LeagueSection: View {
                 .font(Theme.body(12, weight: entry.isPlayer ? .black : .semibold))
                 .foregroundStyle(entry.isPlayer ? Theme.coin : Theme.text)
                 .lineLimit(1)
+            if entry.isNemesis {
+                Text("RIVAL")
+                    .font(Theme.body(8, weight: .black))
+                    .tracking(0.5)
+                    .foregroundStyle(Theme.ink)
+                    .padding(.horizontal, 5).padding(.vertical, 2)
+                    .background(Capsule().fill(Theme.negative))
+            }
 
             Spacer(minLength: 0)
 

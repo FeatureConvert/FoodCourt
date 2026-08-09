@@ -29,6 +29,10 @@ extension GameState {
             result.speed *= effects.managerSpeedMultiplier
         }
         result.profit *= managers.stationProfit * managers.venueProfit
+        // Long service pays: +2% per bond level for the manager actually on this station.
+        if let manager = stationManager(venue: venue, station: station) {
+            result.profit *= manager.bondProfitMultiplier
+        }
 
         // Collection bonuses.
         result.profit *= Recipes.stationMultiplier(recipeCards, venue: venue, station: station)

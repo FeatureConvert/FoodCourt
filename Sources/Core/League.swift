@@ -49,14 +49,19 @@ struct LeagueRival: Codable, Equatable, Identifiable {
     /// absolute number, so a rival can't fall arbitrarily far behind as the player grows.
     var jitter: Double
     var score: Double
+    /// The one rival who follows the player from season to season - same name every week,
+    /// pace pinned just above the player's. "Beat Rossi's Bistro this week" is a hook;
+    /// twenty-nine anonymous rows are not.
+    var isNemesis: Bool = false
 
-    private enum CodingKeys: String, CodingKey { case id, name, jitter, score }
+    private enum CodingKeys: String, CodingKey { case id, name, jitter, score, isNemesis }
 
-    init(id: Int, name: String, jitter: Double, score: Double) {
+    init(id: Int, name: String, jitter: Double, score: Double, isNemesis: Bool = false) {
         self.id = id
         self.name = name
         self.jitter = jitter
         self.score = score
+        self.isNemesis = isNemesis
     }
 
     init(from decoder: Decoder) throws {
@@ -73,6 +78,7 @@ struct LeagueRival: Codable, Equatable, Identifiable {
             let rng = SeededRandom(seed: id &* 7919)
             self.jitter = 0.35 + Double(rng.next(150)) / 100.0
         }
+        isNemesis = try c.decodeIfPresent(Bool.self, forKey: .isNemesis) ?? false
     }
 }
 
@@ -82,6 +88,7 @@ struct LeagueEntry: Identifiable, Equatable {
     let score: Double
     let isPlayer: Bool
     let rank: Int
+    var isNemesis: Bool = false
 }
 
 enum LeagueOutcome: Equatable {
@@ -134,7 +141,8 @@ enum League {
     /// Seeds a fresh week. Each rival gets a fixed jitter ratio around the player's pace -
     /// the *effective* rate is recomputed every `advanceRivals` call against the player's
     /// current income, so the table stays competitive all week instead of only at the start.
-    static func newWeek(tier: LeagueTier, now: Date, seasonsPlayed: Int) -> LeagueState {
+    static func newWeek(tier: LeagueTier, now: Date, seasonsPlayed: Int,
+                        nemesisSeed: Int? = nil) -> LeagueState {
         var rivals: [LeagueRival] = []
         for index in 0..<(size - 1) {
             let rng = SeededRandom(seed: index &* 7919 &+ Int(now.timeIntervalSince1970) &+ seasonsPlayed)
@@ -145,6 +153,15 @@ enum League {
                 jitter: jitter,
                 score: 0
             ))
+        }
+        // Rival 0 becomes the persistent nemesis: name derived from the save's stable
+        // seed (so it never changes), pace pinned to 1.02-1.14x the player's - always
+        // beatable, never ignorable.
+        if let seed = nemesisSeed, !rivals.isEmpty {
+            let rng = SeededRandom(seed: seed)
+            rivals[0] = LeagueRival(id: 0, name: name(seed: seed),
+                                    jitter: 1.02 + Double(rng.next(13)) / 100.0,
+                                    score: 0, isNemesis: true)
         }
         return LeagueState(tier: tier, score: 0, rivals: rivals, startedAt: now,
                            endsAt: now.addingTimeInterval(weekLength), lastSettledAt: now,
@@ -170,12 +187,14 @@ enum League {
     }
 
     static func standings(_ state: LeagueState, playerName: String = "You") -> [LeagueEntry] {
-        var rows = state.rivals.map { (id: $0.id, name: $0.name, score: $0.score, isPlayer: false) }
-        rows.append((id: -1, name: playerName, score: state.score, isPlayer: true))
+        var rows = state.rivals.map {
+            (id: $0.id, name: $0.name, score: $0.score, isPlayer: false, isNemesis: $0.isNemesis)
+        }
+        rows.append((id: -1, name: playerName, score: state.score, isPlayer: true, isNemesis: false))
         rows.sort { $0.score > $1.score }
         return rows.enumerated().map { index, row in
             LeagueEntry(id: row.id, name: row.name, score: row.score,
-                        isPlayer: row.isPlayer, rank: index + 1)
+                        isPlayer: row.isPlayer, rank: index + 1, isNemesis: row.isNemesis)
         }
     }
 

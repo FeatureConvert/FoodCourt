@@ -65,6 +65,12 @@ struct DailyRewardSection: View {
                 Text("\(Format.plural(engine.state.daily.streakLength, "day")) streak")
                     .font(Theme.body(13, weight: .black))
                     .foregroundStyle(Theme.text)
+                // Loss aversion made visible: the next milestone and the distance to it.
+                if let next = DailyRewards.streakMilestones.first(where: { $0.day > engine.state.daily.streakLength }) {
+                    Text("\(next.day - engine.state.daily.streakLength) days to \(next.gems) gems")
+                        .font(Theme.body(10, weight: .bold))
+                        .foregroundStyle(Theme.gem)
+                }
                 if engine.state.daily.streakFreezes > 0 {
                     HStack(spacing: 3) {
                         GlyphIcon("snowflake", tint: Theme.textDim)

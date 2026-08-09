@@ -118,7 +118,8 @@ final class GameEngine: ObservableObject {
         if state.league.rivals.isEmpty {
             state.league = League.newWeek(tier: state.league.tier,
                                           now: state.now,
-                                          seasonsPlayed: state.league.seasonsPlayed)
+                                          seasonsPlayed: state.league.seasonsPlayed,
+                                          nemesisSeed: state.nemesisSeed)
         }
         Festival.rolloverIfNeeded(&state.festival, now: state.now)
     }
@@ -146,8 +147,24 @@ final class GameEngine: ObservableObject {
     }
 
     func save() {
+        accrueBondTime()
         state.lastSeen = state.now
         persistence.save(state)
+    }
+
+    /// Adds elapsed time to every ASSIGNED manager's bond clock. Runs on the autosave
+    /// cadence (every ~5s live, plus background/foreground), so bench time and errand time
+    /// correctly never count - only actual service on a station builds the bond.
+    private func accrueBondTime() {
+        let now = state.now
+        let deltaDays = now.timeIntervalSince(state.lastBondAccrualAt) / 86400
+        state.lastBondAccrualAt = now
+        guard deltaDays > 0, deltaDays < 365 else { return } // clock-skew guard
+        let assigned = state.assignedManagerIDs
+        guard !assigned.isEmpty else { return }
+        for index in state.managers.indices where assigned.contains(state.managers[index].id) {
+            state.managers[index].bondDays += deltaDays
+        }
     }
 
     // MARK: Foreground / background
@@ -463,7 +480,25 @@ final class GameEngine: ObservableObject {
         rollRecipe(venue: venue, station: index, levels: amount)
         advanceQuests(kind: .level, to: Double(Quests.highestStationLevel(state)))
         checkPerkUnlock(venue: venue, station: index)
+        checkVenueMastery(venue: venue)
         return true
+    }
+
+    /// Bronze/silver/gold per venue for every station reaching Lv 50/100/250 at once.
+    /// Persisted in `venueMastery` because it's an accomplishment, not board state -
+    /// prestige wipes the levels but never the badge.
+    static let masteryThresholds = [50, 100, 250]
+
+    private func checkVenueMastery(venue id: Int) {
+        let stations = state.venues[id].stations
+        guard stations.allSatisfy(\.isOwned) else { return }
+        let weakest = stations.map(\.level).min() ?? 0
+        let tier = Self.masteryThresholds.filter { weakest >= $0 }.count
+        let current = state.venueMastery[id] ?? 0
+        guard tier > current else { return }
+        state.venueMastery[id] = tier
+        let names = ["", "Bronze", "Silver", "Gold"]
+        toast = "\(Balance.venue(id).name): \(names[tier]) Mastery!"
     }
 
     func managerCost(for index: Int) -> Double {
@@ -1020,6 +1055,7 @@ final class GameEngine: ObservableObject {
         let reward = premium ? Festival.tier(tier).premium : Festival.tier(tier).free
         if premium { state.festival.claimedPremium.append(tier) }
         else { state.festival.claimedFree.append(tier) }
+        state.bestFestivalTier = Swift.max(state.bestFestivalTier, tier)
         apply(reward)
         save()
         return reward
@@ -1069,7 +1105,8 @@ final class GameEngine: ObservableObject {
         }
         state.league = League.newWeek(tier: nextTier,
                                       now: state.now,
-                                      seasonsPlayed: state.league.seasonsPlayed + 1)
+                                      seasonsPlayed: state.league.seasonsPlayed + 1,
+                                      nemesisSeed: state.nemesisSeed)
         pendingLeagueOutcome = outcome
         save()
     }

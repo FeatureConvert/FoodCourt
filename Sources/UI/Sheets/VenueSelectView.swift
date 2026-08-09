@@ -69,6 +69,20 @@ struct VenueSelectView: View {
                                 .padding(.horizontal, 6).padding(.vertical, 2)
                                 .background(Capsule().fill(palette.accent))
                         }
+                        // Mastery survives prestige - the one mark of how far this venue
+                        // has ever been pushed, visible right where runs are planned.
+                        if let tier = engine.state.venueMastery[venue.id], tier > 0 {
+                            let (label, color): (String, Color) = [
+                                (1, ("BRONZE", Color(hex: "#C88A4A"))),
+                                (2, ("SILVER", Color(hex: "#C7CBD1"))),
+                                (3, ("GOLD", Theme.coin)),
+                            ].first { $0.0 == tier }!.1
+                            Text("★ \(label)")
+                                .font(Theme.body(8, weight: .black))
+                                .foregroundStyle(Theme.ink)
+                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .background(Capsule().fill(color))
+                        }
                     }
                     Text(venue.tagline)
                         .font(Theme.body(11, weight: .medium))

@@ -65,16 +65,25 @@ struct OwnedManager: Codable, Equatable, Identifiable {
     /// every ordinary staffing, so a player with a full venue saw a wall of identically
     /// named "Trainee" cards with no way to tell them apart. Picked once at hire time.
     var displayName: String?
+    /// Total days spent assigned to a station (see `GameEngine.accrueBondTime`). Long
+    /// service pays: +2% station profit per bond level, and a roster that's been together
+    /// for months is one more reason not to drift away.
+    var bondDays: Double = 0
 
     var spec: ManagerSpec { ManagerCatalog.spec(specID) }
     var name: String { displayName ?? spec.name }
+
+    /// 0-5, crossing at 1/3/7/14/30 days of assigned service.
+    var bondLevel: Int { Self.bondThresholds.filter { bondDays >= $0 }.count }
+    static let bondThresholds: [Double] = [1, 3, 7, 14, 30]
+    var bondProfitMultiplier: Double { 1 + 0.02 * Double(bondLevel) }
 
     static func make(_ specID: String, premium: Bool = false) -> OwnedManager {
         let displayName = specID == ManagerCatalog.traineeID ? ManagerCatalog.randomTraineeName() : nil
         return OwnedManager(id: UUID().uuidString, specID: specID, premium: premium, displayName: displayName)
     }
 
-    private enum CodingKeys: String, CodingKey { case id, specID, premium, displayName }
+    private enum CodingKeys: String, CodingKey { case id, specID, premium, displayName, bondDays }
 
     init(id: String, specID: String, premium: Bool, displayName: String? = nil) {
         self.id = id
@@ -93,6 +102,7 @@ struct OwnedManager: Codable, Equatable, Identifiable {
         // hired from here on - there's no way to retroactively know which of them were
         // actually gem- or IAP-bought, so this can't be perfectly fair, only consistent.
         premium = try c.decodeIfPresent(Bool.self, forKey: .premium) ?? false
+        bondDays = try c.decodeIfPresent(Double.self, forKey: .bondDays) ?? 0
         // Pre-existing trainees never got a name; give them one now rather than leaving them
         // stuck as one more anonymous "Trainee" forever.
         if let existing = try c.decodeIfPresent(String.self, forKey: .displayName) {
