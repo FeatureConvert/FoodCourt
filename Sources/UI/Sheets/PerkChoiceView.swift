@@ -17,10 +17,10 @@ struct PerkChoiceView: View {
 
     var body: some View {
         SheetScaffold(title: "Level \(level.map(String.init) ?? "") Perk",
-                      subtitle: "\(spec.name) — pick one, it's permanent") {
+                      subtitle: "\(spec.name) — \(engine.perkChoicesRemaining) of \(Balance.perkChoicesPerRun) choices left this run") {
             IntroBanner(key: IntroKey.perks, symbol: "questionmark.circle.fill",
                         title: "What's a perk?",
-                        detail: "A permanent, station-specific upgrade. Whatever you pick here only affects \(spec.name) - other stations get their own choices as they level up, so you can specialize each one differently.")
+                        detail: "A station-specific upgrade that lasts until your next Franchise. You get \(Balance.perkChoicesPerRun) choices per run, so pick which stations deserve a personal build - milestone bonuses still land automatically everywhere else.")
 
             HStack(spacing: 10) {
                 FoodSprite(art: spec.art, colors: spec.colors)

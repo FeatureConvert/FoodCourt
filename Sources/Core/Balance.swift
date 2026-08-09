@@ -391,6 +391,13 @@ enum Balance {
 
     // MARK: Research pricing
 
+    /// Interactive perk choices per franchise run. Playtest feedback: with thirty stations
+    /// each crossing three-plus choice milestones, perk sheets fired constantly - over a
+    /// hundred per patient run. Four per run turns the system inside out: instead of a
+    /// chore, "which four stations get a personal build this run?" is a strategy decision
+    /// that pairs with the run's Contract. Milestone auto-bonuses are untouched.
+    static let perkChoicesPerRun = 4
+
     /// Deep research ranks cost this fraction of the player's latest Franchise award (with
     /// the static curve in `ResearchNode.cost` as a floor). Award-proportional pricing is
     /// what makes the tree calendar-paced instead of wealth-paced: star income compounds so

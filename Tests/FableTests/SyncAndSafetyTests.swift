@@ -152,6 +152,35 @@ final class SyncAndSafetyTests: XCTestCase {
         XCTAssertEqual(state.offlineCapHours, base + Balance.mogulOfflineCapBonusHours)
     }
 
+    // MARK: Perk choice budget
+
+    @MainActor
+    func testPerkChoicesCapPerRunAndResetOnPrestige() {
+        var state = GameState.newGame()
+        // Five stations past the first choice milestone - more candidates than budget.
+        for idx in 0..<5 { state.venues[0].stations[idx].level = 30 }
+        state.lifetimeEarnings = Balance.minimumLifetimeForPrestige
+        let engine = GameEngine(state: state, startTimers: false,
+                                persistence: EphemeralPersistence())
+        XCTAssertEqual(engine.perkChoicesRemaining, Balance.perkChoicesPerRun)
+
+        for idx in 0..<Balance.perkChoicesPerRun {
+            XCTAssertNotNil(engine.pendingPerkLevel(venue: 0, station: idx))
+            engine.choosePerk(venue: 0, station: idx, level: 25, index: 0)
+        }
+        XCTAssertEqual(engine.perkChoicesRemaining, 0)
+        XCTAssertNil(engine.pendingPerkLevel(venue: 0, station: 4),
+                     "the budget is spent - the fifth station gets no prompt this run")
+        let before = engine.state.venues[0].stations[4].perks
+        engine.choosePerk(venue: 0, station: 4, level: 25, index: 0)
+        XCTAssertEqual(engine.state.venues[0].stations[4].perks, before,
+                       "choosePerk past the cap is a no-op")
+
+        _ = engine.prestige()
+        XCTAssertEqual(engine.perkChoicesRemaining, Balance.perkChoicesPerRun,
+                       "a fresh run gets a fresh budget")
+    }
+
     // MARK: Expeditions
 
     @MainActor

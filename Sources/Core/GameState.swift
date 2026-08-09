@@ -252,6 +252,11 @@ struct GameState: Codable, Equatable {
     var expeditionWins: Int = 0
     /// Today's catering order - see `Catering`.
     var catering: CateringOrder? = nil
+    /// Interactive perk choices spent this franchise run (see `Balance.perkChoicesPerRun`).
+    /// Milestones past the cap still pay their automatic speed/profit bonuses - what runs
+    /// out is the CHOICE, which turns "which four stations get a build?" into a real
+    /// per-run decision instead of a hundred interrupting sheets.
+    var perkChoicesUsed: Int = 0
 
     /// Keys of one-shot explainer moments the player has already seen - the welcome screen,
     /// the first-prestige and first-legacy alerts, the perk primer, and the first-open banner
@@ -495,6 +500,7 @@ struct GameState: Codable, Equatable {
         case nemesisSeed, venueMastery, bestFestivalTier, lastBondAccrualAt
         case weeklyQuest, weeklyQuestWeek
         case activeContract, legacyPerks, signatureDish, expedition, expeditionWins, catering
+        case perkChoicesUsed
         case boardStartedAt
         case errands
         case venueSkins, unlockedSkins
@@ -577,6 +583,7 @@ struct GameState: Codable, Equatable {
         expedition = try c.decodeIfPresent(ActiveExpedition.self, forKey: .expedition)
         expeditionWins = try c.decodeIfPresent(Int.self, forKey: .expeditionWins) ?? 0
         catering = try c.decodeIfPresent(CateringOrder.self, forKey: .catering)
+        perkChoicesUsed = try c.decodeIfPresent(Int.self, forKey: .perkChoicesUsed) ?? 0
         if let crossed = try c.decodeIfPresent(Set<Int>.self, forKey: .landmarksCrossed) {
             landmarksCrossed = crossed
         } else {

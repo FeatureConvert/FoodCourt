@@ -158,6 +158,35 @@ struct HelpView: View {
             what's already done checked off.
             """),
         GuideSection(
+            symbol: "person.3.fill", title: "Crews",
+            text: """
+            Certain managers have chemistry: staff every member of a named crew anywhere \
+            in the same venue and that whole venue earns a bonus. The crew board on the \
+            Staff tab shows every combination and who's still missing.
+            """),
+        GuideSection(
+            symbol: "trophy.fill", title: "Face-Offs",
+            text: """
+            Send your three best benched managers to out-cook a rival crew, from the \
+            Errands page. Rarity and long service set your win odds — shown before you \
+            commit — and higher stakes pay better, up to a chance at an Epic recruit. \
+            Losses still pay a little; the time was real either way.
+            """),
+        GuideSection(
+            symbol: "takeoutbag.and.cup.and.straw.fill", title: "Catering",
+            text: """
+            Once a day a big order arrives in Goals naming specific stations — those \
+            counters have to actually run to fill it before it expires. Delivery pays \
+            gems, coins, and festival tickets; a fresh order arrives daily either way.
+            """),
+        GuideSection(
+            symbol: "crown.fill", title: "Signature Dish",
+            text: """
+            Fully 3-star a venue's recipe set and you can crown one of its stations the \
+            Signature Dish for ×1.5 profit there. Re-crown a different station anytime, \
+            free — it's a standing choice, not a one-shot.
+            """),
+        GuideSection(
             symbol: "briefcase.fill", title: "Manager errands",
             text: """
             Send an idle manager on an errand from the Staff tab's Errands page for 2, 6 or \

@@ -595,7 +595,12 @@ final class GameEngine: ObservableObject {
 
     // MARK: Perks
 
+    var perkChoicesRemaining: Int {
+        Swift.max(0, Balance.perkChoicesPerRun - state.perkChoicesUsed)
+    }
+
     private func checkPerkUnlock(venue: Int, station: Int) {
+        guard perkChoicesRemaining > 0 else { return }
         let s = state.venues[venue].stations[station]
         if Perks.pending(level: s.level, chosen: s.perks) != nil, venue == state.currentVenue {
             pendingPerkStation = station
@@ -603,12 +608,15 @@ final class GameEngine: ObservableObject {
     }
 
     func pendingPerkLevel(venue: Int, station: Int) -> Int? {
+        guard perkChoicesRemaining > 0 else { return nil }
         let s = state.venues[venue].stations[station]
         return Perks.pending(level: s.level, chosen: s.perks)
     }
 
     func choosePerk(venue: Int, station: Int, level: Int, index: Int) {
+        guard perkChoicesRemaining > 0 else { return }
         state.venues[venue].stations[station].perks[level] = index
+        state.perkChoicesUsed += 1
         pendingPerkStation = nil
         save()
     }
@@ -889,6 +897,7 @@ final class GameEngine: ObservableObject {
         state.prestigeCount += 1
         state.coins = 0
         state.runEarnings = 0
+        state.perkChoicesUsed = 0
         state.venues = Balance.venues.map { VenueState.fresh(venue: $0, unlocked: $0.id == 0) }
         state.venues[0].stations[0].level = 1
         state.currentVenue = 0
@@ -966,6 +975,7 @@ final class GameEngine: ObservableObject {
         state.legacy.level += 1
         state.coins = 0
         state.runEarnings = 0
+        state.perkChoicesUsed = 0
         state.lifetimeEarnings = 0
         state.stars = 0
         state.lifetimeStars = 0
@@ -1100,6 +1110,23 @@ final class GameEngine: ObservableObject {
         state.weeklyQuest = nil // done for the week; next Monday rolls a fresh one
         save()
         return quest
+    }
+
+    /// One tap collects every finished thing at once: completed quests, the weekly
+    /// challenge, returned errands, and a filled catering order. Returns how many things
+    /// were claimed - the Daily Plan's "claim everything" runs on this.
+    @discardableResult
+    func claimAllReady() -> Int {
+        var claimed = 0
+        for quest in state.quests.filter(\.isComplete) {
+            if claimQuest(id: quest.id) != nil { claimed += 1 }
+        }
+        if claimWeeklyQuest() != nil { claimed += 1 }
+        for errand in claimableErrands {
+            if collectErrand(id: errand.id) != nil { claimed += 1 }
+        }
+        if claimCatering() != nil { claimed += 1 }
+        return claimed
     }
 
     @discardableResult

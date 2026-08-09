@@ -88,6 +88,24 @@ struct DailyRewardSection: View {
                     planRow("ticket.fill", "\(Format.plural(festival, "festival reward")) waiting",
                             destination: .events(.festival))
                 }
+                if quests > 0 || errands > 0 {
+                    Button {
+                        let count = engine.claimAllReady()
+                        if count > 0 {
+                            Haptics.success()
+                            sound.play(.bigReward)
+                            onToast("Collected \(Format.plural(count, "reward"))")
+                        }
+                    } label: {
+                        Text("Collect goals & errands")
+                            .font(Theme.body(12, weight: .black))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(ChunkyButtonStyle(fill: Theme.positive,
+                                                   shadow: Theme.positive.opacity(0.5), radius: 12))
+                    .padding(.top, 2)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
