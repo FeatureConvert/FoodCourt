@@ -1,8 +1,8 @@
 # Setting up real In-App Purchases in App Store Connect
 
 Everything on the code side is done — `Sources/Store/StoreService.swift` and
-`Sources/Store/Products.storekit` already know about all 13 products. **Nothing in this
-document requires touching code.** It's the steps to make those same 13 products exist for
+`Sources/Store/Products.storekit` already know about all 17 products. **Nothing in this
+document requires touching code.** It's the steps to make those same 17 products exist for
 real on Apple's side, which only you can do (it needs your Apple Developer account, your
 banking details, and your agreement signatures — none of which I can enter on your behalf).
 
@@ -33,7 +33,7 @@ App Store Connect → **Apps** → **+** → **New App**. iOS platform, the bund
 capability doesn't need a separate entitlement or Xcode capability toggle — it's available to
 every app by default once the app record exists.
 
-## 2. Create the 13 products
+## 2. Create the 17 products
 
 App Store Connect → your app → **Monetization** → **In-App Purchases** (older ASC layouts
 call this tab **Features → In-App Purchases** — same place, different label depending on
@@ -59,6 +59,10 @@ character for character, or the app will never find the product.
 | `com.fable.foodcourt.pack.grandopening` | Non-Consumable | $9.99 | Grand Opening Bundle | Grand Opening Bundle |
 | `com.fable.foodcourt.vip.pass` | Non-Consumable | $14.99 | VIP Pass | VIP Pass |
 | `com.fable.foodcourt.pack.research` | Consumable | $9.99 | Research Grant | Research Grant |
+| `com.fable.foodcourt.gems.dynasty` | Consumable | $199.99 | Dynasty of Gems | Dynasty of Gems |
+| `com.fable.foodcourt.vip.mogul` | Non-Consumable | $49.99 | Mogul Pass | Mogul Pass |
+| `com.fable.foodcourt.pack.timevault` | Consumable | $39.99 | Time Vault | Time Vault |
+| `com.fable.foodcourt.pack.founders` | Non-Consumable | $99.99 | Founder's Bundle | Founder's Bundle |
 
 **Consumable vs. Non-Consumable matters and must match the table exactly.** Get it wrong and
 either the purchase won't restore when it should (VIP/Starter Pack must be Non-Consumable),
@@ -82,16 +86,20 @@ directly:
 - Franchise Accelerator — *2,500 gems, 8 hours of income banked instantly, and double profit for 48 hours.*
 - Grand Opening Bundle — *1,500 gems, a manager for every open station in every venue you've unlocked, and double profit for 72 hours.*
 - VIP Pass — *Permanent +25% profit, 12 hour offline earnings, and the Carnival Pass every season.*
-- Research Grant — *2,500 stars to spend on research, on top of whatever you've already earned.*
+- Research Grant — *A research windfall scaled to your empire - at least 2,500 stars, and far more the further you've come.*
+- Dynasty of Gems — *The ultimate gem hoard. 45,000 gems for empires beyond counting.*
+- Mogul Pass — *Permanent +50% profit that stacks with VIP, plus 12 extra hours of offline earnings.*
+- Time Vault — *A full day of income banked instantly, plus triple profit for 72 hours.*
+- Founder's Bundle — *12,000 gems, two guaranteed Legendary managers, and double profit for a week.*
 
-**VIP Pass only**: turn on **Family Sharing** for it (matches `familyShareable: true` in the
-local config) — the rest should stay off.
+**VIP Pass and Mogul Pass only**: turn on **Family Sharing** for those two (matches
+`familyShareable: true` in the local config) — the rest should stay off.
 
 ### Screenshot requirement
 
 Every IAP needs one App Review screenshot showing it in context in the app (App Store
 Connect will ask for it per-product, minimum roughly 640×920px). A screenshot of the Shop
-sheet with that product's row visible satisfies this for all 13 — you can reuse the same one
+sheet with that product's row visible satisfies this for all 17 — you can reuse the same one
 or two shop screenshots across every product, Apple doesn't require a unique image per item.
 The Research Grant also appears inline in the Franchise sheet's Research tab, so a screenshot
 of that placement works just as well if you'd rather use it.
@@ -118,7 +126,7 @@ Apple-approved first, so you can fully test the whole store before ever submitti
 
 New IAPs are reviewed **alongside an app binary** — App Store Connect won't send them for
 review by themselves the very first time. When you submit the app version for review, you'll
-see a prompt to select which "Ready to Submit" IAPs to include. Select all 13.
+see a prompt to select which "Ready to Submit" IAPs to include. Select all 17.
 
 After that first approval, adding a *new* IAP later can go through review on its own,
 without needing a fresh app binary.
@@ -133,7 +141,7 @@ it does in local testing today — same product IDs, same `ShopCatalog`, same gr
 
 ## If you want a subscription later
 
-None of the 12 products above are subscriptions — everything is a one-time consumable or
+None of the 17 products above are subscriptions — everything is a one-time consumable or
 non-consumable, matching how `Sources/Core/Balance.swift` and the store layer are built
 today. If you later want a recurring "VIP, but monthly" tier instead of (or alongside) the
 one-time VIP Pass, that's a materially different setup: a **Subscription Group** in App Store

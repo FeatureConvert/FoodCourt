@@ -61,12 +61,22 @@ struct Entitlements: Codable, Equatable {
     var vip: Bool = false
     var starterPack: Bool = false
     var grandOpeningBundle: Bool = false
+    /// The whale-tier permanent: +50% profit and a deeper offline cap, stacking
+    /// multiplicatively with VIP rather than replacing it.
+    var mogul: Bool = false
+    /// One-time flag so `refreshEntitlements`' relaunch redelivery can't re-grant the
+    /// Founder's Bundle contents - same pattern as `grandOpeningBundle`.
+    var foundersBundle: Bool = false
 
-    var profitMultiplier: Double { vip ? 1 + Balance.vipProfitBonus : 1 }
+    var profitMultiplier: Double {
+        (vip ? 1 + Balance.vipProfitBonus : 1) * (mogul ? 1 + Balance.mogulProfitBonus : 1)
+    }
     /// VIP carries the Carnival Pass, every season, for as long as they hold it.
     var includesFestivalPremium: Bool { vip }
 
-    enum CodingKeys: String, CodingKey { case vip, starterPack, grandOpeningBundle }
+    enum CodingKeys: String, CodingKey {
+        case vip, starterPack, grandOpeningBundle, mogul, foundersBundle
+    }
 
     init() {}
 
@@ -78,6 +88,8 @@ struct Entitlements: Codable, Equatable {
         vip = try c.decodeIfPresent(Bool.self, forKey: .vip) ?? false
         starterPack = try c.decodeIfPresent(Bool.self, forKey: .starterPack) ?? false
         grandOpeningBundle = try c.decodeIfPresent(Bool.self, forKey: .grandOpeningBundle) ?? false
+        mogul = try c.decodeIfPresent(Bool.self, forKey: .mogul) ?? false
+        foundersBundle = try c.decodeIfPresent(Bool.self, forKey: .foundersBundle) ?? false
     }
 }
 
@@ -297,6 +309,7 @@ struct GameState: Codable, Equatable {
 
     var offlineCapHours: Double {
         (entitlements.vip ? Balance.offlineCapHoursVIP : Balance.offlineCapHours)
+            + (entitlements.mogul ? Balance.mogulOfflineCapBonusHours : 0)
             + researchEffects.offlineCapHours
     }
 

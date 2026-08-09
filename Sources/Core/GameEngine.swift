@@ -1011,10 +1011,14 @@ final class GameEngine: ObservableObject {
         Boosts.add(Boosts.make(id: id, label: label, multiplier: multiplier, hours: hours, from: state.now), to: &state)
     }
 
-    func setEntitlement(vip: Bool? = nil, starterPack: Bool? = nil, grandOpeningBundle: Bool? = nil) {
+    func setEntitlement(vip: Bool? = nil, starterPack: Bool? = nil,
+                        grandOpeningBundle: Bool? = nil, mogul: Bool? = nil,
+                        foundersBundle: Bool? = nil) {
         if let vip { state.entitlements.vip = vip }
         if let starterPack { state.entitlements.starterPack = starterPack }
         if let grandOpeningBundle { state.entitlements.grandOpeningBundle = grandOpeningBundle }
+        if let mogul { state.entitlements.mogul = mogul }
+        if let foundersBundle { state.entitlements.foundersBundle = foundersBundle }
     }
 
     @discardableResult

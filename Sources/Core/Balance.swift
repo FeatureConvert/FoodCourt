@@ -146,6 +146,11 @@ enum Balance {
 
     // Entitlements
     static let vipProfitBonus: Double = 0.25
+    /// Mogul Pass, the $49.99 whale permanent. Multiplies WITH VIP (x1.25 x x1.5 = x1.875
+    /// for both) - a percentage bonus stays meaningful at any income scale, which is what
+    /// makes it whale-proof against the compounding star curve.
+    static let mogulProfitBonus: Double = 0.5
+    static let mogulOfflineCapBonusHours: Double = 12
 
     // MARK: Venues
 

@@ -40,8 +40,14 @@ enum AchievementCatalog {
                         metric: .lifetimeEarnings, threshold: 100_000, rewardGems: 15, symbol: "dollarsign.circle.fill"),
         AchievementSpec(id: "earn_2", title: "Big Money", detail: "Earn \(Format.currency(10_000_000)) lifetime",
                         metric: .lifetimeEarnings, threshold: 10_000_000, rewardGems: 45, symbol: "dollarsign.circle.fill"),
-        AchievementSpec(id: "earn_3", title: "Tycoon", detail: "Earn \(Format.currency(1_000_000_000)) lifetime",
-                        metric: .lifetimeEarnings, threshold: 1_000_000_000, rewardGems: 120, symbol: "dollarsign.circle.fill"),
+        // Rescaled in the August review: the old 1e9 threshold cleared two orders of
+        // magnitude before the first prestige was even possible (minimum 1e11), so the
+        // whole tier was done pre-prestige. 1e13 lands shortly after the first Franchise;
+        // Dynasty is the six-month-arc capstone tier.
+        AchievementSpec(id: "earn_3", title: "Tycoon", detail: "Earn \(Format.currency(1e13)) lifetime",
+                        metric: .lifetimeEarnings, threshold: 1e13, rewardGems: 120, symbol: "dollarsign.circle.fill"),
+        AchievementSpec(id: "earn_4", title: "Dynasty", detail: "Earn \(Format.currency(1e18)) lifetime",
+                        metric: .lifetimeEarnings, threshold: 1e18, rewardGems: 250, symbol: "dollarsign.circle.fill"),
 
         // Customers served
         AchievementSpec(id: "serve_1", title: "Lunch Rush", detail: "Serve 10,000 customers",
@@ -98,6 +104,10 @@ enum AchievementCatalog {
                         metric: .prestiges, threshold: 5, rewardGems: 45, symbol: "arrow.triangle.2.circlepath"),
         AchievementSpec(id: "prestige_3", title: "Franchise Master", detail: "Prestige 15 times",
                         metric: .prestiges, threshold: 15, rewardGems: 120, symbol: "arrow.triangle.2.circlepath"),
+        // 40 franchises at the intended 3-7 day cadence is roughly the six-month arc's
+        // finish line - the prestige track's capstone, matching earn_4 above.
+        AchievementSpec(id: "prestige_4", title: "Food Court Legend", detail: "Prestige 40 times",
+                        metric: .prestiges, threshold: 40, rewardGems: 250, symbol: "arrow.triangle.2.circlepath"),
     ]
 
     private static let index: [String: AchievementSpec] =

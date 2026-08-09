@@ -21,6 +21,14 @@ enum ShopReward: Equatable {
     /// one-time purchase would barely register against it, and the whole point is to let a
     /// player buy back time, not to sell the tree's completion outright.
     case researchGrant
+    /// Whale-tier permanent: +50% profit forever (stacks with VIP) and +12h offline cap.
+    case mogulPass
+    /// Whale-tier consumable: a day of income banked instantly plus x3 profit for 72h.
+    /// Everything in it is time-priced, so it stays worth exactly what it says at any
+    /// income level - flat coin amounts would be obsolete one board later.
+    case timeVault
+    /// One-time whale anchor: a gem hoard, two guaranteed Legendaries, and a week of x2.
+    case foundersBundle
 }
 
 struct ShopItem: Identifiable, Equatable {
@@ -38,8 +46,11 @@ struct ShopItem: Identifiable, Equatable {
     /// festival season, so restoring it would hand out every later season free.
     var isConsumable: Bool {
         switch reward {
-        case .gems, .festivalPass, .legendaryManager, .accelerator, .researchGrant: return true
-        case .starterPack, .vip, .grandOpeningBundle: return false
+        case .gems, .festivalPass, .legendaryManager, .accelerator, .researchGrant,
+             .timeVault:
+            return true
+        case .starterPack, .vip, .grandOpeningBundle, .mogulPass, .foundersBundle:
+            return false
         }
     }
 }
@@ -60,6 +71,11 @@ enum ShopCatalog {
                  reward: .gems(7500), fallbackPrice: "$49.99", badge: "+50%", magnitude: 4),
         ShopItem(id: prefix + "gems.empire", title: "Empire", subtitle: "18,000 gems",
                  reward: .gems(18000), fallbackPrice: "$99.99", badge: "+80%", magnitude: 4),
+        // The whale tier of the gem ladder. 225 gems/$ keeps the value-per-dollar curve
+        // strictly rising (Empire is 180/$), so no lower pack is ever the smarter buy at
+        // this price point.
+        ShopItem(id: prefix + "gems.dynasty", title: "Dynasty", subtitle: "45,000 gems",
+                 reward: .gems(45000), fallbackPrice: "$199.99", badge: "+125%", magnitude: 4),
     ]
 
     static let offers: [ShopItem] = [
@@ -84,6 +100,15 @@ enum ShopCatalog {
         ShopItem(id: prefix + "pack.research", title: "Research Grant",
                  subtitle: "Research stars scaled to your empire - 60% of your last Franchise, repeatable",
                  reward: .researchGrant, fallbackPrice: "$9.99", badge: "SHORTCUT", magnitude: 2),
+        ShopItem(id: prefix + "vip.mogul", title: "Mogul Pass",
+                 subtitle: "+50% profit forever · +12h offline cap · stacks with VIP",
+                 reward: .mogulPass, fallbackPrice: "$49.99", badge: "PERMANENT", magnitude: 4),
+        ShopItem(id: prefix + "pack.timevault", title: "Time Vault",
+                 subtitle: "A full day of income banked now · ×3 profit for 72h",
+                 reward: .timeVault, fallbackPrice: "$39.99", badge: "BUNDLE", magnitude: 4),
+        ShopItem(id: prefix + "pack.founders", title: "Founder's Bundle",
+                 subtitle: "12,000 gems · 2 Legendary managers · ×2 profit for 7 days",
+                 reward: .foundersBundle, fallbackPrice: "$99.99", badge: "ONE TIME", magnitude: 4),
     ]
 
     static let all: [ShopItem] = offers + gemPacks
@@ -155,10 +180,12 @@ final class StoreService: ObservableObject {
     func isOwned(_ item: ShopItem) -> Bool {
         guard let engine else { return false }
         switch item.reward {
-        case .gems, .legendaryManager, .accelerator, .researchGrant: return false
+        case .gems, .legendaryManager, .accelerator, .researchGrant, .timeVault: return false
         case .starterPack: return engine.state.entitlements.starterPack
         case .vip: return engine.state.entitlements.vip
         case .grandOpeningBundle: return engine.state.entitlements.grandOpeningBundle
+        case .mogulPass: return engine.state.entitlements.mogul
+        case .foundersBundle: return engine.state.entitlements.foundersBundle
         // Per-season, so it stops reading as owned once the season rolls - unless the
         // player holds VIP, which includes it and makes buying it separately pointless.
         case .festivalPass: return engine.festivalPremiumActive
@@ -300,6 +327,29 @@ final class StoreService: ObservableObject {
             let stars = engine.researchGrantStars
             engine.grantResearchStars(stars)
             if announce { lastGrant = "+\(Format.count(stars)) research stars" }
+
+        case .mogulPass:
+            // Pure entitlement, so re-delivery on every launch is naturally idempotent.
+            engine.setEntitlement(mogul: true)
+            if announce { lastGrant = "Mogul Pass active" }
+
+        case .timeVault:
+            let earned = engine.timeWarp(hours: 24)
+            engine.addBoost(id: "time-vault", label: "Time Vault ×3", multiplier: 3, hours: 72)
+            if announce { lastGrant = "+\(Format.currency(earned)) coins · ×3 for 72h" }
+
+        case .foundersBundle:
+            // Non-consumable: refreshEntitlements() re-delivers on every launch, so the
+            // contents must only land once - same guard as the Grand Opening Bundle.
+            let firstTime = !engine.state.entitlements.foundersBundle
+            engine.setEntitlement(foundersBundle: true)
+            if firstTime {
+                engine.addGems(12_000)
+                _ = engine.grantManager(rarity: .legendary)
+                _ = engine.grantManager(rarity: .legendary)
+                engine.addBoost(id: "founders", label: "Founder's ×2", multiplier: 2, hours: 168)
+            }
+            if announce { lastGrant = "Founder's Bundle unlocked" }
         }
         engine.save()
     }

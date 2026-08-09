@@ -106,4 +106,59 @@ final class SyncAndSafetyTests: XCTestCase {
         // Identical saves: neither is ahead - no spurious conflict.
         XCTAssertFalse(CloudSaveService.isAhead(smaller, of: smaller))
     }
+
+    // MARK: Shop catalog invariants (run everywhere, unlike the StoreKit-session tests)
+
+    private func dollars(_ item: ShopItem) -> Double {
+        Double(item.fallbackPrice.replacingOccurrences(of: "$", with: "")) ?? 0
+    }
+
+    /// Every rung of the gem ladder must be a strictly better deal than the one below it,
+    /// or the pricier pack is a trap. This is the invariant the Dynasty tier was added
+    /// under, and the one any future pack must keep.
+    func testGemLadderValuePerDollarStrictlyRises() {
+        var lastRate = 0.0
+        for pack in ShopCatalog.gemPacks {
+            guard case .gems(let amount) = pack.reward else {
+                return XCTFail("\(pack.id) in gemPacks without a gems reward")
+            }
+            let rate = Double(amount) / dollars(pack)
+            XCTAssertGreaterThan(rate, lastRate,
+                                 "\(pack.title) pays \(rate) gems/$ - not better than the pack below it")
+            lastRate = rate
+        }
+    }
+
+    func testCatalogHasSeventeenUniqueProducts() {
+        XCTAssertEqual(ShopCatalog.all.count, 17)
+        XCTAssertEqual(Set(ShopCatalog.productIDs).count, 17, "duplicate product id")
+    }
+
+    // MARK: Mogul Pass entitlement effects
+
+    func testMogulStacksMultiplicativelyWithVIP() {
+        var state = GameState.newGame()
+        state.entitlements.mogul = true
+        XCTAssertEqual(state.entitlements.profitMultiplier, 1.5, accuracy: 0.0001)
+        state.entitlements.vip = true
+        XCTAssertEqual(state.entitlements.profitMultiplier, 1.25 * 1.5, accuracy: 0.0001,
+                       "the two passes multiply - neither replaces the other")
+    }
+
+    func testMogulExtendsTheOfflineCap() {
+        var state = GameState.newGame()
+        let base = state.offlineCapHours
+        state.entitlements.mogul = true
+        XCTAssertEqual(state.offlineCapHours, base + Balance.mogulOfflineCapBonusHours)
+    }
+
+    /// An old save's entitlements block predates the whale tier entirely - it must decode
+    /// with both new flags off, not fail or default on.
+    func testOldEntitlementsDecodeWithoutWhaleFields() throws {
+        let old = #"{"vip": true, "starterPack": false, "grandOpeningBundle": false}"#
+        let decoded = try JSONDecoder().decode(Entitlements.self, from: old.data(using: .utf8)!)
+        XCTAssertTrue(decoded.vip)
+        XCTAssertFalse(decoded.mogul)
+        XCTAssertFalse(decoded.foundersBundle)
+    }
 }
