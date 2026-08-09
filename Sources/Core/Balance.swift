@@ -135,10 +135,11 @@ enum Balance {
     /// its own. A save that legitimately reached this had gone from 16K to ~1.7e19 stars
     /// within the same play session. Square-rooting the bonus (below) makes each further star
     /// cost proportionally more time than the last, same shape as totalStars itself, so the
-    /// loop is self-limiting again. Tuned so the first prestige (~47 stars at the minimum
-    /// threshold) still lands close to its old +94%, and 500 stars (`legacyUnlockLifetimeStars`,
-    /// "several trips through the loop") is a strong +300% (4x) - big early payoff, still
-    /// climbing steadily after, never running away.
+    /// loop is self-limiting again. Tuned so a prestige at the bare minimum threshold (~47
+    /// stars) still lands close to the old flat curve's +94%, and 500 stars is a strong
+    /// +300% (4x) - big early payoff, still climbing steadily after, never running away.
+    /// (The Legacy gate used to reference this 500 number; it's prestige-count based now -
+    /// see `legacyUnlockPrestigeCount`.)
     static let starBonusAtReferenceCount: Double = 3.0
     static let starBonusReferenceCount: Double = 500
     /// Below this there is nothing to gain, so the button stays locked.
