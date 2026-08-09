@@ -311,9 +311,14 @@ enum Balance {
 
     // MARK: Prestige
 
-    /// A ceiling no legitimate trajectory could reach - simulated two full years of
-    /// maximally optimal, uninterrupted, perfectly-timed prestiging (the fastest anyone could
-    /// conceivably go) tops out around 13.5 million lifetime stars, well under this.
+    /// A ceiling no legitimate trajectory could reach. Re-derived in the August review:
+    /// the original 100M figure came from a simulation that predates the final staleness
+    /// constants and modeled no research feedback - re-simulated against the shipped
+    /// formulas, a hardcore player legitimately reaches ~200-250M lifetime stars inside
+    /// six months, which the old ceiling would have CLAMPED. 1e10 sits ~50x above that
+    /// six-month hardcore trajectory (star growth decelerates sharply after, so even years
+    /// of play stay far below it) while remaining nine orders of magnitude under the
+    /// Int64 conversion trap line the ceiling exists to guard.
     ///
     /// This exists because of a real incident: a since-fixed linear (not sqrt-scaled) star
     /// bonus let a compounding loop push a live save's lifetime stars into the 1e19 range
@@ -328,7 +333,7 @@ enum Balance {
     /// hit by the old bug becomes safe and playable again (with a still-enormous but sane
     /// permanent bonus) instead of crash-looping forever, and the same failure mode can't
     /// recur even if some future change reopens unbounded growth.
-    static let maxSaneLifetimeStars = 100_000_000
+    static let maxSaneLifetimeStars = 10_000_000_000
 
     /// The lifetime-earnings figure that maps to `maxSaneLifetimeStars` under the formula
     /// below - derived, not hardcoded, so it can never drift out of sync with `totalStars`.
@@ -359,14 +364,33 @@ enum Balance {
 
     // MARK: Legacy (second prestige layer)
 
-    /// Reachable only after repeatedly prestiging in the ordinary sense - a first prestige at
-    /// the minimum lifetime earnings yields roughly 47 stars, so 500 lifetime stars takes
-    /// several trips through the regular loop.
-    static let legacyUnlockLifetimeStars = 500
+    /// Gated on prestige COUNT, not stars: real first-prestige awards run ~10-15K stars
+    /// (players wait well past the 1e11 minimum), so the old 500-lifetime-star gate was
+    /// crossed on the very first Franchise - "several trips through the regular loop"
+    /// stopped being true the moment the award curve was measured. Five franchises lands
+    /// around week 3-5 of the intended 3-7 day cadence.
+    static let legacyUnlockPrestigeCount = 5
 
+    /// +20% per level. Raised from +5% in the same pass that made `legacyReset()` zero
+    /// `lifetimeEarnings`: now that a Legacy genuinely restarts the star climb (instead of
+    /// one quick re-prestige restoring the whole multiplier), the permanent bonus has to
+    /// be worth what's actually being given up.
     static func legacyMultiplier(level: Int) -> Double {
-        1 + Double(level) * 0.05
+        1 + Double(level) * 0.20
     }
+
+    // MARK: Research pricing
+
+    /// Deep research ranks cost this fraction of the player's latest Franchise award (with
+    /// the static curve in `ResearchNode.cost` as a floor). Award-proportional pricing is
+    /// what makes the tree calendar-paced instead of wealth-paced: star income compounds so
+    /// hard that ANY fixed price is trivial one board later (the full static tree fell in
+    /// under two weeks in every simulated profile). At 0.4, each Franchise funds ~2-3
+    /// ranks, and the 90-rank tree maxes at day ~111/185/259 for a 3/5/7-day prestige
+    /// cadence - centered on the intended ~6 months - identically across a 10x spread of
+    /// play intensity, because the award scales with the player. Pinned to the last
+    /// completed award (not live pendingStars) so waiting or timing purchases can't game it.
+    static let researchAwardCostFraction = 0.4
 }
 
 extension Format {

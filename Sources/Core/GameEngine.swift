@@ -713,6 +713,7 @@ final class GameEngine: ObservableObject {
 
         state.stars += award            // spendable
         state.lifetimeStars += award    // permanent multiplier
+        state.lastPrestigeAward = award // prices the next research ranks
         state.prestigeCount += 1
         state.coins = 0
         state.runEarnings = 0
@@ -744,22 +745,29 @@ final class GameEngine: ObservableObject {
     // MARK: Legacy (second prestige layer)
 
     var canLegacyReset: Bool {
-        state.lifetimeStars >= Balance.legacyUnlockLifetimeStars
+        state.prestigeCount >= Balance.legacyUnlockPrestigeCount
     }
 
     /// Trades away the accumulated star multiplier for a permanently bigger one. Unlike
-    /// `prestige()`, this also clears stars/lifetimeStars/research - the very things regular
-    /// prestige is careful to keep - since giving those up is the entire point. Managers,
-    /// recipes, achievements, errands, festival and league are left untouched: they are
-    /// collections and accomplishments, not run progress.
+    /// `prestige()`, this also clears stars/lifetimeStars/research AND `lifetimeEarnings` -
+    /// the very things regular prestige is careful to keep - since giving those up is the
+    /// entire point. Earnings must go too: stars are computed from lifetime earnings, so
+    /// leaving them meant one quick re-prestige restored the entire multiplier for free
+    /// and the only real cost was research - not the trade the copy promised. The star
+    /// climb genuinely restarts now, which is why `Balance.legacyMultiplier` pays +20% per
+    /// level instead of the +5% priced for the old, nearly-free version. Managers, recipes,
+    /// achievements, errands, festival and league are left untouched: they are collections
+    /// and accomplishments, not run progress.
     @discardableResult
     func legacyReset() -> Int {
         guard canLegacyReset else { return state.legacy.level }
         state.legacy.level += 1
         state.coins = 0
         state.runEarnings = 0
+        state.lifetimeEarnings = 0
         state.stars = 0
         state.lifetimeStars = 0
+        state.lastPrestigeAward = 0
         state.research = [:]
         state.venues = Balance.venues.map { VenueState.fresh(venue: $0, unlocked: $0.id == 0) }
         state.venues[0].stations[0].level = 1
@@ -779,15 +787,44 @@ final class GameEngine: ObservableObject {
 
     func researchRank(_ id: String) -> Int { state.research[id] ?? 0 }
 
+    /// What the given node costs right now, award-scaled - the one lookup every UI label
+    /// and purchase path must share so the price shown is always the price paid.
+    func researchCost(_ node: ResearchNode) -> Int {
+        node.cost(forRank: researchRank(node.id), award: state.lastPrestigeAward)
+    }
+
+    /// How many research ranks the player could afford immediately after franchising right
+    /// now - shown on the prestige confirm so the reset reads as "this buys my next
+    /// breakthroughs", which is the decision actually being made. Greedy cheapest-first
+    /// walk over a copy of the ranks; bounded by the tree's 90 total ranks.
+    func projectedResearchRanks(afterAward award: Int, spendable: Int) -> Int {
+        guard award > 0 || spendable > 0 else { return 0 }
+        var ranks = state.research
+        var budget = spendable
+        var bought = 0
+        while bought < 90 {
+            let affordable = Research.nodes
+                .filter { Research.canBuy($0, ranks: ranks, stars: budget, award: award) }
+                .map { ($0, $0.cost(forRank: ranks[$0.id] ?? 0, award: award)) }
+                .min { $0.1 < $1.1 }
+            guard let (node, cost) = affordable else { break }
+            budget -= cost
+            ranks[node.id] = (ranks[node.id] ?? 0) + 1
+            bought += 1
+        }
+        return bought
+    }
+
     func canBuyResearch(_ node: ResearchNode) -> Bool {
-        Research.canBuy(node, ranks: state.research, stars: state.stars)
+        Research.canBuy(node, ranks: state.research, stars: state.stars,
+                        award: state.lastPrestigeAward)
     }
 
     @discardableResult
     func buyResearch(_ node: ResearchNode) -> Bool {
         guard canBuyResearch(node) else { return false }
         let rank = researchRank(node.id)
-        state.stars -= node.cost(forRank: rank)
+        state.stars -= researchCost(node)
         state.research[node.id] = rank + 1
         save()
         return true
@@ -1063,6 +1100,20 @@ final class GameEngine: ObservableObject {
         guard amount > 0 else { return }
         state.stars += amount
         save()
+    }
+
+    /// The gem sink's star payout: 15% of the latest Franchise award, floored at the old
+    /// flat 300. Both purchases scale with the award for the same reason research prices do
+    /// (`Balance.researchAwardCostFraction`) - a flat grant is meaningless one board after
+    /// week one. 15% ≈ a third of one deep rank; the paid Grant below is the serious one.
+    var researchBoostStars: Int {
+        Swift.max(300, Int(0.15 * Double(state.lastPrestigeAward)))
+    }
+
+    /// The $9.99 Research Grant's payout: 60% of the latest award, floored at 2,500 -
+    /// about a rank and a half of deep research whenever it's bought, forever.
+    var researchGrantStars: Int {
+        Swift.max(2_500, Int(0.6 * Double(state.lastPrestigeAward)))
     }
 
     // MARK: Free boost (Coffee Break)

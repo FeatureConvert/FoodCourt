@@ -61,7 +61,7 @@ struct RoadmapSection: View {
         let level = engine.state.legacy.level
         return [
             Item(id: "legacy-unlock", title: "Unlock Legacy",
-                detail: "\(engine.state.lifetimeStars) / \(Balance.legacyUnlockLifetimeStars) lifetime stars",
+                detail: "\(engine.state.prestigeCount) / \(Balance.legacyUnlockPrestigeCount) franchises",
                 done: engine.canLegacyReset || level > 0),
             Item(id: "legacy-1", title: "Reach Legacy 1", detail: "Level \(level) / 1", done: level >= 1),
             Item(id: "legacy-3", title: "Reach Legacy 3", detail: "Level \(level) / 3", done: level >= 3),

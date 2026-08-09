@@ -155,6 +155,49 @@ final class EconomyTests: XCTestCase {
                        Balance.maxSaneLifetimeStars, accuracy: 1)
     }
 
+    // MARK: Award-proportional research pricing
+
+    func testResearchCostSitsOnStaticFloorForSmallAwards() {
+        let node = Research.node("prep")!
+        // A brand-new player (award 0) and an early player pay exactly the old curve.
+        XCTAssertEqual(node.cost(forRank: 0, award: 0), node.cost(forRank: 0))
+        XCTAssertEqual(node.cost(forRank: 0, award: 50), 30,
+                       "0.4 x 50 = 20 loses to the 30-star floor")
+    }
+
+    func testResearchCostScalesWithTheLatestAward() {
+        let node = Research.node("prep")!
+        XCTAssertEqual(node.cost(forRank: 0, award: 10_000), 4_000,
+                       "0.4 x award once that beats the floor")
+        XCTAssertEqual(node.cost(forRank: 0, award: 1_000_000), 400_000)
+        // The floor still wins for deep ranks vs small awards.
+        XCTAssertEqual(node.cost(forRank: 9, award: 100),
+                       node.cost(forRank: 9))
+    }
+
+    /// The pacing property the whole rework exists for: a Franchise award funds roughly
+    /// 1/fraction ranks, so the 90-rank tree is a months-long ladder of prestiges at any
+    /// income level - the award scales with the player, the affordable rank count doesn't.
+    func testOneAwardFundsRoughlyTwoToThreeRanks() {
+        for award in [50_000, 5_000_000, 500_000_000] {
+            var ranks: [String: Int] = [:]
+            var budget = award
+            var bought = 0
+            while bought < 90 {
+                let affordable = Research.nodes
+                    .filter { Research.canBuy($0, ranks: ranks, stars: budget, award: award) }
+                    .map { ($0, $0.cost(forRank: ranks[$0.id] ?? 0, award: award)) }
+                    .min { $0.1 < $1.1 }
+                guard let (node, cost) = affordable else { break }
+                budget -= cost
+                ranks[node.id] = (ranks[node.id] ?? 0) + 1
+                bought += 1
+            }
+            XCTAssertTrue((2...3).contains(bought),
+                          "award \(award) bought \(bought) ranks - pacing drifted")
+        }
+    }
+
     private func roundTrip(_ state: GameState) throws -> GameState {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -170,8 +213,8 @@ final class EconomyTests: XCTestCase {
     /// equally absurd award from the still-corrupted `lifetimeEarnings` and undoes nothing.
     func testDecodingRepairsACorruptedSave() throws {
         var state = GameState.newGame()
-        state.lifetimeStars = 5_000_000_000
-        state.stars = 5_000_000_000
+        state.lifetimeStars = 50_000_000_000_000   // 5e13, past the 1e10 sane ceiling
+        state.stars = 50_000_000_000_000
         state.lifetimeEarnings = 1e30
 
         let decoded = try roundTrip(state)

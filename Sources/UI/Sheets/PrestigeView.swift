@@ -73,10 +73,10 @@ private struct FranchiseSection: View {
             statRow("Stars ever earned", Format.count(engine.state.lifetimeStars))
             divider
             statRow("Profit bonus now",
-                    "+\(Int((Balance.starMultiplier(stars: engine.state.lifetimeStars) - 1) * 100))%")
+                    Format.bonus(multiplier: Balance.starMultiplier(stars: engine.state.lifetimeStars)))
             divider
             statRow("Profit bonus after",
-                    "+\(Int((Balance.starMultiplier(stars: engine.state.lifetimeStars + engine.pendingStars) - 1) * 100))%",
+                    Format.bonus(multiplier: Balance.starMultiplier(stars: engine.state.lifetimeStars + engine.pendingStars)),
                     highlight: engine.pendingStars > 0)
             divider
             statRow("Lifetime earnings", Format.currency(engine.state.lifetimeEarnings))
@@ -84,7 +84,16 @@ private struct FranchiseSection: View {
             statRow("This run", Format.currency(engine.state.runEarnings))
             if engine.costInflation > 1.01 {
                 divider
-                statRow("Board costs", "+\(Int((engine.costInflation - 1) * 100))%", warning: true)
+                statRow("Board costs", Format.bonus(multiplier: engine.costInflation), warning: true)
+            }
+            if engine.pendingStars > 0 {
+                divider
+                statRow("Staff let go on reset",
+                        "\(engine.state.managers.filter { !$0.premium }.count)")
+                divider
+                statRow("Research ranks it funds",
+                        "~\(engine.projectedResearchRanks(afterAward: engine.pendingStars, spendable: engine.state.stars + engine.pendingStars))",
+                        highlight: true)
             }
         }
         .panel(Theme.panel)
@@ -156,7 +165,7 @@ private struct FranchiseSection: View {
                 .font(Theme.numeric(20))
                 .foregroundStyle(Theme.text)
 
-            Text("Give up your \(Int((Balance.starMultiplier(stars: engine.state.lifetimeStars) - 1) * 100))% star bonus and every research rank, permanently, for +\(Int(Balance.legacyMultiplier(level: 1) * 100 - 100))% more forever.")
+            Text("Give up your \(Format.bonus(multiplier: Balance.starMultiplier(stars: engine.state.lifetimeStars))) star bonus, every research rank, and your whole earnings history - the star climb starts over from nothing - for +\(Int(Balance.legacyMultiplier(level: 1) * 100 - 100))% more profit per level, forever.")
                 .font(Theme.body(11, weight: .medium))
                 .foregroundStyle(Theme.textDim)
                 .multilineTextAlignment(.center)
@@ -300,7 +309,7 @@ private struct ResearchSection: View {
                     Text("Research Grant")
                         .font(Theme.body(15, weight: .black))
                         .foregroundStyle(Theme.ink)
-                    Text("+2,500 stars, research only - buy again anytime")
+                    Text("+\(Format.count(engine.researchGrantStars)) stars, research only - buy again anytime")
                         .font(Theme.body(11, weight: .medium))
                         .foregroundStyle(Theme.ink.opacity(0.75))
                         .lineLimit(2).multilineTextAlignment(.leading)
@@ -321,7 +330,7 @@ private struct ResearchSection: View {
         let rank = engine.researchRank(node.id)
         let unlocked = Research.isUnlocked(node, ranks: engine.state.research)
         let maxed = rank >= node.maxRank
-        let cost = node.cost(forRank: rank)
+        let cost = engine.researchCost(node)
         let affordable = engine.canBuyResearch(node)
 
         return Button {
@@ -334,7 +343,7 @@ private struct ResearchSection: View {
                 onToast("Unlock the node above it first")
             } else if !maxed {
                 sound.play(.denied)
-                onToast("Need \(cost) stars")
+                onToast("Need \(Format.count(cost)) stars")
             }
         } label: {
             HStack(spacing: 10) {
@@ -362,7 +371,7 @@ private struct ResearchSection: View {
                 } else {
                     HStack(spacing: 3) {
                         StarIcon().frame(width: 13, height: 13)
-                        Text("\(cost)")
+                        Text(Format.count(cost))
                             .font(Theme.numeric(13))
                             .foregroundStyle(affordable ? Theme.ink : Theme.textDim)
                     }

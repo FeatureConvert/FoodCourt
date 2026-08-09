@@ -50,7 +50,7 @@ struct HUDView: View {
                                     .foregroundStyle(Theme.text)
                                     .lineLimit(1)
                                     .fixedSize()
-                                Text("+\(Int((Balance.starMultiplier(stars: engine.state.lifetimeStars) - 1) * 100))%")
+                                Text(Format.bonus(multiplier: Balance.starMultiplier(stars: engine.state.lifetimeStars)))
                                     .font(Theme.body(10, weight: .bold))
                                     .foregroundStyle(Theme.star)
                                     .lineLimit(1)

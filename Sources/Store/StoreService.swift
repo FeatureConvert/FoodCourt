@@ -82,7 +82,7 @@ enum ShopCatalog {
                  subtitle: "1,500 gems · a manager for every open station in every venue · ×2 for 72h",
                  reward: .grandOpeningBundle, fallbackPrice: "$9.99", badge: "ONE TIME", magnitude: 3),
         ShopItem(id: prefix + "pack.research", title: "Research Grant",
-                 subtitle: "+2,500 stars, spend on research only - repeatable",
+                 subtitle: "Research stars scaled to your empire - 60% of your last Franchise, repeatable",
                  reward: .researchGrant, fallbackPrice: "$9.99", badge: "SHORTCUT", magnitude: 2),
     ]
 
@@ -297,8 +297,9 @@ final class StoreService: ObservableObject {
             if announce { lastGrant = "Grand Opening Bundle unlocked" }
 
         case .researchGrant:
-            engine.grantResearchStars(2_500)
-            if announce { lastGrant = "+2,500 research stars" }
+            let stars = engine.researchGrantStars
+            engine.grantResearchStars(stars)
+            if announce { lastGrant = "+\(Format.count(stars)) research stars" }
         }
         engine.save()
     }

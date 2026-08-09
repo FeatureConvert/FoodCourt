@@ -112,9 +112,12 @@ struct HelpView: View {
             symbol: "star.fill", title: "Franchising and research",
             text: """
             Once you have earned enough, franchising resets the board in exchange for \
-            Franchise Stars. Every star is +2% profit forever. Stars are also the currency \
-            for the research tree. Staff, recipes and research all survive a reset — only \
-            the board itself starts over.
+            Franchise Stars — a permanent profit bonus that grows with every star you've \
+            ever earned. Don't sit on a finished board: costs creep up the longer a board \
+            goes without a reset, so franchising every few days beats waiting for perfect. \
+            Stars are also the currency for research, and each franchise funds your next \
+            few ranks — research is a months-long project, not a single run's shopping \
+            trip. Recipes and research survive a reset; coin-hired staff does not.
             """),
         GuideSection(
             symbol: "calendar", title: "Events",
@@ -167,10 +170,11 @@ struct HelpView: View {
         GuideSection(
             symbol: "infinity", title: "Legacy",
             text: """
-            Once you've prestiged enough to reach 500 lifetime stars, a Legacy option appears \
-            on the Franchise tab. It resets stars, lifetime stars and research — the things an \
-            ordinary franchise reset keeps — for a permanent multiplier stacked on top of the \
-            star bonus. A much bigger commitment than a regular reset.
+            After your fifth franchise, a Legacy option appears on the Franchise tab. It \
+            resets stars, research, and your whole earnings history — the things an \
+            ordinary franchise reset keeps — for a permanent +20% multiplier per level, \
+            stacked on top of the star bonus. The star climb genuinely starts over, so \
+            it's a much bigger commitment than a regular reset.
             """),
         GuideSection(
             symbol: "star.circle.fill", title: "Guest Chef",
@@ -287,11 +291,11 @@ struct HelpView: View {
         FAQItem(question: "What's the difference between franchising and Legacy?",
                 answer: """
                 Franchising resets the board — coins, station levels, and every venue but the \
-                first — while keeping stars, staff, recipes and research. Legacy is separate \
-                and far rarer, unlocking once you've reached 500 lifetime stars, and resets \
-                stars, lifetime stars and research too, in exchange for a permanent \
-                multiplier stacked on top of the star bonus. Think of it as a second, much \
-                bigger reset for once the first one has run its course.
+                first — while keeping stars, recipes and research (coin-hired staff is let \
+                go). Legacy is separate and far rarer, unlocking after your fifth franchise, \
+                and resets stars, research, and your entire earnings history too, in exchange \
+                for a permanent +20% per level stacked on top of the star bonus. Think of it \
+                as a second, much bigger reset for once the first one has run its course.
                 """),
         FAQItem(question: "Do achievements, the streak, or any of the newer systems require spending money?",
                 answer: """

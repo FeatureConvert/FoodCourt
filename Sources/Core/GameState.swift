@@ -199,6 +199,11 @@ struct GameState: Codable, Equatable {
 
     var claimedAchievements: Set<String> = []
     var prestigeCount: Int = 0
+    /// Stars from the most recent Franchise reset. Deep research ranks are priced as a
+    /// fraction of this (`Balance.researchAwardCostFraction`) - fixed per board, unlike
+    /// live `pendingStars`, so purchase timing can't game the price. Zeroed by a Legacy
+    /// reset so post-Legacy early ranks fall back to the cheap static floor.
+    var lastPrestigeAward: Int = 0
 
     /// Keys of one-shot explainer moments the player has already seen - the welcome screen,
     /// the first-prestige and first-legacy alerts, the perk primer, and the first-open banner
@@ -406,6 +411,7 @@ struct GameState: Codable, Equatable {
         case research, managers, recipeCards, quests, questsClaimed, festival, league, tutorial
         case rushEndsAt, rushAvailableAt, rushesCompleted, totalTaps, totalServed
         case claimedAchievements, prestigeCount, bestLeagueTierReached, seenIntros
+        case lastPrestigeAward
         case boardStartedAt
         case errands
         case venueSkins, unlockedSkins
@@ -466,6 +472,10 @@ struct GameState: Codable, Equatable {
 
         claimedAchievements = try c.decodeIfPresent(Set<String>.self, forKey: .claimedAchievements) ?? []
         prestigeCount = try c.decodeIfPresent(Int.self, forKey: .prestigeCount) ?? 0
+        // Old saves decode as 0: their next research purchases sit on the static floor
+        // until the first post-update Franchise records a real award. Cheap for a board or
+        // two, never wrong.
+        lastPrestigeAward = try c.decodeIfPresent(Int.self, forKey: .lastPrestigeAward) ?? 0
         bestLeagueTierReached = try c.decodeIfPresent(LeagueTier.self, forKey: .bestLeagueTierReached) ?? .bronze
 
         errands = try c.decodeIfPresent([ActiveErrand].self, forKey: .errands) ?? []

@@ -102,6 +102,18 @@ enum Format {
     /// `9014` -> `2h 30m`, `603247` -> `6d 23h`. Used for boost timers, offline windows, and
     /// week-long countdowns (festival/league) - those otherwise printed as a raw hour count
     /// like "167h 47m", which nobody reads faster than "6d 23h".
+    /// A profit multiplier for display. Percent form reads well up to a point ("+340%"),
+    /// but a live save has already shown +32,000% and the sane ceiling allows far more -
+    /// six-figure percentages are noise. Past x100 the multiplier itself is the honest,
+    /// legible number ("x418", "x1.3K" via `count`).
+    static func bonus(multiplier: Double) -> String {
+        guard multiplier.isFinite, multiplier > 1 else { return "+0%" }
+        if multiplier < 100 {
+            return "+\(Int(((multiplier - 1) * 100).rounded()))%"
+        }
+        return "×" + count(Int(multiplier.rounded()))
+    }
+
     static func duration(_ seconds: TimeInterval) -> String {
         let s = max(0, Int(seconds.rounded()))
         let d = s / 86_400

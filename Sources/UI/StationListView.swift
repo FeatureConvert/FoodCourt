@@ -17,7 +17,7 @@ struct StationListView: View {
                     // A board that's gone a long time without a franchise reset gets
                     // proportionally pricier - this is the one place that's visible during
                     // normal play rather than only inside the Franchise sheet.
-                    Text("+\(Int((engine.costInflation - 1) * 100))% COSTS")
+                    Text("\(Format.bonus(multiplier: engine.costInflation)) COSTS")
                         .font(Theme.body(9, weight: .black))
                         .foregroundStyle(Theme.negative)
                         .padding(.horizontal, 6).padding(.vertical, 3)

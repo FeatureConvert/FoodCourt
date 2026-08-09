@@ -23,27 +23,27 @@ struct ResearchNode: Identifiable, Equatable {
     let requires: [String]
     let effect: ResearchEffect
 
-    /// Ranks get steadily pricier so a branch is a commitment, not a formality. Growth was
-    /// 1.6, and baseCost values were roughly a tenth of what they are now - together the
-    /// entire tree, every node at max rank, cost only ~4,700 stars. A single prestige could
-    /// (and did) hand out multiples of that, so "spend your stars on research" was never a
-    /// real decision - everything worth having was already affordable.
+    /// Hybrid pricing: the static 2.4-growth curve is only a FLOOR; past the first few
+    /// franchises, `Balance.researchAwardCostFraction` of the player's latest Franchise
+    /// award dominates.
     ///
-    /// Growth went 1.6 -> 1.75 -> 1.95 -> 2.4 across three passes, each retuned against how
-    /// fast stars actually arrive. 1.75 (~82,000 stars for the full tree) was priced for
-    /// small, frequent prestige payouts; once the staleness tax (`Balance.
-    /// stalenessMultiplier`) made big, patient batches the correct cadence instead, a single
-    /// week of that cadence was clearing over half the tree. 1.95 (~168,000) re-targeted a
-    /// month, but that's still a short runway for a permanent progression system meant to
-    /// carry the game long-term. 2.4 (~757,000 total) pushes full completion out to roughly
-    /// six months of a genuinely dedicated, patient-batch cadence - real play, with sleep and
-    /// gaps and less-than-optimal timing, stretches well past that, leaving room for more
-    /// venues and content to extend the tree further in a later pass rather than everything
-    /// being maxed out by then. Rank 0 on the cheapest nodes is untouched by any of this -
-    /// still 30-40 stars, affordable off a first-ever prestige - so the growth rate only ever
-    /// taxes the deep ranks, not the first taste of the system.
-    func cost(forRank rank: Int) -> Int {
-        Int((Double(baseCost) * pow(2.4, Double(rank))).rounded())
+    /// History, because this took four passes to get right: static growth went
+    /// 1.6 -> 1.75 -> 1.95 -> 2.4, each retune extrapolating "how fast stars arrive" from
+    /// a one-week measurement. The August review finally simulated the full arc and found
+    /// star income COMPOUNDS (stars -> multiplier -> earnings -> stars): the "~6 month"
+    /// 2.4 tree actually fell in under two weeks in every simulated profile, because each
+    /// board multiplies lifetime earnings by orders of magnitude. No fixed number can pace
+    /// a currency like that - hence award-proportional pricing, which self-scales with any
+    /// play intensity and lands full completion at ~6 months of a 5-day prestige cadence
+    /// (see the fraction's doc in Balance.swift for the simulated numbers).
+    ///
+    /// Rank 0 on the cheapest nodes still costs 30-40 stars for a brand-new player (the
+    /// static floor governs until awards grow), so the first taste of the system stays
+    /// affordable off a first-ever Franchise.
+    func cost(forRank rank: Int, award: Int = 0) -> Int {
+        let floorCost = Int((Double(baseCost) * pow(2.4, Double(rank))).rounded())
+        let scaled = Int(Balance.researchAwardCostFraction * Double(award))
+        return max(floorCost, scaled)
     }
 }
 
@@ -131,11 +131,12 @@ enum Research {
         node.requires.allSatisfy { (ranks[$0] ?? 0) > 0 }
     }
 
-    static func canBuy(_ node: ResearchNode, ranks: [String: Int], stars: Int) -> Bool {
+    static func canBuy(_ node: ResearchNode, ranks: [String: Int], stars: Int,
+                       award: Int = 0) -> Bool {
         let rank = ranks[node.id] ?? 0
         return rank < node.maxRank
             && isUnlocked(node, ranks: ranks)
-            && stars >= node.cost(forRank: rank)
+            && stars >= node.cost(forRank: rank, award: award)
     }
 
     // MARK: Aggregated effects

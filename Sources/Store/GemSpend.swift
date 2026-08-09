@@ -29,8 +29,12 @@ struct GemOffer: Identifiable, Equatable {
                  subtitle: "+500 festival tickets", cost: 150, symbol: "ticket.fill"),
         GemOffer(id: "freeze", title: "Streak Freeze",
                  subtitle: "Protects your login streak for one missed day", cost: 60, symbol: "snowflake"),
-        GemOffer(id: "research", title: "Research Boost",
-                 subtitle: "+300 stars, spend on research only", cost: 400, symbol: "flask.fill"),
+        // Renamed from "Research Boost" - it sat next to the real-money "Research Grant"
+        // with a near-identical name and nothing distinguishing "this costs gems" from
+        // "this costs dollars". Priced below Automate Venue (its value is far smaller) and
+        // scaled to the player's latest Franchise so it never becomes a rounding error.
+        GemOffer(id: "research", title: "Star Infusion",
+                 subtitle: "Research stars - 15% of your last Franchise", cost: 250, symbol: "flask.fill"),
     ]
 
     /// What the shop actually displays - cheapest first, so the list reads as a ladder
@@ -114,8 +118,9 @@ enum GemSpend {
 
         case "research":
             guard engine.spendGems(offer.cost) else { return .insufficientGems }
-            engine.grantResearchStars(300)
-            return .success("+300 research stars")
+            let stars = engine.researchBoostStars
+            engine.grantResearchStars(stars)
+            return .success("+\(Format.count(stars)) research stars")
 
         default:
             return .nothingToDo("Unavailable")

@@ -1500,26 +1500,30 @@ final class FeatureTests: XCTestCase {
         state.legacy.level = 2
         // Isolate the legacy term: zero out every other multiplicative contributor.
         XCTAssertEqual(state.globalMultiplier, Balance.legacyMultiplier(level: 2), accuracy: 0.0001)
-        XCTAssertEqual(Balance.legacyMultiplier(level: 2), 1.10, accuracy: 0.0001)
+        XCTAssertEqual(Balance.legacyMultiplier(level: 2), 1.40, accuracy: 0.0001)
     }
 
     @MainActor
-    func testLegacyResetIsGatedBelowTheStarThreshold() {
+    func testLegacyResetIsGatedBelowThePrestigeCount() {
         var state = GameState.newGame()
-        state.lifetimeStars = Balance.legacyUnlockLifetimeStars - 1
+        state.prestigeCount = Balance.legacyUnlockPrestigeCount - 1
+        state.lifetimeStars = 1_000_000 // stars alone must never open the gate
         let e = engine(state)
         XCTAssertFalse(e.canLegacyReset)
 
         let levelBefore = e.state.legacy.level
         XCTAssertEqual(e.legacyReset(), levelBefore, "a gated reset must be a no-op")
         XCTAssertEqual(e.state.legacy.level, levelBefore)
-        XCTAssertEqual(e.state.lifetimeStars, Balance.legacyUnlockLifetimeStars - 1, "untouched by the no-op")
+        XCTAssertEqual(e.state.lifetimeStars, 1_000_000, "untouched by the no-op")
     }
 
     @MainActor
     func testLegacyResetZeroesRunProgressButKeepsCollections() {
         var state = GameState.newGame()
-        state.lifetimeStars = Balance.legacyUnlockLifetimeStars
+        state.prestigeCount = Balance.legacyUnlockPrestigeCount
+        state.lifetimeStars = 15_000
+        state.lifetimeEarnings = 1e14
+        state.lastPrestigeAward = 12_000
         state.stars = 200
         state.coins = 5_000
         state.runEarnings = 5_000
@@ -1535,13 +1539,18 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(newLevel, 1)
         XCTAssertEqual(e.state.legacy.level, 1)
 
-        // Run progress and the star multiplier are what got traded away.
+        // Run progress, the star multiplier, AND the earnings history got traded away.
+        // Earnings must go too: stars are computed from lifetime earnings, so leaving them
+        // meant one instant re-prestige restored the entire multiplier for free.
         XCTAssertEqual(e.state.coins, 0)
         XCTAssertEqual(e.state.runEarnings, 0)
+        XCTAssertEqual(e.state.lifetimeEarnings, 0)
         XCTAssertEqual(e.state.stars, 0)
         XCTAssertEqual(e.state.lifetimeStars, 0)
+        XCTAssertEqual(e.state.lastPrestigeAward, 0, "research prices fall back to the static floor")
         XCTAssertTrue(e.state.research.isEmpty)
         XCTAssertEqual(e.state.venues[0].stations[0].level, 1)
+        XCTAssertFalse(e.canPrestige, "the star climb genuinely restarts - no instant re-prestige")
 
         // Collections and accomplishments are not run progress - they survive.
         XCTAssertEqual(e.state.managers.count, 1)
@@ -1553,17 +1562,18 @@ final class FeatureTests: XCTestCase {
     @MainActor
     func testLegacyMultiplierStacksWithRegularPrestigeAfterwards() {
         var state = GameState.newGame()
-        state.lifetimeStars = Balance.legacyUnlockLifetimeStars
-        // legacyReset() never touches lifetimeEarnings (same as prestige()), so seeding it
-        // up front means canPrestige is already satisfied immediately afterward.
+        state.prestigeCount = Balance.legacyUnlockPrestigeCount
         state.lifetimeEarnings = Balance.minimumLifetimeForPrestige
         let e = engine(state)
         e.legacyReset()
         XCTAssertEqual(e.state.legacy.level, 1)
         XCTAssertEqual(e.state.lifetimeStars, 0, "legacy must not leave stale stars for the next prestige math to trip on")
+        XCTAssertFalse(e.canPrestige, "earnings were zeroed - the climb back is the price")
 
-        // A fresh prestige after a legacy reset should behave exactly like any other -
-        // legacy level is a separate multiplicative term, not folded into lifetimeStars.
+        // Re-earn the minimum the honest way, then a fresh prestige should behave exactly
+        // like any other - legacy level is a separate multiplicative term, not folded into
+        // lifetimeStars.
+        e.addCoins(Balance.minimumLifetimeForPrestige)
         XCTAssertTrue(e.canPrestige)
         let awarded = e.prestige()
         XCTAssertGreaterThan(awarded, 0)
