@@ -59,15 +59,15 @@ enum Expeditions {
     static let tiers: [ExpeditionTier] = [
         ExpeditionTier(id: "friendly", title: "Friendly Face-Off",
                        detail: "Low stakes, guaranteed experience. 4 hours.",
-                       difficulty: 4, hours: 4, rewardGems: 12, rewardIncomeHours: 1,
+                       difficulty: 4, hours: 4, rewardGems: 8, rewardIncomeHours: 1,
                        recruitChance: 0),
         ExpeditionTier(id: "district", title: "District Cook-Off",
                        detail: "A real fight. Bring your good people. 8 hours.",
-                       difficulty: 9, hours: 8, rewardGems: 35, rewardIncomeHours: 3,
+                       difficulty: 9, hours: 8, rewardGems: 25, rewardIncomeHours: 3,
                        recruitChance: 0),
         ExpeditionTier(id: "grand", title: "Grand Face-Off",
                        detail: "The rival's best crew. Winners come home famous. 12 hours.",
-                       difficulty: 15, hours: 12, rewardGems: 80, rewardIncomeHours: 6,
+                       difficulty: 15, hours: 12, rewardGems: 50, rewardIncomeHours: 6,
                        recruitChance: 0.25),
     ]
 
