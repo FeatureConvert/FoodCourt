@@ -61,8 +61,11 @@ enum ShopCatalog {
     static let gemPacks: [ShopItem] = [
         ShopItem(id: prefix + "gems.handful", title: "Handful", subtitle: "100 gems",
                  reward: .gems(100), fallbackPrice: "$0.99", badge: nil, magnitude: 1),
-        ShopItem(id: prefix + "gems.pouch", title: "Pouch", subtitle: "550 gems",
-                 reward: .gems(550), fallbackPrice: "$4.99", badge: "+10%", magnitude: 2),
+        // The $5 anchor: a moderate free player's weekly pinch (the 700-gem Guest Chef,
+        // a season-end ticket push) is exactly one Pouch away - this is the pack the
+        // economy is tuned to make *tempting*, never necessary.
+        ShopItem(id: prefix + "gems.pouch", title: "Pouch", subtitle: "550 gems · most popular",
+                 reward: .gems(550), fallbackPrice: "$4.99", badge: "POPULAR", magnitude: 2),
         ShopItem(id: prefix + "gems.chest", title: "Chest", subtitle: "1,200 gems",
                  reward: .gems(1200), fallbackPrice: "$9.99", badge: "+20%", magnitude: 3),
         ShopItem(id: prefix + "gems.vault", title: "Vault", subtitle: "3,300 gems",
