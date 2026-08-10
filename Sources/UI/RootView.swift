@@ -204,6 +204,10 @@ struct RootView: View {
     private var unlockObserved: some View {
         gameplayObserved
         .onChange(of: engine.state.tutorial.finished) { wasDone, done in
+            // The weekly challenge deliberately waits for graduation (rolling it at first
+            // launch snapshots a zero serve rate and mints a floor-sized target), so roll
+            // it the moment the tutorial ends rather than on the next cold launch.
+            if done, !wasDone { engine.rollWeeklyQuestIfNeeded() }
             // Graduation beat: the coach cards used to just... stop. Point at the system
             // that carries guidance from here. Fires for completion and skip alike.
             guard done, !wasDone, !engine.hasSeenIntro(IntroKey.tutorialDone) else { return }

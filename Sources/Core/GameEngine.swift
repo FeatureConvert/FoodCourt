@@ -429,6 +429,14 @@ final class GameEngine: ObservableObject {
         return multiplier
     }
 
+    /// What golden tips and order bonuses scale by: everything in `payoutMultiplier` except
+    /// the tap combo. The combo exists to reward mashing on station income; letting it also
+    /// quintuple a "45 seconds of income" tip turned every caught VIP into minutes of
+    /// income and made goldens the dominant early-game money source.
+    var tipMultiplier: Double {
+        payoutMultiplier / comboMultiplier
+    }
+
     var incomePerSecond: Double {
         state.automatedRate * activeBoostMultiplier * comboMultiplier
             * (state.isHappyHour() ? ActivePlay.happyHourMultiplier : 1)
@@ -720,13 +728,20 @@ final class GameEngine: ObservableObject {
 
     // MARK: Golden customer
 
+    /// The last time each treat actually spawned. In-memory only: the worst a relaunch can
+    /// do is let one spawn arrive early, which isn't worth a save-format field.
+    private var lastGoldenSpawnAt = Date.distantPast
+    private var lastOrderSpawnAt = Date.distantPast
+
     /// Called by the queue each time it rotates a customer out.
     func rollGoldenCustomer() {
         guard golden == nil, state.automatedRate > 0 || state.coins > 0 else { return }
+        guard state.now.timeIntervalSince(lastGoldenSpawnAt) >= ActivePlay.goldenCooldown else { return }
         let chance = state.goldenChance * (state.isHappyHour() ? 2 : 1)
             * Festival.modifier(seasonID: state.festival.seasonID).goldenChanceMultiplier
             * gauntletGoldenBonus
         guard Double.random(in: 0..<1) < chance else { return }
+        lastGoldenSpawnAt = state.now
         golden = GoldenCustomer(seed: Int.random(in: 0..<10_000),
                                 expiresAt: state.now.addingTimeInterval(ActivePlay.goldenWindow),
                                 isCritic: Double.random(in: 0..<1) < ActivePlay.criticChance)
@@ -736,14 +751,14 @@ final class GameEngine: ObservableObject {
         if let current = golden, current.expiresAt <= now { golden = nil }
     }
 
-    /// Pays out 30-120 seconds of income for catching the VIP in time - x10 for a critic.
+    /// Pays out 15-45 seconds of income for catching the VIP in time - x10 for a critic.
     @discardableResult
     func collectGolden() -> Double {
         guard let customer = golden else { return 0 }
         golden = nil
         let seconds = Double.random(in: ActivePlay.goldenMinSeconds...ActivePlay.goldenMaxSeconds)
-        let base = Swift.max(state.automatedRate, 50)
-        var amount = base * seconds * payoutMultiplier
+        let base = Swift.max(state.automatedRate, ActivePlay.tipFloorRate(venue: state.currentVenue))
+        var amount = base * seconds * tipMultiplier
         if customer.isCritic {
             amount *= ActivePlay.criticMultiplier
             toast = "VIP CRITIC! ×\(Int(ActivePlay.criticMultiplier)) tip: \(Format.currency(amount))"
@@ -758,12 +773,14 @@ final class GameEngine: ObservableObject {
     /// Called by the queue each time it rotates a customer out, alongside rollGoldenCustomer.
     func rollStationOrder() {
         guard activeOrder == nil else { return }
+        guard state.now.timeIntervalSince(lastOrderSpawnAt) >= ActivePlay.orderCooldown else { return }
         let venue = state.currentVenue
         let staffed = Balance.venue(venue).stations
             .filter { state.venues[venue].stations[$0.id].isStaffed }
             .map(\.id)
         guard !staffed.isEmpty else { return }
         guard Double.random(in: 0..<1) < ActivePlay.orderBaseChance else { return }
+        lastOrderSpawnAt = state.now
         let station = staffed.randomElement() ?? staffed[0]
         activeOrder = StationOrder(venue: venue, station: station,
                                    expiresAt: state.now.addingTimeInterval(ActivePlay.orderWindow))
@@ -781,8 +798,8 @@ final class GameEngine: ObservableObject {
               serves[order.station] != nil else { return }
         activeOrder = nil
         let seconds = Double.random(in: ActivePlay.orderBonusMinSeconds...ActivePlay.orderBonusMaxSeconds)
-        let base = Swift.max(state.automatedRate, 50)
-        addCoins(base * seconds * payoutMultiplier)
+        let base = Swift.max(state.automatedRate, ActivePlay.tipFloorRate(venue: state.currentVenue))
+        addCoins(base * seconds * tipMultiplier)
     }
 
     // MARK: Venues
@@ -1120,12 +1137,19 @@ final class GameEngine: ObservableObject {
     /// same claim flow as everything else. Rolls in `bootstrapSystems`/foreground so it's
     /// always current; an unfinished week simply expires.
     func rollWeeklyQuestIfNeeded() {
+        // Not before the tutorial is done: rolling on first launch snapshotted a serve rate
+        // of zero, handing a brand-new player the floor-sized target - live report was a
+        // weekly challenge already 15% done (and claimable within the first session, 150
+        // gems and all) before the player ever found the tab.
+        guard state.tutorial.finished else { return }
         let week = GuestChef.weekKey(now: state.now)
         guard state.weeklyQuestWeek != week else { return }
         state.weeklyQuestWeek = week
         // ~10 online-equivalent hours of throughput (offline serves don't count toward
         // serve quests), so 150 gems asks for a real week of showing up, not a freebie.
-        let target = Swift.max(2_000, (state.automatedServeRate * 10 * 3600).rounded())
+        // The floor matters for week one, when the serve rate is still tiny: 25K serves is
+        // a couple of real online hours across the week, not ten minutes of a fast fryer.
+        let target = Swift.max(25_000, (state.automatedServeRate * 10 * 3600).rounded())
         state.weeklyQuest = ActiveQuest(
             id: "weekly-\(week)", kind: .serve, target: target, progress: 0,
             rewardGems: 150, rewardSeconds: 600
@@ -1789,6 +1813,13 @@ final class GameEngine: ObservableObject {
     }
 
     // MARK: Debug affordances
+
+    /// Advances the game clock only - no foreground/offline machinery, no save. Pacing
+    /// simulations step this alongside `advance(by:)` so time-based gates (spawn
+    /// cooldowns, combo expiry) behave as they would across real minutes of play.
+    func debugAdvanceClock(seconds: TimeInterval) {
+        state.timeOffset += seconds
+    }
 
     func debugSkip(hours: Double) {
         state.timeOffset += hours * 3600

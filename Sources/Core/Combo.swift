@@ -22,17 +22,36 @@ enum ActivePlay {
     static let rushGemCost = 40
     static let rushBoostID = "rush-hour"
 
-    // Golden customer
-    static let goldenBaseChance = 0.05        // per queue rotation
+    // Golden customer. The per-rotation chance was tuned when a rotation meant a leisurely
+    // cycle; a leveled station rotates the queue every 0.35s (the UI throttle), which made
+    // 5% mean "a VIP every seven seconds." A hyperactive fresh install was measured taking
+    // HALF its lifetime income from goldens and banking the 800K Sushi Bar inside ten
+    // minutes. The cooldown makes rarity a design constant instead of a side effect of
+    // cycle speed, and the payout window shrinks to match the new cadence - tips are a
+    // treat on top of the board, not a second economy.
+    static let goldenBaseChance = 0.05        // per queue rotation, once off cooldown
+    static let goldenCooldown: TimeInterval = 90
     static let goldenWindow: TimeInterval = 5
-    static let goldenMinSeconds: Double = 30  // of current income
-    static let goldenMaxSeconds: Double = 120
+    static let goldenMinSeconds: Double = 15  // of current income
+    static let goldenMaxSeconds: Double = 45
 
-    // Customer order - "ORDER UP" on a specific station
-    static let orderBaseChance = 0.05          // per queue rotation
+    // Customer order - "ORDER UP" on a specific station. Same cooldown treatment as the
+    // golden customer, slightly more frequent and smaller.
+    static let orderBaseChance = 0.05          // per queue rotation, once off cooldown
+    static let orderCooldown: TimeInterval = 60
     static let orderWindow: TimeInterval = 12
-    static let orderBonusMinSeconds: Double = 20  // of current income
-    static let orderBonusMaxSeconds: Double = 60
+    static let orderBonusMinSeconds: Double = 10  // of current income
+    static let orderBonusMaxSeconds: Double = 30
+
+    /// Tips and order bonuses are "N seconds of income", but a fresh board earns ~1/s and
+    /// the old flat floor of 50/s was a mid-game number - on day one it quietly paid 25-50x
+    /// the board's real rate and bankrolled the whole early game. Scaling the floor to the
+    /// venue's opening station keeps a first-minute tip feeling generous (a few station
+    /// levels' worth) at every venue depth without warping anything.
+    static func tipFloorRate(venue: Int) -> Double {
+        let opener = Balance.venue(venue).stations[0]
+        return opener.baseRevenue / opener.baseCycle * 3
+    }
 
     // Coffee Break - the free boost. This used to be behind a rewarded ad; the game is
     // ad-free, so it is simply given away on a cooldown.

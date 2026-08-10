@@ -352,6 +352,7 @@ final class SyncAndSafetyTests: XCTestCase {
     @MainActor
     func testWeeklyQuestRollsOncePerWeekAndClaims() {
         var state = GameState.newGame()
+        state.tutorial.skip() // the weekly challenge deliberately waits for graduation
         state.venues[0].stations[0].level = 10
         state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
         let engine = GameEngine(state: state, startTimers: false,

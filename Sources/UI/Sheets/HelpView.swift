@@ -86,7 +86,8 @@ struct HelpView: View {
             symbol: "crown.fill", title: "Golden customers",
             text: """
             Now and then a VIP with a crown walks in and glows. Tap them within five seconds \
-            and they tip you between 30 seconds and two minutes of income.
+            and they tip you a generous chunk of income — and once in a while a famous \
+            critic tips ten times that.
             """),
         GuideSection(
             symbol: "sparkles", title: "Milestones and perks",
