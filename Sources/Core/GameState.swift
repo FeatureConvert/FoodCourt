@@ -593,8 +593,10 @@ struct GameState: Codable, Equatable {
         lastBondAccrualAt = try c.decodeIfPresent(Date.self, forKey: .lastBondAccrualAt) ?? Date()
         weeklyQuest = try c.decodeIfPresent(ActiveQuest.self, forKey: .weeklyQuest)
         weeklyQuestWeek = try c.decodeIfPresent(Int.self, forKey: .weeklyQuestWeek)
-        // Pre-contract saves with runs in flight decode as "straight" rather than nil -
-        // nil means "owes a pick", and a mid-run save was never offered one.
+        // An ABSENT key means a pre-contract-era save: mid-run veterans default to the
+        // vanilla contract rather than being owed a pick. A live owed-pick save encodes
+        // the explicit "unchosen" sentinel (see Contracts.unchosenID), so it survives
+        // relaunch - nil here only ever means "never prestiged".
         activeContract = try c.decodeIfPresent(String.self, forKey: .activeContract)
             ?? (prestigeCount > 0 ? "straight" : nil)
         legacyPerks = try c.decodeIfPresent([String: Int].self, forKey: .legacyPerks) ?? [:]

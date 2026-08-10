@@ -46,7 +46,8 @@ final class DepthSystemsTests: XCTestCase {
         let awarded = engine.prestige()
         XCTAssertEqual(awarded, Int((Double(base) * 1.2).rounded(.down)),
                        "showcase pays +20% on the formula award")
-        XCTAssertNil(engine.state.activeContract, "the new run owes a fresh pick")
+        XCTAssertEqual(engine.state.activeContract, Contracts.unchosenID,
+                       "the new run owes a fresh pick - explicitly, so it survives relaunch")
     }
 
     // MARK: Legacy tree

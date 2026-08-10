@@ -109,6 +109,12 @@ enum Catering {
 
 enum Contracts {
 
+    /// The explicit "picker owed" sentinel. It must be a real encoded value, not nil:
+    /// Swift omits nil optionals from JSON, making "owed a pick" indistinguishable from a
+    /// pre-contract-era save - whose decoder backfill would silently resolve the owed
+    /// choice to Play It Straight on relaunch. (Found by the round-trip fuzzer.)
+    static let unchosenID = "unchosen"
+
     static let all: [FranchiseContract] = [
         FranchiseContract(
             id: "straight", title: "Play It Straight",

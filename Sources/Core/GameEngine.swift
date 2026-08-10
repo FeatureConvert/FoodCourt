@@ -940,7 +940,7 @@ final class GameEngine: ObservableObject {
         // The new run owes a Contract pick (nil = picker pending); Seed Capital banks a
         // slice of the OLD run's hourly rate, capped per stack so it jump-starts the
         // early board without skipping it.
-        state.activeContract = nil
+        state.activeContract = Contracts.unchosenID
         applySeedCapital(preRate: preRate)
         save()
         return award
@@ -960,12 +960,13 @@ final class GameEngine: ObservableObject {
 
     /// Non-nil when the current run still owes its Contract pick - RootView watches this.
     var pendingContractOffer: [FranchiseContract]? {
-        guard state.prestigeCount > 0, state.activeContract == nil else { return nil }
+        guard state.prestigeCount > 0,
+              state.activeContract == Contracts.unchosenID else { return nil }
         return Contracts.offer(prestigeCount: state.prestigeCount)
     }
 
     func chooseContract(_ id: String) {
-        guard state.activeContract == nil,
+        guard state.activeContract == Contracts.unchosenID,
               pendingContractOffer?.contains(where: { $0.id == id }) == true else { return }
         state.activeContract = id
         save()
@@ -1008,7 +1009,7 @@ final class GameEngine: ObservableObject {
         combo.reset()
         golden = nil
         activeOrder = nil
-        state.activeContract = nil
+        state.activeContract = Contracts.unchosenID
         save()
         return state.legacy.level
     }
