@@ -97,7 +97,10 @@ struct RootView: View {
                                 onChoosePerk: { present(.perk($0)) })
 
                 BottomBar(
-                    onVenues: { present(.venues) },
+                    onVenues: {
+                        engine.markIntroSeen(IntroKey.venueNudge)
+                        present(.venues)
+                    },
                     onCollection: { present(.collection) },
                     onQuests: {
                         engine.completeTutorialStep(.openGoals)
@@ -200,6 +203,14 @@ struct RootView: View {
     /// already open at launch stays quiet (those players have met the system already).
     private var unlockObserved: some View {
         gameplayObserved
+        .onChange(of: engine.state.tutorial.finished) { wasDone, done in
+            // Graduation beat: the coach cards used to just... stop. Point at the system
+            // that carries guidance from here. Fires for completion and skip alike.
+            guard done, !wasDone, !engine.hasSeenIntro(IntroKey.tutorialDone) else { return }
+            engine.markIntroSeen(IntroKey.tutorialDone)
+            sound.play(.reward)
+            showToast("That's the whole loop! Your NEXT GOAL chip up top takes it from here.")
+        }
         .onChange(of: engine.crewsRelevant) { _, open in
             if open { announceUnlock(IntroKey.crewsUnlockToast,
                                      "New: Crews! Your named managers have chemistry - see the Staff tab.") }
@@ -517,6 +528,7 @@ private struct BottomBar: View {
             barButton("Venues", "map.fill",
                       badge: engine.nextLockedVenue.map { engine.canUnlock($0) } == true,
                       action: onVenues)
+                .pulsingHighlight(engine.shouldNudgeSecondVenue, cornerRadius: 14)
             barButton("Staff", "person.2.fill",
                       badge: !engine.state.unassignedManagers.isEmpty || !engine.claimableErrands.isEmpty,
                       action: onCollection)

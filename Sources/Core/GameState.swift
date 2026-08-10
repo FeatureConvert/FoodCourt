@@ -681,6 +681,11 @@ enum IntroKey {
     static let gauntlet = "gauntlet"
     // One-shot "New: X unlocked" toasts fired the moment a pacing gate opens mid-play
     // (the in-tab banners still do the explaining; these just point at the tab).
+    /// Graduation beat when the coach-card tutorial finishes, and the first-time pulse on
+    /// the Venues tab when the second venue becomes affordable - the two seams the guided
+    /// opening used to fall silent across.
+    static let tutorialDone = "tutorialDone"
+    static let venueNudge = "venueNudge"
     static let crewsUnlockToast = "crewsUnlockToast"
     static let faceOffsUnlockToast = "faceOffsUnlockToast"
     static let gauntletUnlockToast = "gauntletUnlockToast"
@@ -691,5 +696,6 @@ enum IntroKey {
         cosmetics, roadmap, halfwayFranchise, guestChef, icloudSync, contracts, legacyTree,
         signature, synergies, seasonTwist, expeditions, catering, tools, gauntlet,
         crewsUnlockToast, faceOffsUnlockToast, gauntletUnlockToast, toolsUnlockToast,
+        tutorialDone, venueNudge,
     ]
 }

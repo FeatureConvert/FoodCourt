@@ -882,6 +882,16 @@ final class GameEngine: ObservableObject {
         canPrestige && (state.prestigeCount == 0 || boardIsFullyBuiltOut)
     }
 
+    /// First-time pulse on the Venues tab: the moment venue 2 becomes affordable is the
+    /// first big decision after the tutorial, and it used to have no signpost beyond a
+    /// red dot. One-shot; marked seen when the Venues sheet opens.
+    var shouldNudgeSecondVenue: Bool {
+        state.tutorial.finished
+            && state.venues.filter(\.unlocked).count == 1
+            && nextLockedVenue.map(canUnlock) == true
+            && !hasSeenIntro(IntroKey.venueNudge)
+    }
+
     /// True once a never-prestiged player crosses half the first-Franchise minimum - the
     /// late tutorial beat that names the "real game" while it's finally close enough to
     /// feel real. One-shot via `IntroKey.halfwayFranchise`; RootView watches this.
