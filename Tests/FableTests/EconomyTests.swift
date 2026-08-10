@@ -269,6 +269,18 @@ final class EconomyTests: XCTestCase {
         XCTAssertEqual(Format.currency(1e18), "1.00ab")
     }
 
+    /// The shop renders each IAP section in catalog order, so catalog order IS the display
+    /// order - keep both sections ascending by dollar value. Lives here rather than in
+    /// StoreTests because it's pure catalog data and must run on CLI too (StoreTests skips
+    /// itself without an Xcode StoreKit session).
+    func testShopSectionsAreOrderedByPrice() {
+        for (name, section) in [("offers", ShopCatalog.offers), ("gemPacks", ShopCatalog.gemPacks)] {
+            let prices = section.map { Double($0.fallbackPrice.dropFirst()) ?? -1 }
+            XCTAssertFalse(prices.contains(-1), "\(name): unparseable fallback price")
+            XCTAssertEqual(prices, prices.sorted(), "\(name) must ascend by price")
+        }
+    }
+
     func testPricesNeverRenderLowerThanTheyCost() {
         // The bug this guards: the first station upgrade costs 4.72, and currency() rendered
         // it "4" - the same string a 4.0 balance renders as - so the buy button looked
