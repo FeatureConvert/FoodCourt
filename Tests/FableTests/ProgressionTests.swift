@@ -1,6 +1,21 @@
 import XCTest
 @testable import Fable
 
+/// Pins `state.now` to the next occurrence of a fixed local wall-clock time, with
+/// `lastSeen` moved along so the jump doesn't manufacture offline earnings. Payout math is
+/// time-of-day dependent - Happy Hour (6-8pm local) multiplies every payout by x1.5, which
+/// silently broke exact-value assertions whenever the suite ran in the evening.
+func pinClock(_ state: inout GameState, hour: Int, minute: Int = 30) {
+    let target = Calendar.current.nextDate(after: Date(),
+                                           matching: DateComponents(hour: hour, minute: minute),
+                                           matchingPolicy: .nextTime)!
+    state.timeOffset = target.timeIntervalSince(Date())
+    state.lastSeen = target
+    // The pin can land up to a day ahead of the wall clock; drag the board-age anchor
+    // along or the jump alone ages the board into the staleness cost tax.
+    state.boardStartedAt = target
+}
+
 /// Offline earnings, the daily-login calendar, and the engine actions that move money
 /// around. These are the systems where an off-by-one costs the player real progress.
 final class ProgressionTests: XCTestCase {
@@ -203,7 +218,9 @@ final class ProgressionTests: XCTestCase {
 
     @MainActor
     func testTapStartsACycleAndPayoutLandsOnCompletion() {
-        let engine = GameEngine(state: GameState.newGame(), startTimers: false, persistence: EphemeralPersistence())
+        var state = GameState.newGame()
+        pinClock(&state, hour: 10)
+        let engine = GameEngine(state: state, startTimers: false, persistence: EphemeralPersistence())
         let spec = Balance.venue(0).stations[0]
 
         XCTAssertTrue(engine.tap(station: 0))
@@ -220,6 +237,7 @@ final class ProgressionTests: XCTestCase {
     @MainActor
     func testStaffedStationRunsWithoutInput() {
         var state = GameState.newGame()
+        pinClock(&state, hour: 10)
         state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
         let engine = GameEngine(state: state, startTimers: false, persistence: EphemeralPersistence())
         let spec = Balance.venue(0).stations[0]

@@ -41,7 +41,11 @@ final class EarlyGamePacingTests: XCTestCase {
     /// rotation throttle.
     @MainActor
     private func simulateFreshInstall(minutes: Double) -> SimResult {
-        let engine = GameEngine(state: GameState.newGame(),
+        // Pinned INTO Happy Hour (6-8pm, x1.5 on every payout): plenty of first sessions
+        // happen in the evening, so the pacing floor has to hold there, not just at noon.
+        var state = GameState.newGame()
+        pinClock(&state, hour: 18, minute: 5)
+        let engine = GameEngine(state: state,
                                 startTimers: false,
                                 persistence: EphemeralPersistence())
         engine.buyQuantity = .max

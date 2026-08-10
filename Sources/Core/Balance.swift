@@ -37,14 +37,15 @@ struct VenueSpec: Identifiable {
 
     /// What it costs to open this venue's doors, in coins.
     ///
-    /// Retuned twice against simulations of the real engine (see EarlyGamePacingTests,
-    /// which pins this): 4_000 put the Sushi Bar under 10 minutes away, and 8_000's
-    /// "22-29 minutes distracted" tuning predated the golden-customer fixes and was
-    /// measured at ~12.5 minutes for a hyperactive player (frame-perfect combo, optimal
-    /// build-then-hoard). 16_000 lands that same worst case at ~24 minutes, which puts a
-    /// normally-active player past the 20-minute floor the design asks for.
+    /// Retuned repeatedly against simulations of the real engine (see EarlyGamePacingTests,
+    /// which pins this): 4_000 put the Sushi Bar under 10 minutes away; 8_000 predated the
+    /// golden-customer fixes and measured ~12.5 minutes for a hyperactive player
+    /// (frame-perfect combo, optimal build-then-hoard); 16_000 hit ~24 minutes at noon but
+    /// dipped under the 20-minute floor during Happy Hour's x1.5 evening window - exactly
+    /// when first sessions actually happen. 24_000 holds the floor even there (~23 minutes
+    /// worst case in-window, ~34 outside it).
     var unlockCost: Double {
-        id == 0 ? 0 : stations[0].baseCost * 16_000
+        id == 0 ? 0 : stations[0].baseCost * 24_000
     }
 
     /// Deeper venues pay far more and cost far more - this is what makes moving on feel
