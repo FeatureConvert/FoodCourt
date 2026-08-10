@@ -22,6 +22,16 @@ final class EarlyGamePacingTests: XCTestCase {
         var bestHoardUnlockAt: TimeInterval = .infinity
         var weeklyFraction: Double = 0
         var gems = 0
+        /// (elapsed, coins on hand, live income rate) each step - lets one sim run answer
+        /// "when could the player bank cost C" for any candidate C after the fact.
+        var trajectory: [(t: TimeInterval, coins: Double, rate: Double)] = []
+
+        /// Earliest build-then-hoard finish time for an arbitrary price.
+        func hoardTime(for cost: Double) -> TimeInterval {
+            trajectory.reduce(.infinity) { best, p in
+                Swift.min(best, p.t + Swift.max(0, cost - p.coins) / Swift.max(p.rate, 0.1))
+            }
+        }
     }
 
     /// Plays a fresh install the way a determined player would: the free tutorial manager
@@ -86,6 +96,7 @@ final class EarlyGamePacingTests: XCTestCase {
             let rate = Swift.max(engine.incomePerSecond, 0.1)
             let hoardFinish = elapsed + Swift.max(0, cost - engine.state.coins) / rate
             result.bestHoardUnlockAt = Swift.min(result.bestHoardUnlockAt, hoardFinish)
+            result.trajectory.append((elapsed, engine.state.coins, rate))
         }
 
         result.coins = engine.state.coins
@@ -96,13 +107,14 @@ final class EarlyGamePacingTests: XCTestCase {
     }
 
     /// The headline: even a player mashing optimally from second one should not be able to
-    /// bank the second venue inside 15 minutes - the tuning target for the *distracted*
-    /// player is 22-29 minutes, and the live report of "under 5 minutes" is the bug.
+    /// bank the second venue inside 20 minutes (the design floor) - the live report of
+    /// "under 5 minutes" was the bug, and a normally-active player should land well past
+    /// the frame-perfect bound this pins.
     @MainActor
     func testHyperactiveFreshInstallCannotRushTheSushiBar() {
-        let result = simulateFreshInstall(minutes: 15)
+        let result = simulateFreshInstall(minutes: 30)
         print("""
-        [EarlyGamePacing] 15min hyperactive sim:
+        [EarlyGamePacing] 30min hyperactive sim:
           coins on hand      \(Format.currency(result.coins))
           lifetime earned    \(Format.currency(result.lifetime))
           passive+orders     \(Format.currency(result.passiveIncome))
@@ -115,8 +127,12 @@ final class EarlyGamePacingTests: XCTestCase {
         """)
         XCTAssertNil(result.sushiAffordableAt,
                      "a fresh install banked the Sushi Bar in \(Int((result.sushiAffordableAt ?? 0) / 60)) minutes")
-        XCTAssertGreaterThan(result.bestHoardUnlockAt, 12 * 60,
-                             "even the optimal build-then-hoard line should not open venue 2 inside 12 minutes")
+        XCTAssertGreaterThan(result.bestHoardUnlockAt, 20 * 60,
+                             "even the optimal build-then-hoard line should not open venue 2 inside 20 minutes")
+        // Candidate table for retuning the 8_000x unlock multiplier (base cost 100).
+        for mult in [8_000.0, 12_000, 16_000, 24_000, 32_000, 48_000, 64_000] {
+            print("  mult \(Int(mult)) -> hoard unlock \(Format.duration(result.hoardTime(for: 100 * mult)))")
+        }
     }
 
     /// The weekly quest should not be meaningfully complete within the first minutes of a
