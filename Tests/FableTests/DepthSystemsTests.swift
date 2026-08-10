@@ -319,6 +319,34 @@ final class DepthSystemsTests: XCTestCase {
         XCTAssertEqual(Perks.choices(at: 500).count, 3)
     }
 
+    /// Live bug: after "Decide later" on the level-25 perk, every subsequent upgrade re-set
+    /// pendingPerkStation and the sheet hijacked the buy button forever. The auto-popup must
+    /// fire only when a buy newly crosses a choice level; a deferred pick waits on the
+    /// station row's PERK button instead.
+    @MainActor
+    func testDeferredPerkChoiceDoesNotHijackLaterBuys() {
+        var state = GameState.newGame()
+        state.coins = 1e12
+        state.venues[0].stations[0].level = 24
+        let engine = GameEngine(state: state, startTimers: false,
+                                persistence: EphemeralPersistence())
+
+        XCTAssertTrue(engine.buy(station: 0), "level 24 -> 25 crosses the first choice")
+        XCTAssertEqual(engine.pendingPerkStation, 0, "crossing auto-offers the picker")
+
+        engine.pendingPerkStation = nil // the player taps "Decide later"
+        XCTAssertTrue(engine.buy(station: 0), "the upgrade itself must go through")
+        XCTAssertNil(engine.pendingPerkStation,
+                     "no re-hijack: level 25 -> 26 crosses nothing new")
+        XCTAssertEqual(engine.pendingPerkLevel(venue: 0, station: 0), 25,
+                       "the deferred choice stays claimable from the PERK button")
+
+        engine.buyQuantity = .x100
+        XCTAssertTrue(engine.buy(station: 0), "26 -> 126 crosses the 50 and 100 choices")
+        XCTAssertEqual(engine.pendingPerkStation, 0,
+                       "crossing the NEXT choice level still auto-offers, even mid-deferral")
+    }
+
     // MARK: Signature Dish
 
     @MainActor

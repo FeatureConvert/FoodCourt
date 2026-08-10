@@ -518,12 +518,13 @@ final class GameEngine: ObservableObject {
         guard amount > 0, state.coins >= cost else { return false }
 
         state.coins -= cost
+        let levelBefore = state.venues[venue].stations[index].level
         state.venues[venue].stations[index].level += amount
 
         state.tutorial.complete(.buyLevel)
         rollRecipe(venue: venue, station: index, levels: amount)
         advanceQuests(kind: .level, to: Double(Quests.highestStationLevel(state)))
-        checkPerkUnlock(venue: venue, station: index)
+        checkPerkUnlock(venue: venue, station: index, levelBefore: levelBefore)
         checkVenueMastery(venue: venue)
         return true
     }
@@ -622,10 +623,17 @@ final class GameEngine: ObservableObject {
         Swift.max(0, Balance.perkChoicesPerRun - state.perkChoicesUsed)
     }
 
-    private func checkPerkUnlock(venue: Int, station: Int) {
+    /// Auto-opens the perk picker only when this buy newly crossed a choice level. A player
+    /// who tapped "Decide later" must be able to keep upgrading in peace - the deferred
+    /// choice stays reachable through the station row's PERK button, not by hijacking every
+    /// subsequent purchase with the sheet again.
+    private func checkPerkUnlock(venue: Int, station: Int, levelBefore: Int) {
         guard perkChoicesRemaining > 0 else { return }
         let s = state.venues[venue].stations[station]
-        if Perks.pending(level: s.level, chosen: s.perks) != nil, venue == state.currentVenue {
+        let crossedNewChoice = Perks.choiceLevels.contains {
+            levelBefore < $0 && s.level >= $0 && s.perks[$0] == nil
+        }
+        if crossedNewChoice, venue == state.currentVenue {
             pendingPerkStation = station
         }
     }
