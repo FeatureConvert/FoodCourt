@@ -685,7 +685,8 @@ private struct ErrandsSection: View {
                     }
                     HStack(spacing: 3) {
                         CoinIcon().frame(width: 11, height: 11)
-                        Text(Format.currency(errand.rewardCoins))
+                        // Live value - coins are priced at collection, not at start.
+                        Text("≈\(Format.currency(engine.errandCoinValue(errand)))")
                     }
                 }
                 .font(Theme.numeric(11))

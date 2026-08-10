@@ -173,6 +173,40 @@ final class DepthSystemsTests: XCTestCase {
         XCTAssertFalse(engine.startGauntlet(), "played this week - locked until Monday")
     }
 
+    // MARK: Exploit regressions
+
+    @MainActor
+    func testErrandsCannotBankOldIncomeThroughAPrestige() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 500
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        state.recruit(specID: "wren", premium: true)
+        state.lifetimeEarnings = Balance.minimumLifetimeForPrestige
+        let engine = GameEngine(state: state, startTimers: false,
+                                persistence: EphemeralPersistence())
+        let benched = engine.state.unassignedManagers.first!.id
+        XCTAssertTrue(engine.startErrand(managerID: benched, hours: 12))
+        XCTAssertGreaterThan(engine.state.automatedRate, 0)
+
+        // The old exploit: franchise, then collect the errand priced at pre-reset income.
+        _ = engine.prestige()
+        XCTAssertEqual(engine.state.automatedRate, 0, "fresh board, nothing staffed")
+        engine.debugCompleteErrands()
+        let coins = engine.state.coins
+        _ = engine.collectErrand(id: engine.state.errands[0].id)
+        XCTAssertEqual(engine.state.coins, coins,
+                       "collection-time pricing: a dead board pays a dead contract")
+    }
+
+    @MainActor
+    func testGauntletRequiresARunningBoard() {
+        let engine = GameEngine(state: GameState.newGame(), startTimers: false,
+                                persistence: EphemeralPersistence())
+        XCTAssertEqual(engine.state.automatedRate, 0)
+        XCTAssertFalse(engine.startGauntlet(),
+                       "rate zero pinned a baseline of 1 and guaranteed the max purse")
+    }
+
     @MainActor
     func testGauntletBaselineIsPinnedAgainstUnstaffCheese() {
         var state = GameState.newGame()

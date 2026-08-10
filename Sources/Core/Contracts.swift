@@ -95,9 +95,10 @@ enum Catering {
             let level = state.venues[venue].stations[id].level
             let spec = Balance.venue(venue).stations[id]
             let cycle = max(Balance.minimumCycle, Balance.cycleTime(spec: spec, level: level))
-            // ~4 hours of that station's own pace, floored so early boards still get a
-            // real ask rather than a freebie.
-            requirements[id] = max(150, Int((4 * 3600 / cycle).rounded()))
+            // ~2 hours of that station's own pace (progress only accrues while the app
+            // is open, so this is online time - 4h priced out anyone casual), floored so
+            // early boards still get a real ask rather than a freebie.
+            requirements[id] = max(150, Int((2 * 3600 / cycle).rounded()))
         }
         return CateringOrder(
             day: day, venue: venue, requirements: requirements,

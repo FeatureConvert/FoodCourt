@@ -1204,11 +1204,21 @@ final class GameEngine: ObservableObject {
         return true
     }
 
+    /// What an errand's coin half is worth right now - priced at the CURRENT rate, not the
+    /// rate when it started. Start-time pricing was an exploit: two 12h errands launched
+    /// just before a Franchise banked half a day of the old empire's income straight
+    /// through the reset, dwarfing Seed Capital's carefully-capped head start. Live
+    /// pricing is also the coherent story: your empire as it stands pays the contract.
+    func errandCoinValue(_ errand: ActiveErrand) -> Double {
+        state.automatedRate * errand.duration * 0.5
+    }
+
     @discardableResult
     func collectErrand(id: String) -> ActiveErrand? {
         guard let index = state.errands.firstIndex(where: { $0.id == id }),
               state.errands[index].isComplete(at: state.now) else { return nil }
-        let errand = state.errands.remove(at: index)
+        var errand = state.errands.remove(at: index)
+        errand.rewardCoins = errandCoinValue(errand)
         state.gems += errand.rewardGems
         addCoins(errand.rewardCoins)
         save()
@@ -1256,7 +1266,9 @@ final class GameEngine: ObservableObject {
 
     @discardableResult
     func startGauntlet() -> Bool {
-        guard !gauntletActive, !gauntletPlayedThisWeek else { return false }
+        // A staffed board is required: starting with rate zero pinned a baseline of 1,
+        // and rebuilding mid-sprint guaranteed the maximum purse - cheese, not skill.
+        guard !gauntletActive, !gauntletPlayedThisWeek, state.automatedRate > 0 else { return false }
         state.gauntletWeekPlayed = GuestChef.weekKey(now: state.now)
         state.gauntletScore = 0
         // Baseline pinned NOW: computing it at settle time let a player unstaff the board
@@ -1783,6 +1795,13 @@ final class GameEngine: ObservableObject {
 
     func debugCompleteWeeklyQuest() {
         state.weeklyQuest?.progress = state.weeklyQuest?.target ?? 0
+    }
+
+    func debugCompleteErrands() {
+        for index in state.errands.indices {
+            state.errands[index].startedAt = state.now
+                .addingTimeInterval(-state.errands[index].duration - 1)
+        }
     }
 
     func debugEndGauntlet() {
