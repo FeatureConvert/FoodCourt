@@ -486,9 +486,27 @@ final class GameEngine: ObservableObject {
     /// Hours since the current board (last Franchise/Legacy reset, or save creation) began.
     var boardAgeHours: Double { state.now.timeIntervalSince(state.boardStartedAt) / 3600 }
 
-    /// How much pricier every purchase on this board is right now, purely from having gone
-    /// without a reset for a while - see `Balance.stalenessMultiplier`. 1 means no tax yet.
-    var costInflation: Double {
+    /// How much pricier every purchase on this board is right now: the staleness tax (see
+    /// `Balance.stalenessMultiplier`) times the player's own star multiplier - the exact
+    /// same factor `automatedRate` multiplies income by. Before this, a fresh post-prestige
+    /// board charged first-timer prices while paying out at the player's permanent,
+    /// star-boosted rate: a live report showed a second prestige landing minutes after the
+    /// first (100B lifetime earnings to reach it, ~2.56 quintillion for the next, both
+    /// inside the same short session) - the star bonus is meant to make every RUN feel more
+    /// powerful forever, not compound into a same-session runaway by racing ahead of costs
+    /// that never caught up. Matching the two factors cancels out in the pace math (cost*N)
+    /// / (rate*N) = cost/rate unchanged, so run-to-run speed stays roughly what it was
+    /// before a player had any stars, while the numbers themselves keep growing - the
+    /// feeling prestige is supposed to give.
+    var costInflation: Double { staleCostInflation * Balance.starMultiplier(stars: state.lifetimeStars) }
+
+    /// The staleness portion alone - what the "costs are up, go prestige" UI badges (the
+    /// Stations header, the Franchise sheet) should read, not the combined `costInflation`.
+    /// A reset zeroes this back to 1x, which is what that copy promises; it can't do the
+    /// same for the star-multiplier portion, since lifetimeStars is permanent by design -
+    /// showing the full combined number there would make "reset for normal prices" a lie
+    /// for anyone who has ever prestiged.
+    var staleCostInflation: Double {
         Balance.stalenessMultiplier(
             boardAgeHours: boardAgeHours,
             graceBonusHours: (state.contract?.staleGraceDeltaHours ?? 0)

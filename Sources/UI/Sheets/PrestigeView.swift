@@ -82,9 +82,9 @@ private struct FranchiseSection: View {
             statRow("Lifetime earnings", Format.currency(engine.state.lifetimeEarnings))
             divider
             statRow("This run", Format.currency(engine.state.runEarnings))
-            if engine.costInflation > 1.01 {
+            if engine.staleCostInflation > 1.01 {
                 divider
-                statRow("Board costs", Format.bonus(multiplier: engine.costInflation), warning: true)
+                statRow("Board costs", Format.bonus(multiplier: engine.staleCostInflation), warning: true)
             }
             if engine.pendingStars > 0 {
                 divider
@@ -98,7 +98,7 @@ private struct FranchiseSection: View {
         }
         .panel(Theme.panel)
 
-        if engine.costInflation > 1.01 {
+        if engine.staleCostInflation > 1.01 {
             Text("This board has gone a while without a franchise reset, so everything on it costs more than it used to. A reset always starts back at the normal price.")
                 .font(Theme.body(11, weight: .medium))
                 .foregroundStyle(Theme.textDim)

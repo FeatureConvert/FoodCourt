@@ -1115,7 +1115,7 @@ final class FeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testStaleBoardCostsMoreAndFranchisingResetsIt() {
+    func testStaleBoardCostsMoreAndFranchisingResetsTheStalenessPortion() {
         let e = engine()
         XCTAssertEqual(e.costInflation, 1, accuracy: 1e-9, "a brand new board isn't taxed yet")
         let freshPrice = e.price(for: 0)
@@ -1131,7 +1131,44 @@ final class FeatureTests: XCTestCase {
 
         e.addCoins(4e12)
         _ = e.prestige()
-        XCTAssertEqual(e.costInflation, 1, accuracy: 1e-9, "franchising starts a fresh, untaxed board")
+        XCTAssertEqual(e.staleCostInflation, 1, accuracy: 1e-9, "franchising starts a fresh, untaxed board")
+        XCTAssertEqual(e.costInflation, Balance.starMultiplier(stars: e.state.lifetimeStars), accuracy: 1e-6,
+                       "but costInflation itself carries the player's own star multiplier - the whole " +
+                       "point is that a reset can't zero out a permanent bonus, only the staleness part")
+    }
+
+    /// Live report: a second prestige landed minutes after the first (100B lifetime earnings
+    /// to reach prestige 1, ~2.56 quintillion for the next - both inside the same short
+    /// session). Root cause: post-prestige boards charged first-timer prices while paying out
+    /// at the player's permanent, star-boosted rate. costInflation now carries the same star
+    /// multiplier automatedRate does, so the two cancel out in the pace math and a
+    /// star-boosted player doesn't out-race their own costs.
+    @MainActor
+    func testCostsScaleWithTheStarMultiplierSoARunawayCannotStartOver() {
+        var state = GameState.newGame()
+        state.lifetimeStars = 270_000 // roughly the 7000%-bonus report
+        state.venues[0].stations[0].level = 50
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        let e = engine(state)
+
+        let boosted = e.costInflation
+        XCTAssertEqual(boosted, Balance.starMultiplier(stars: 270_000), accuracy: 1e-6)
+        XCTAssertGreaterThan(boosted, 60, "a real prestige-scale star count should tax costs by many multiples")
+
+        // The pace test that actually matters: automatedRate carries the same multiplier
+        // costInflation now does, so the ratio (what governs "how long until I can afford
+        // the next thing") is unchanged by how many stars the player has.
+        let boostedRatio = e.unlockCost(for: Balance.venue(1)) / max(e.state.automatedRate, 1)
+
+        var zero = GameState.newGame()
+        zero.venues[0].stations[0].level = 50
+        zero.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        let zeroEngine = GameEngine(state: zero, startTimers: false, persistence: EphemeralPersistence())
+        let zeroRatio = zeroEngine.unlockCost(for: Balance.venue(1)) / max(zeroEngine.state.automatedRate, 1)
+
+        XCTAssertEqual(boostedRatio, zeroRatio, accuracy: zeroRatio * 0.01,
+                       "cost/rate - the thing that actually determines how long a purchase takes - " +
+                       "should land in the same place regardless of the player's star multiplier")
     }
 
     // MARK: Cloud sync
