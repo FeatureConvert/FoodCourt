@@ -74,8 +74,13 @@ final class EarlyGamePacingTests: XCTestCase {
             engine.advance(by: dt)
             result.passiveIncome += engine.state.coins - beforeAdvance
 
-            // Free, no gem cost, no reason a determined player skips it.
+            // Both free (no gem cost, no wait beyond the fresh-save lockout), no reason a
+            // determined player skips either - Rush Hour especially: x5 for 60s, stacking
+            // with combo/Coffee Break/Happy Hour, was missing from every earlier version of
+            // this sim and was the gap a live report caught (a save reaching the Sushi Bar
+            // fast again after the combo-cap fix already landed).
             if engine.boostReady { _ = engine.claimFreeBoost() }
+            if engine.rushReady { _ = engine.startRush() }
 
             // Hyperactive tapping: two taps per 0.35s step ~= 6 taps/s, combo pinned at max.
             _ = engine.tap(station: 0)
@@ -104,10 +109,24 @@ final class EarlyGamePacingTests: XCTestCase {
             if result.sushiAffordableAt == nil, engine.state.coins >= cost {
                 result.sushiAffordableAt = elapsed
             }
-            let rate = Swift.max(engine.incomePerSecond, 0.1)
-            let hoardFinish = elapsed + Swift.max(0, cost - engine.state.coins) / rate
+            // engine.incomePerSecond includes activeBoostMultiplier (Coffee Break/Rush
+            // Hour) as an INSTANTANEOUS multiplier - fine for the live simulation (where
+            // it's applied for exactly as many ticks as the boost is really active), but
+            // wrong to extrapolate forward as a "then hoard at this rate" constant: Rush
+            // Hour is a one-time 60s/30min-cooldown event, not a sustained rate, and
+            // extrapolating its brief x5 forever previously made a single lucky tick look
+            // like it could hoard-unlock the venue in under 6 minutes. Combo and Happy Hour
+            // ARE sustainable by a still-engaged player (free, always available / time-of-
+            // day), so only the boost multiplier is excluded from the hoarding rate - the
+            // lump sum a real Rush Hour actually earned is still bumping `coins` above,
+            // exactly like it would for a real player.
+            let sustainableRate = Swift.max(
+                engine.state.automatedRate * engine.comboMultiplier
+                    * (engine.state.isHappyHour() ? ActivePlay.happyHourMultiplier : 1),
+                0.1)
+            let hoardFinish = elapsed + Swift.max(0, cost - engine.state.coins) / sustainableRate
             result.bestHoardUnlockAt = Swift.min(result.bestHoardUnlockAt, hoardFinish)
-            result.trajectory.append((elapsed, engine.state.coins, rate))
+            result.trajectory.append((elapsed, engine.state.coins, sustainableRate))
         }
 
         result.coins = engine.state.coins
