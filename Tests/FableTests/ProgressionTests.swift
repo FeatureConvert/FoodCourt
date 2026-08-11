@@ -217,6 +217,32 @@ final class ProgressionTests: XCTestCase {
     }
 
     @MainActor
+    func testNextBuysExactlyUpToTheNextMilestone() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 24
+        state.coins = 1e12
+        let engine = GameEngine(state: state, startTimers: false, persistence: EphemeralPersistence())
+        engine.buyQuantity = .next
+
+        XCTAssertEqual(engine.quantity(for: 0), 16, "level 24 -> the level-40 speed milestone is 16 away")
+        XCTAssertTrue(engine.buy(station: 0))
+        XCTAssertEqual(engine.state.venues[0].stations[0].level, 40,
+                       "NEXT should land exactly on the milestone, not past it")
+    }
+
+    @MainActor
+    func testNextFallsBackToOneLevelPastTheFinalMilestone() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 2000 // the last milestone in Balance.milestones
+        state.coins = 1e30
+        let engine = GameEngine(state: state, startTimers: false, persistence: EphemeralPersistence())
+        engine.buyQuantity = .next
+
+        XCTAssertEqual(engine.quantity(for: 0), 1,
+                       "no milestone left ahead - NEXT behaves like a single level, not a crash or a runaway buy")
+    }
+
+    @MainActor
     func testTapStartsACycleAndPayoutLandsOnCompletion() {
         var state = GameState.newGame()
         pinClock(&state, hour: 10)

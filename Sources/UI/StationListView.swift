@@ -313,9 +313,12 @@ struct StationCardView: View {
     private var affordable: Bool { engine.canAfford(index: spec.id) }
 
     private var buyLabel: String {
-        engine.buyQuantity == .max
-            ? "MAX · \(Format.count(engine.quantity(for: spec.id)))"
-            : engine.buyQuantity.label
+        switch engine.buyQuantity {
+        case .max, .next:
+            return "\(engine.buyQuantity.label) · \(Format.count(engine.quantity(for: spec.id)))"
+        default:
+            return engine.buyQuantity.label
+        }
     }
 
     /// Hiring always wins for an unstaffed station - it was earning nothing until this

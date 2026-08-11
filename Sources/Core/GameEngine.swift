@@ -2,21 +2,26 @@ import Foundation
 import Combine
 
 enum BuyQuantity: String, CaseIterable, Identifiable {
-    case x1, x10, x100, max
+    case x1, x10, x100, next, max
     var id: String { rawValue }
     var label: String {
         switch self {
         case .x1: return "×1"
         case .x10: return "×10"
         case .x100: return "×100"
+        case .next: return "NEXT"
         case .max: return "MAX"
         }
     }
+    /// nil for both .max and .next: neither is a flat count. .max depends on coins on hand;
+    /// .next depends on a station's current level (how far to its next milestone), which
+    /// differs per station - GameEngine.quantity(for:in:) computes it there instead.
     var fixedAmount: Int? {
         switch self {
         case .x1: return 1
         case .x10: return 10
         case .x100: return 100
+        case .next: return nil
         case .max: return nil
         }
     }
@@ -495,6 +500,13 @@ final class GameEngine: ObservableObject {
         let spec = Balance.venue(venueID).stations[index]
         let level = state.venues[venueID].stations[index].level
         if let fixed = buyQuantity.fixedAmount { return fixed }
+        if buyQuantity == .next {
+            // Exactly enough to land ON the next milestone level, not past it - the whole
+            // point is buying precisely up to the payoff. No milestone left (level 2000+)
+            // falls back to a single level, same as if NEXT weren't selected at all.
+            guard let next = Balance.nextMilestone(level: level) else { return 1 }
+            return Swift.max(1, next.level - level)
+        }
         // Multiplying every cost by `costInflation` is equivalent to dividing spending power
         // by it when inverting for an affordable quantity - keeps Balance's closed-form cost
         // curve untouched and correct for any inflation level.
