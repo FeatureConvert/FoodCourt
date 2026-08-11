@@ -63,6 +63,16 @@ final class CloudSaveService: ObservableObject {
         return true
     }
 
+    /// Clears the remote save outright - for a player who deliberately erases their progress.
+    /// Without this, `reconcileOnLaunch`'s own "brand new local save adopts the cloud
+    /// silently" rule would undo the erase on the very next launch or sync tick, since a
+    /// freshly-wiped local save looks exactly like a first-ever install to it.
+    func wipeRemote() {
+        guard isAvailable else { return }
+        store.removeObject(forKey: Self.key)
+        store.synchronize()
+    }
+
     func pull() -> GameState? {
         guard isAvailable, let data = store.data(forKey: Self.key) else { return nil }
         guard var remote = try? decoder.decode(GameState.self, from: data) else { return nil }

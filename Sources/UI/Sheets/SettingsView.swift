@@ -147,6 +147,7 @@ struct SettingsView: View {
 
                         Button {
                             engine.debugReset()
+                            cloud.wipeRemote()
                             onToast("Save wiped - fresh start")
                             confirmingReset = false
                             resetConfirmationText = ""
