@@ -204,7 +204,8 @@ final class EarlyGamePacingTests: XCTestCase {
     private func simulateLongHorizon(hours: Double) -> (venueUnlockedAt: [Int: TimeInterval],
                                                          prestigeEligibleAt: TimeInterval?,
                                                          finalAutomatedRate: Double,
-                                                         finalLifetime: Double) {
+                                                         finalLifetime: Double,
+                                                         starTrajectory: [(t: TimeInterval, pendingStars: Int)]) {
         var state = GameState.newGame()
         pinClock(&state, hour: 12) // outside Happy Hour - the steady-state case, not the spike
         let engine = GameEngine(state: state, startTimers: false, persistence: EphemeralPersistence())
@@ -213,6 +214,10 @@ final class EarlyGamePacingTests: XCTestCase {
 
         var venueUnlockedAt: [Int: TimeInterval] = [0: 0]
         var prestigeEligibleAt: TimeInterval?
+        // Sampled only for ~10 minutes around the eligibility crossing - a live report
+        // was specifically about how fast pendingStars moves right after the "you can
+        // prestige now" nudge first appears, not the whole run.
+        var starTrajectory: [(t: TimeInterval, pendingStars: Int)] = []
         let dt: TimeInterval = 0.35
         var lastServed = 0
         var elapsed: TimeInterval = 0
@@ -248,15 +253,23 @@ final class EarlyGamePacingTests: XCTestCase {
             }
 
             if let next = engine.nextLockedVenue, engine.canUnlock(next) {
-                if engine.unlock(next) { venueUnlockedAt[next.id] = elapsed }
+                if engine.unlock(next) {
+                    venueUnlockedAt[next.id] = elapsed
+                    print("  [calibration] venue \(next.id) opened at \(Format.duration(elapsed)): lifetimeEarnings=\(Format.currency(engine.state.lifetimeEarnings)) automatedRate=\(Format.currency(engine.state.automatedRate))/s")
+                }
             }
 
             if prestigeEligibleAt == nil, engine.state.lifetimeEarnings >= Balance.minimumLifetimeForPrestige {
                 prestigeEligibleAt = elapsed
             }
+            if let eligibleAt = prestigeEligibleAt, elapsed - eligibleAt <= 600,
+               Int(elapsed * 10).isMultiple(of: 100) { // every ~10s of sim time
+                starTrajectory.append((elapsed, engine.pendingStars))
+            }
         }
 
-        return (venueUnlockedAt, prestigeEligibleAt, engine.state.automatedRate, engine.state.lifetimeEarnings)
+        return (venueUnlockedAt, prestigeEligibleAt, engine.state.automatedRate, engine.state.lifetimeEarnings,
+               starTrajectory)
     }
 
     /// Robert's read after today's fixes: "the entire game needs to slow down by about
@@ -265,7 +278,7 @@ final class EarlyGamePacingTests: XCTestCase {
     /// against data instead of feel alone.
     @MainActor
     func testLongHorizonPacingTimeline() {
-        let (unlockedAt, prestigeAt, rate, lifetime) = simulateLongHorizon(hours: 2)
+        let (unlockedAt, prestigeAt, rate, lifetime, starTrajectory) = simulateLongHorizon(hours: 2)
         print("[LongHorizon] 2h fully-engaged session:")
         for id in 0...6 {
             if let t = unlockedAt[id] {
@@ -276,5 +289,12 @@ final class EarlyGamePacingTests: XCTestCase {
         }
         print("  first prestige-eligible at: \(prestigeAt.map(Format.duration) ?? "never in 8h")")
         print("  final automatedRate: \(Format.currency(rate))/s, lifetime earned: \(Format.currency(lifetime))")
+
+        // Live report: pendingStars read ~50 right when the prestige nudge first appeared,
+        // ~1,000 just two minutes later.
+        print("  -- pendingStars in the 10 minutes after first becoming prestige-eligible --")
+        for point in starTrajectory {
+            print("  +\(Format.duration(point.t - (prestigeAt ?? 0))): pendingStars=\(point.pendingStars)")
+        }
     }
 }
