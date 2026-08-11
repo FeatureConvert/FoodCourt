@@ -313,7 +313,7 @@ final class ProgressionTests: XCTestCase {
     @MainActor
     func testPrestigeResetsTheBoardButKeepsStarsAndGems() {
         let engine = GameEngine(state: GameState.newGame(), startTimers: false, persistence: EphemeralPersistence())
-        engine.addCoins(4e12)
+        engine.addCoins(Balance.minimumLifetimeForPrestige * 4)
         engine.buyQuantity = .x10
         engine.buy(station: 0)
         engine.addGems(40)
@@ -368,18 +368,26 @@ final class ProgressionTests: XCTestCase {
         // Earn enough again post-prestige to become eligible a second time, and fully build
         // out the reset board - a repeat player who plateaus again should be re-nudged.
         engine.addCoins(Balance.minimumLifetimeForPrestige * 4)
-        engine.buyQuantity = .x1
-        for spec in Balance.venue(0).stations {
-            engine.buy(station: spec.id)
-            engine.hireManager(for: spec.id, free: true)
-        }
-        // Spend the rest of the windfall down so the next venue is genuinely unaffordable -
-        // otherwise the board reads as "built out" but there's still an obvious next move. A
-        // MAX buy on each station in turn drains the pile close enough to zero that what's
-        // left can't cover venue 2's unlock cost.
         engine.buyQuantity = .max
-        for spec in Balance.venue(0).stations {
-            engine.buy(station: spec.id)
+        // Chase the windfall to its true fixed point: keep max-buying every unlocked
+        // venue's stations and unlocking (+staffing) whatever becomes affordable, until a
+        // full pass changes nothing. A single MAX-buy pass per station plateaus well short
+        // of spending everything (exponential per-level cost) while still leaving enough to
+        // trivially afford the next venue - only chasing the unlocks too reaches a board
+        // that's genuinely "nothing actionable left."
+        var previousCoins = Double.infinity
+        for _ in 0..<100 {
+            for venue in Balance.venues where engine.state.venues[venue.id].unlocked {
+                for spec in venue.stations {
+                    engine.buy(station: spec.id)
+                    engine.hireManager(for: spec.id, free: true)
+                }
+            }
+            if let next = engine.nextLockedVenue, engine.canUnlock(next) {
+                engine.unlock(next)
+            }
+            if engine.state.coins == previousCoins { break }
+            previousCoins = engine.state.coins
         }
 
         XCTAssertTrue(engine.canPrestige)

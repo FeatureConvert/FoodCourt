@@ -326,7 +326,7 @@ final class DepthSystemsTests: XCTestCase {
     @MainActor
     func testDeferredPerkChoiceDoesNotHijackLaterBuys() {
         var state = GameState.newGame()
-        state.coins = 1e12
+        state.coins = 1e15
         state.venues[0].stations[0].level = 24
         let engine = GameEngine(state: state, startTimers: false,
                                 persistence: EphemeralPersistence())

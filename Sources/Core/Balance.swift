@@ -99,13 +99,24 @@ enum Balance {
     // simulating that exact MAX-buy loop against the real cost/revenue formulas rather than
     // guessed - see the balance pass notes for the target curve (first speed milestone ~5min
     // in, second venue ~20min of continuous optimal play, not under 5).
+    //
+    // Raised again (+0.05/station) after a live report of the wider economy still running
+    // ~2x too fast even past the early game - confirmed by simulateLongHorizon
+    // (EarlyGamePacingTests), which showed a fully-engaged player still reaching each new
+    // venue in a clean, roughly-halving cadence under the old curve. This alone doesn't
+    // flatten the SIZE of each venue-to-venue jump (that's VenueSpec's shared 25x/venue
+    // scale, a separate, deliberately-unequal-feeling lever - see its own doc comment) -
+    // it slows how fast a player climbs the levels WITHIN a venue, which is what actually
+    // governs overall pace. Re-simulated against the real engine: roughly 40-45% slower
+    // across the board (Sushi Bar opening moved from ~22 to ~32 minutes of continuous
+    // engaged play in the long-horizon sim).
     private static let stationCurve: [(cost: Double, revenue: Double, cycle: TimeInterval, growth: Double)] = [
-        (4,             1,        0.6,  1.18),
-        (60,            60,       3,    1.19),
-        (720,           540,      6,    1.20),
-        (8_640,         4_320,    12,   1.21),
-        (103_680,       51_840,   24,   1.22),
-        (1_244_160,     622_080,  48,   1.23),
+        (4,             1,        0.6,  1.23),
+        (60,            60,       3,    1.24),
+        (720,           540,      6,    1.25),
+        (8_640,         4_320,    12,   1.26),
+        (103_680,       51_840,   24,   1.27),
+        (1_244_160,     622_080,  48,   1.28),
     ]
 
     /// Levels raised alongside the steeper cost growth above - the old thresholds (10/25/50)
@@ -165,8 +176,21 @@ enum Balance {
     /// see `legacyUnlockPrestigeCount`.)
     static let starBonusAtReferenceCount: Double = 3.0
     static let starBonusReferenceCount: Double = 500
-    /// Below this there is nothing to gain, so the button stays locked.
-    static let minimumLifetimeForPrestige: Double = 1e11
+    /// Below this there is nothing to gain, so the button stays locked. Only ever gates the
+    /// FIRST prestige - lifetimeEarnings never resets, so every prestige after that is
+    /// already past it, gated purely by pendingStars > 0.
+    ///
+    /// Was 1e11, which a live report caught landing almost exactly at the third venue
+    /// opening - a fully-engaged player was still deep in the multi-venue buildout phase
+    /// (each venue jumps lifetime earnings ~25-36x on its own) right as the "you can
+    /// prestige now" nudge first appeared, so pendingStars kept visibly exploding for many
+    /// minutes after. 1e13 (100x higher) lands first eligibility past venue 4 instead,
+    /// closer to where a run has more to show for itself - still not perfectly stable
+    /// (nothing short of ending active play is, while venues keep coming online), but a
+    /// meaningfully less volatile place for the decision to first present itself, and
+    /// ~474 pending stars at first sight instead of ~47 - a number that itself reads as
+    /// the milestone it's meant to be.
+    static let minimumLifetimeForPrestige: Double = 1e13
 
     // Entitlements
     static let vipProfitBonus: Double = 0.25

@@ -1089,7 +1089,7 @@ final class FeatureTests: XCTestCase {
         state.venues[1].unlocked = true
 
         let e = engine(state)
-        e.addCoins(4e12)
+        e.addCoins(Balance.minimumLifetimeForPrestige * 4)
         let awarded = e.prestige()
         XCTAssertGreaterThan(awarded, 0)
 
@@ -1129,7 +1129,7 @@ final class FeatureTests: XCTestCase {
         XCTAssertGreaterThan(e.unlockCost(for: Balance.venue(1)), Balance.venue(1).unlockCost,
                              "venue unlock cost is taxed too, so it can't dodge the tax")
 
-        e.addCoins(4e12)
+        e.addCoins(Balance.minimumLifetimeForPrestige * 4)
         _ = e.prestige()
         XCTAssertEqual(e.staleCostInflation, 1, accuracy: 1e-9, "franchising starts a fresh, untaxed board")
         XCTAssertEqual(e.costInflation, Balance.starMultiplier(stars: e.state.lifetimeStars), accuracy: 1e-6,
