@@ -308,13 +308,18 @@ struct StationCardView: View {
             : engine.buyQuantity.label
     }
 
-    /// A perk waiting to be spent always outranks the hire button - it's free value the
-    /// player has already earned.
+    /// Hiring always wins for an unstaffed station - it was earning nothing until this
+    /// button gets tapped, which matters more than a perk that only sharpens a station
+    /// already producing. A pending perk used to outrank hiring outright, which meant
+    /// deferring it ("Decide later") on an unstaffed station hid the only way to hire a
+    /// manager for that station until the perk was finally claimed. A perk still replaces
+    /// the purely-informational STAFFED label once the station has a manager - nothing
+    /// actionable is lost there, and the choice stays reachable the moment it can be.
     @ViewBuilder
     private var secondaryButton: some View {
         if !state.isOwned {
             Color.clear.frame(width: 92, height: 26)
-        } else if pendingPerk != nil {
+        } else if state.isStaffed, pendingPerk != nil {
             Button { onChoosePerk(spec.id) } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "sparkles").font(.system(size: 10, weight: .black))
