@@ -192,6 +192,12 @@ struct GameState: Codable, Equatable {
     // Achievements
     var errands: [ActiveErrand] = []
 
+    /// Randomly-timed bonus-gems window on one IAP - see FlashSale.swift.
+    var flashSale: FlashSale?
+    /// Cooldown floor for the next roll, set the moment the current sale expires (not when
+    /// it's dismissed) - see GameEngine.checkFlashSaleIfNeeded.
+    var nextFlashSaleEligibleAt: Date = .distantFuture
+
     /// Venue id -> equipped skin id. A venue with no entry shows "classic", which is always
     /// free and never needs to appear in `unlockedSkins`.
     var venueSkins: [Int: String] = [:]
@@ -295,6 +301,9 @@ struct GameState: Codable, Equatable {
         let firstBoostAt = state.now.addingTimeInterval(15 * 60)
         state.boostAvailableAt = firstBoostAt
         state.rushAvailableAt = firstBoostAt
+        // A brand-new player's very first popup should never be a purchase pitch - give
+        // them at least a couple of real hours of actually playing the game first.
+        state.nextFlashSaleEligibleAt = state.now.addingTimeInterval(.random(in: 2 * 3600...4 * 3600))
         return state
     }
 
@@ -522,6 +531,7 @@ struct GameState: Codable, Equatable {
         case gauntletBaseline
         case boardStartedAt
         case errands
+        case flashSale, nextFlashSaleEligibleAt
         case venueSkins, unlockedSkins
         case legacy
         case lastGuestChefPurchaseWeek, lastGuestChefSpotlightWeek
@@ -626,6 +636,13 @@ struct GameState: Codable, Equatable {
         bestLeagueTierReached = try c.decodeIfPresent(LeagueTier.self, forKey: .bestLeagueTierReached) ?? .bronze
 
         errands = try c.decodeIfPresent([ActiveErrand].self, forKey: .errands) ?? []
+
+        flashSale = try c.decodeIfPresent(FlashSale.self, forKey: .flashSale)
+        // .distantFuture would permanently exclude every save from before this feature
+        // shipped - a short random delay from update time gets existing veterans into the
+        // rotation too, just not on the very first launch after updating.
+        nextFlashSaleEligibleAt = try c.decodeIfPresent(Date.self, forKey: .nextFlashSaleEligibleAt)
+            ?? Date().addingTimeInterval(.random(in: 3600...4 * 3600))
 
         venueSkins = try c.decodeIfPresent([Int: String].self, forKey: .venueSkins) ?? [:]
         unlockedSkins = try c.decodeIfPresent([Int: Set<String>].self, forKey: .unlockedSkins) ?? [:]

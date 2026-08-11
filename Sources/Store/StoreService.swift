@@ -294,8 +294,16 @@ final class StoreService: ObservableObject {
         guard let engine else { return }
         switch item.reward {
         case .gems(let amount):
-            engine.addGems(amount)
-            if announce { lastGrant = "+\(Format.count(amount)) gems" }
+            // Same price, more gems for the window - see FlashSale.swift for why the app
+            // can't discount the price itself. Applies to every purchase of the pack while
+            // the sale is live, not just the first (a real flash sale on a repeatable
+            // consumable works the same way).
+            let sale = engine.state.flashSale
+            let boosted = (sale?.packID == item.id && sale?.isActive(at: engine.state.now) == true)
+                ? sale?.bonusGems : nil
+            let granted = boosted ?? amount
+            engine.addGems(granted)
+            if announce { lastGrant = "+\(Format.count(granted)) gems" }
 
         case .starterPack:
             let firstTime = !engine.state.entitlements.starterPack

@@ -94,6 +94,10 @@ final class GameEngine: ObservableObject {
     /// Set by `prestige()` for the end-of-run recap the UI shows after the reset - the
     /// numbers have to be captured BEFORE the board wipes them.
     @Published var lastRunRecap: RunRecap?
+    /// A flash sale that just started, waiting on its one-shot popup - separate from
+    /// `state.flashSale` itself so relaunching mid-sale (or the sale surviving a
+    /// background/foreground cycle) doesn't show the interrupting popup again.
+    @Published var pendingFlashSaleAnnouncement: FlashSale?
 
     /// Payouts waiting to be shown, and when each station last showed one. A fast station
     /// completes ten-plus cycles a second; spawning a burst per cycle restarts the animation
@@ -132,6 +136,7 @@ final class GameEngine: ObservableObject {
         Festival.rolloverIfNeeded(&state.festival, now: state.now)
         rollWeeklyQuestIfNeeded()
         rollCateringIfNeeded()
+        checkFlashSaleIfNeeded()
     }
 
     func start() {
@@ -198,6 +203,7 @@ final class GameEngine: ObservableObject {
         settleLeagueIfFinished()
         rollWeeklyQuestIfNeeded()
         rollCateringIfNeeded()
+        checkFlashSaleIfNeeded()
         state.lastSeen = state.now
         lastTickTime = CACurrentMediaTimeCompat()
     }
@@ -337,6 +343,7 @@ final class GameEngine: ObservableObject {
         // that ended while the app was open just sat there until the next relaunch.
         settleLeagueIfFinished()
         Festival.rolloverIfNeeded(&state.festival, now: now)
+        checkFlashSaleIfNeeded()
     }
 
     /// Releases pooled payouts, at most one burst per station per interval, so each animation
@@ -1174,6 +1181,24 @@ final class GameEngine: ObservableObject {
     var claimableQuests: Int {
         state.quests.filter(\.isComplete).count
             + ((state.weeklyQuest?.isComplete ?? false) ? 1 : 0)
+    }
+
+    // MARK: Flash sale
+
+    /// Expires a live sale and pins the next randomized cooldown, or rolls a fresh one once
+    /// eligible - never during the tutorial, never on top of an already-active sale. Runs
+    /// from bootstrap/foreground/advance(by:), same as the weekly quest and catering rolls.
+    func checkFlashSaleIfNeeded() {
+        if let sale = state.flashSale, !sale.isActive(at: state.now) {
+            state.flashSale = nil
+            state.nextFlashSaleEligibleAt = state.now.addingTimeInterval(FlashSaleKit.randomCooldown())
+        }
+        guard state.flashSale == nil, state.tutorial.finished,
+              state.now >= state.nextFlashSaleEligibleAt else { return }
+        let sale = FlashSaleKit.roll(now: state.now)
+        state.flashSale = sale
+        pendingFlashSaleAnnouncement = sale
+        save()
     }
 
     // MARK: Weekly challenge

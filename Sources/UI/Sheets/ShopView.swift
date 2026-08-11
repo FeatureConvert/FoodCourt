@@ -130,6 +130,8 @@ struct ShopView: View {
     private func iapRow(_ item: ShopItem, wide: Bool) -> some View {
         let owned = store.isOwned(item)
         let busy = store.purchasingID == item.id
+        let sale = engine.state.flashSale
+        let onSale = sale?.packID == item.id && sale?.isActive(at: engine.state.now) == true
 
         return Button {
             Task { await store.purchase(item) }
@@ -146,7 +148,17 @@ struct ShopView: View {
                         Text(item.title)
                             .font(Theme.body(14, weight: .black))
                             .foregroundStyle(Theme.text)
-                        if let badge = item.badge {
+                        // Same price, more gems for the window - the badge replaces
+                        // whatever permanent tier badge this pack normally carries so the
+                        // two never compete for attention.
+                        if onSale, let sale {
+                            Text("FLASH SALE +\(Format.count(sale.bonusGems - FlashSaleKit.baseGems))")
+                                .font(Theme.body(9, weight: .black))
+                                .foregroundStyle(Theme.ink)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Theme.star))
+                        } else if let badge = item.badge {
                             Text(badge)
                                 .font(Theme.body(9, weight: .black))
                                 .foregroundStyle(Theme.ink)
@@ -155,9 +167,11 @@ struct ShopView: View {
                                 .background(Capsule().fill(Theme.coin))
                         }
                     }
-                    Text(item.subtitle)
+                    Text(onSale && sale != nil
+                         ? "\(Format.count(sale!.bonusGems)) gems · ends in \(Format.duration(sale!.expiresAt.timeIntervalSince(engine.state.now)))"
+                         : item.subtitle)
                         .font(Theme.body(11, weight: .medium))
-                        .foregroundStyle(Theme.textDim)
+                        .foregroundStyle(onSale ? Theme.star : Theme.textDim)
                         .lineLimit(wide ? 3 : 1)
                         .multilineTextAlignment(.leading)
                 }
@@ -183,6 +197,10 @@ struct ShopView: View {
         }
         .buttonStyle(ChunkyButtonStyle(fill: Theme.panel, shadow: Theme.ink, disabled: owned))
         .disabled(owned || busy)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(onSale ? Theme.star : .clear, lineWidth: 2)
+        )
     }
 
     /// A pile whose size tracks the pack, so the tiers read at a glance.
