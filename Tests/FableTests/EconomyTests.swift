@@ -83,11 +83,16 @@ final class EconomyTests: XCTestCase {
 
     // MARK: Venue scaling
 
-    func testDeeperVenuesScaleCostAndRevenue() {
+    /// Revenue and cost intentionally share the same base (25x/venue) - a real long-horizon
+    /// simulation showed a mismatched 30x-revenue/25x-cost split compounding into each
+    /// subsequent venue being mathematically more profit-efficient than the last, which
+    /// measured as an accelerating venue-to-venue pace (21m/17m/10m/6.5m/4.5m/3.5m across
+    /// Burger through Food Truck) matching a live report of exactly that symptom.
+    func testDeeperVenuesScaleCostAndRevenueAtTheSameRate() {
         let first = Balance.venue(0).stations[0]
         let second = Balance.venue(1).stations[0]
         XCTAssertEqual(second.baseCost / first.baseCost, 25, accuracy: 1e-6)
-        XCTAssertEqual(second.baseRevenue / first.baseRevenue, 30, accuracy: 1e-6)
+        XCTAssertEqual(second.baseRevenue / first.baseRevenue, 25, accuracy: 1e-6)
     }
 
     func testEveryVenueHasAFullStationSet() {

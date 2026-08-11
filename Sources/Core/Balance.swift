@@ -50,8 +50,18 @@ struct VenueSpec: Identifiable {
     }
 
     /// Deeper venues pay far more and cost far more - this is what makes moving on feel
-    /// like a jump rather than a grind extension.
-    var revenueMultiplier: Double { pow(30, Double(id)) }
+    /// like a jump rather than a grind extension. The two used mismatched bases (30 vs
+    /// 25), which reads as a flavor choice but is actually a structural accelerant: since
+    /// revenue compounds faster than cost, every subsequent venue is mathematically MORE
+    /// profit-efficient than the last (venue 1 pays back 1.2x more per coin invested than
+    /// venue 0, venue 6 pays back nearly 3x more) - a real 2-hour engine simulation
+    /// confirmed the result exactly, each venue taking noticeably less real time than the
+    /// one before it (21m/17m/10m/6.5m/4.5m/3.5m, Burger through Food Truck), matching a
+    /// live report of Burger Shack taking ~10 minutes and Sushi clearing in about half
+    /// that. Same base now: venues still cost more and pay more in absolute terms (the
+    /// "jump" the original comment wanted), but the RATIO between them - what actually
+    /// governs how long a venue takes - stays flat instead of compounding.
+    var revenueMultiplier: Double { pow(25, Double(id)) }
     var costMultiplier: Double { pow(25, Double(id)) }
 }
 
@@ -245,7 +255,10 @@ enum Balance {
 
     private static func build(_ rows: [(String, FoodArt, [String])], venue: Int) -> [StationSpec] {
         let costScale = pow(25, Double(venue))
-        let revenueScale = pow(30, Double(venue))
+        // Same base as costScale - see VenueSpec.revenueMultiplier's doc comment for why a
+        // mismatched 30 here was a structural, compounding accelerant across venues, not a
+        // harmless flavor difference.
+        let revenueScale = pow(25, Double(venue))
         return rows.enumerated().map { index, row in
             let curve = stationCurve[index]
             return StationSpec(

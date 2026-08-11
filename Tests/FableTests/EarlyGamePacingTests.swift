@@ -190,4 +190,91 @@ final class EarlyGamePacingTests: XCTestCase {
         XCTAssertLessThan(result.weeklyFraction, 0.05,
                           "weekly quest already \(Int(result.weeklyFraction * 100))% done 5 minutes into a fresh install")
     }
+
+    // MARK: - Long-horizon multi-venue simulation
+
+    /// Plays a fully-engaged (not just hyperactive-tapping) player across real hours: MAX-
+    /// buys and staffs every station of whichever venue is current, redeems Coffee Break/
+    /// Rush Hour the instant they're ready, and moves the moment a new venue is affordable
+    /// (matching `unlock`'s own behavior of switching focus there). Tracks the real
+    /// timestamp each venue actually opened and when lifetime earnings first cross the
+    /// prestige threshold - the question this answers is holistic pacing across the whole
+    /// early arc, not just the first 20 minutes.
+    @MainActor
+    private func simulateLongHorizon(hours: Double) -> (venueUnlockedAt: [Int: TimeInterval],
+                                                         prestigeEligibleAt: TimeInterval?,
+                                                         finalAutomatedRate: Double,
+                                                         finalLifetime: Double) {
+        var state = GameState.newGame()
+        pinClock(&state, hour: 12) // outside Happy Hour - the steady-state case, not the spike
+        let engine = GameEngine(state: state, startTimers: false, persistence: EphemeralPersistence())
+        engine.buyQuantity = .max
+        engine.skipTutorial()
+
+        var venueUnlockedAt: [Int: TimeInterval] = [0: 0]
+        var prestigeEligibleAt: TimeInterval?
+        let dt: TimeInterval = 0.35
+        var lastServed = 0
+        var elapsed: TimeInterval = 0
+
+        _ = engine.tap(station: 0)
+        _ = engine.hireManager(for: 0, free: true)
+
+        while elapsed < hours * 3600 {
+            elapsed += dt
+            engine.debugAdvanceClock(seconds: dt)
+            engine.advance(by: dt)
+
+            if engine.boostReady { _ = engine.claimFreeBoost() }
+            if engine.rushReady { _ = engine.startRush() }
+
+            _ = engine.tap(station: 0)
+            _ = engine.tap(station: 1)
+
+            if engine.servedCustomers > lastServed {
+                lastServed = engine.servedCustomers
+                engine.rollGoldenCustomer()
+                engine.rollStationOrder()
+            }
+            if engine.golden != nil { _ = engine.collectGolden() }
+            _ = engine.claimAllReady()
+
+            let venue = Balance.venue(engine.state.currentVenue)
+            for station in venue.stations {
+                _ = engine.buy(station: station.id)
+                if engine.state.venues[venue.id].stations[station.id].isOwned {
+                    _ = engine.hireManager(for: station.id)
+                }
+            }
+
+            if let next = engine.nextLockedVenue, engine.canUnlock(next) {
+                if engine.unlock(next) { venueUnlockedAt[next.id] = elapsed }
+            }
+
+            if prestigeEligibleAt == nil, engine.state.lifetimeEarnings >= Balance.minimumLifetimeForPrestige {
+                prestigeEligibleAt = elapsed
+            }
+        }
+
+        return (venueUnlockedAt, prestigeEligibleAt, engine.state.automatedRate, engine.state.lifetimeEarnings)
+    }
+
+    /// Robert's read after today's fixes: "the entire game needs to slow down by about
+    /// half". This runs the real engine for a long, fully-engaged session and prints the
+    /// actual venue-by-venue and first-prestige timeline so that call can be checked
+    /// against data instead of feel alone.
+    @MainActor
+    func testLongHorizonPacingTimeline() {
+        let (unlockedAt, prestigeAt, rate, lifetime) = simulateLongHorizon(hours: 2)
+        print("[LongHorizon] 2h fully-engaged session:")
+        for id in 0...6 {
+            if let t = unlockedAt[id] {
+                print("  venue \(id) (\(Balance.venue(id).name)): opened at \(Format.duration(t))")
+            } else {
+                print("  venue \(id) (\(Balance.venue(id).name)): never opened in 8h")
+            }
+        }
+        print("  first prestige-eligible at: \(prestigeAt.map(Format.duration) ?? "never in 8h")")
+        print("  final automatedRate: \(Format.currency(rate))/s, lifetime earned: \(Format.currency(lifetime))")
+    }
 }
