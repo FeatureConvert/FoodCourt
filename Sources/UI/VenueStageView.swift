@@ -7,6 +7,11 @@ struct VenueStageView: View {
     @EnvironmentObject private var sound: SoundService
     let onGolden: (Double) -> Void
     var onCustomize: (() -> Void)? = nil
+    /// Portrait's stage sits above a scrolling list at a fixed height; iPad landscape gives
+    /// it a real column instead and passes nil so it fills whatever height that column
+    /// measures out to (see RootView.landscapeContent) rather than sitting pinned to this
+    /// portrait constant with empty space stranded around it.
+    var fixedHeight: CGFloat? = 168
 
     private var venue: VenueSpec { Balance.venue(engine.state.currentVenue) }
     private var palette: VenuePalette {
@@ -107,7 +112,7 @@ struct VenueStageView: View {
                     .stroke(Color.black.opacity(0.35), lineWidth: 2)
             )
         }
-        .frame(height: 168)
+        .frame(height: fixedHeight)
     }
 }
 

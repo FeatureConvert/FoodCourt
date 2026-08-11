@@ -90,11 +90,12 @@ struct RootView: View {
         }
     }
 
-    private var stageOverlay: some View {
+    private func stageOverlay(fixedHeight: CGFloat? = 168) -> some View {
         ZStack(alignment: .topTrailing) {
             VenueStageView(onGolden: { amount in
                 showToast("VIP tipped \(Format.currency(amount))!")
-            }, onCustomize: { present(.cosmetics(engine.state.currentVenue)) })
+            }, onCustomize: { present(.cosmetics(engine.state.currentVenue)) },
+            fixedHeight: fixedHeight)
             StageActionsView(onBoost: takeCoffeeBreak, onRush: startRush)
                 .padding(.top, 10)
                 .padding(.trailing, 10)
@@ -139,7 +140,7 @@ struct RootView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
 
-            stageOverlay
+            stageOverlay()
                 .padding(.horizontal, 14)
 
             ComboMeterView()
@@ -182,7 +183,7 @@ struct RootView: View {
 
                 HStack(alignment: .top, spacing: 14) {
                     VStack(spacing: 8) {
-                        stageOverlay
+                        stageOverlay(fixedHeight: nil)
                             .frame(maxHeight: .infinity)
                         ComboMeterView()
                     }
