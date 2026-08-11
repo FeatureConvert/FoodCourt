@@ -163,6 +163,23 @@ final class EarlyGamePacingTests: XCTestCase {
         for mult in [8_000.0, 12_000, 16_000, 24_000, 32_000, 48_000, 64_000] {
             print("  mult \(Int(mult)) -> hoard unlock \(Format.duration(result.hoardTime(for: 100 * mult)))")
         }
+
+        // Balance-pass due diligence: today's manager-cost curve (baseCost^0.72, was a flat
+        // baseCost*500) made every Burger Shack manager past the first up to ~19x cheaper.
+        // Reusing this sim's own trajectory (no new sim needed) to check that didn't swing
+        // the pendulum the other way - full automation of venue 0 trivially early.
+        print("  -- fully staffing Burger Shack (today's manager-cost curve) --")
+        var venueCostSoFar = 0.0
+        var cumulativeCosts: [Double] = []
+        for station in Balance.venue(0).stations {
+            venueCostSoFar += Balance.managerCost(spec: station)
+            cumulativeCosts.append(venueCostSoFar)
+            print("  through station \(station.id) (\(station.name)): cumulative \(Format.currency(venueCostSoFar)) -> \(Format.duration(result.hoardTime(for: venueCostSoFar)))")
+        }
+        XCTAssertLessThan(result.hoardTime(for: cumulativeCosts[3]), 30 * 60,
+                          "the first four stations should stay routine early-game automation")
+        XCTAssertGreaterThan(result.hoardTime(for: cumulativeCosts[5]), 2 * 3600,
+                             "fully automating a whole venue should still be a real mid-game goal, not a same-session freebie")
     }
 
     /// The weekly quest should not be meaningfully complete within the first minutes of a
