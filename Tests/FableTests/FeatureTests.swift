@@ -380,6 +380,25 @@ final class FeatureTests: XCTestCase {
         XCTAssertGreaterThan(e.boostCooldownRemaining, 0)
     }
 
+    /// The cooldown starts when the boost ENDS, not when it's claimed - matching Rush
+    /// Hour's own already-correct pattern (rushAvailableAt is set from rushEndsAt). Before
+    /// this fix the 15-minute active window was eaten by the 30-minute cooldown instead of
+    /// sitting on top of it.
+    @MainActor
+    func testCoffeeBreakCooldownStartsAfterTheBoostEndsNotAtActivation() {
+        var state = GameState.newGame()
+        state.boostAvailableAt = .distantPast
+        let e = engine(state)
+        let claimedAt = e.state.now
+        XCTAssertTrue(e.claimFreeBoost())
+
+        let expected = claimedAt
+            .addingTimeInterval(ActivePlay.freeBoostHours * 3600)
+            .addingTimeInterval(ActivePlay.freeBoostCooldownMinutes * 60)
+        XCTAssertEqual(e.state.boostAvailableAt.timeIntervalSince1970, expected.timeIntervalSince1970,
+                       accuracy: 1, "cooldown = full active duration + the cooldown minutes, not cooldown alone")
+    }
+
     @MainActor
     func testOfflineDoubleIsFreeOncePerDay() {
         let e = engine()

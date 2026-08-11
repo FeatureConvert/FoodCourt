@@ -1702,7 +1702,12 @@ final class GameEngine: ObservableObject {
                  label: "Coffee Break ×\(Format.trim(ActivePlay.freeBoostMultiplier))",
                  multiplier: ActivePlay.freeBoostMultiplier,
                  hours: ActivePlay.freeBoostHours)
+        // The cooldown starts when the boost ENDS, not when it's claimed - Rush Hour
+        // already worked this way (rushAvailableAt is set from rushEndsAt); this matched
+        // it, so the 15-minute active window is real bonus time on top of the 30-minute
+        // cooldown, not eaten by it.
         state.boostAvailableAt = state.now
+            .addingTimeInterval(ActivePlay.freeBoostHours * 3600)
             .addingTimeInterval(ActivePlay.freeBoostCooldownMinutes * 60)
         state.tutorial.complete(.coffeeBreak)
         save()
