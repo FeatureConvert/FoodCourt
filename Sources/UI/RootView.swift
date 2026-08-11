@@ -67,57 +67,16 @@ struct RootView: View {
                            startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
 
-            VStack(spacing: 8) {
-                HUDView(onDebug: { present(.debug) },
-                        onSettings: { present(.settings) },
-                        onStars: { present(.prestige) },
-                        onHelp: { present(.help) })
-                    .padding(.horizontal, 14)
-
-                if engine.rushActive {
-                    RushBannerView()
-                        .padding(.horizontal, 14)
-                        .transition(.move(edge: .top).combined(with: .opacity))
+            // iPhone is portrait-locked (see project.yml), so this only ever measures
+            // landscape on iPad - width/height is the standard way to tell, since iPad
+            // reports .regular for both size classes in full-screen regardless of
+            // orientation and can't be used to distinguish them.
+            GeometryReader { geo in
+                if geo.size.width > geo.size.height {
+                    landscapeContent(width: geo.size.width)
+                } else {
+                    portraitContent
                 }
-
-                ZStack(alignment: .topTrailing) {
-                    VenueStageView(onGolden: { amount in
-                        showToast("VIP tipped \(Format.currency(amount))!")
-                    }, onCustomize: { present(.cosmetics(engine.state.currentVenue)) })
-                    StageActionsView(onBoost: takeCoffeeBreak, onRush: startRush)
-                        .padding(.top, 10)
-                        .padding(.trailing, 10)
-                }
-                .padding(.horizontal, 14)
-
-                ComboMeterView()
-                    .padding(.horizontal, 14)
-
-                StationListView(onToast: showToast,
-                                onChoosePerk: { present(.perk($0)) })
-
-                BottomBar(
-                    onVenues: {
-                        engine.markIntroSeen(IntroKey.venueNudge)
-                        present(.venues)
-                    },
-                    onCollection: { present(.collection) },
-                    onQuests: {
-                        engine.completeTutorialStep(.openGoals)
-                        // The Goals badge can be lit by a claimable quest, a claimable
-                        // achievement, or both - open straight to whichever one is actually
-                        // waiting rather than always landing on Quests with no clue the
-                        // notification was really on the Achievements side.
-                        let initialTab: QuestsView.Tab =
-                            (engine.claimableQuests == 0 && !engine.claimableAchievements.isEmpty)
-                            ? .achievements : .quests
-                        present(.quests(initialTab))
-                    },
-                    onEvents: { present(.events(defaultEventsTab)) },
-                    onShop: { present(.shop) }
-                )
-                .padding(.horizontal, 14)
-                .padding(.bottom, 4)
             }
 
             TutorialOverlay(onSkip: { engine.skipTutorial() })
@@ -128,6 +87,110 @@ struct RootView: View {
                     .frame(maxHeight: .infinity, alignment: .bottom)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+        }
+    }
+
+    private var stageOverlay: some View {
+        ZStack(alignment: .topTrailing) {
+            VenueStageView(onGolden: { amount in
+                showToast("VIP tipped \(Format.currency(amount))!")
+            }, onCustomize: { present(.cosmetics(engine.state.currentVenue)) })
+            StageActionsView(onBoost: takeCoffeeBreak, onRush: startRush)
+                .padding(.top, 10)
+                .padding(.trailing, 10)
+        }
+    }
+
+    private func navBar(axis: Axis = .horizontal) -> BottomBar {
+        BottomBar(
+            axis: axis,
+            onVenues: {
+                engine.markIntroSeen(IntroKey.venueNudge)
+                present(.venues)
+            },
+            onCollection: { present(.collection) },
+            onQuests: {
+                engine.completeTutorialStep(.openGoals)
+                // The Goals badge can be lit by a claimable quest, a claimable
+                // achievement, or both - open straight to whichever one is actually
+                // waiting rather than always landing on Quests with no clue the
+                // notification was really on the Achievements side.
+                let initialTab: QuestsView.Tab =
+                    (engine.claimableQuests == 0 && !engine.claimableAchievements.isEmpty)
+                    ? .achievements : .quests
+                present(.quests(initialTab))
+            },
+            onEvents: { present(.events(defaultEventsTab)) },
+            onShop: { present(.shop) }
+        )
+    }
+
+    private var portraitContent: some View {
+        VStack(spacing: 8) {
+            HUDView(onDebug: { present(.debug) },
+                    onSettings: { present(.settings) },
+                    onStars: { present(.prestige) },
+                    onHelp: { present(.help) })
+                .padding(.horizontal, 14)
+
+            if engine.rushActive {
+                RushBannerView()
+                    .padding(.horizontal, 14)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
+            stageOverlay
+                .padding(.horizontal, 14)
+
+            ComboMeterView()
+                .padding(.horizontal, 14)
+
+            StationListView(onToast: showToast,
+                            onChoosePerk: { present(.perk($0)) })
+
+            navBar()
+                .padding(.horizontal, 14)
+                .padding(.bottom, 4)
+        }
+    }
+
+    /// The stage gets a real column instead of a sliver above a scrolling list, and the
+    /// bottom tab bar becomes a leading sidebar - the two changes that actually use the
+    /// extra width, rather than just stretching the portrait stack sideways.
+    private func landscapeContent(width: Double) -> some View {
+        let sidebarWidth: Double = 92
+        let stageColumnWidth = (width - sidebarWidth) * 0.44
+
+        return HStack(spacing: 0) {
+            navBar(axis: .vertical)
+                .frame(width: sidebarWidth)
+                .padding(.vertical, 14)
+
+            VStack(spacing: 8) {
+                HUDView(onDebug: { present(.debug) },
+                        onSettings: { present(.settings) },
+                        onStars: { present(.prestige) },
+                        onHelp: { present(.help) })
+
+                if engine.rushActive {
+                    RushBannerView()
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
+                HStack(alignment: .top, spacing: 14) {
+                    VStack(spacing: 8) {
+                        stageOverlay
+                            .frame(maxHeight: .infinity)
+                        ComboMeterView()
+                    }
+                    .frame(width: stageColumnWidth)
+
+                    StationListView(onToast: showToast,
+                                    onChoosePerk: { present(.perk($0)) })
+                }
+            }
+            .padding(.trailing, 14)
+            .padding(.vertical, 8)
         }
     }
 
@@ -506,11 +569,17 @@ struct RootView: View {
         engine.objectWillChange.send()
     }
 
+    /// A flat 2.2s worked for short confirmations ("Rush Hour already running") but a
+    /// landmark crossing or the tutorial graduation line runs 3-4x longer and was gone
+    /// before it could be read. Duration now scales with word count instead of every long
+    /// message needing its own call site to remember a longer number.
     private func showToast(_ message: String) {
         toastTask?.cancel()
         toast = message
+        let wordCount = message.split(separator: " ").count
+        let seconds = min(5.0, max(2.2, 1.2 + Double(wordCount) * 0.35))
         toastTask = Task {
-            try? await Task.sleep(nanoseconds: 2_200_000_000)
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
             if !Task.isCancelled { toast = nil }
         }
     }
@@ -518,17 +587,27 @@ struct RootView: View {
 
 // MARK: - Bottom bar
 
+/// The five main-nav buttons. Horizontal along the bottom in portrait; on iPad landscape
+/// (see `RootView.landscapeContent`) the same buttons run down a leading sidebar instead -
+/// `AnyLayout` swaps the container without duplicating a single button's logic or badges.
 private struct BottomBar: View {
     @EnvironmentObject private var engine: GameEngine
 
+    var axis: Axis = .horizontal
     let onVenues: () -> Void
     let onCollection: () -> Void
     let onQuests: () -> Void
     let onEvents: () -> Void
     let onShop: () -> Void
 
+    private var layout: AnyLayout {
+        axis == .horizontal
+            ? AnyLayout(HStackLayout(spacing: 8))
+            : AnyLayout(VStackLayout(spacing: 10))
+    }
+
     var body: some View {
-        HStack(spacing: 8) {
+        layout {
             barButton("Venues", "map.fill",
                       badge: engine.nextLockedVenue.map { engine.canUnlock($0) } == true,
                       action: onVenues)
