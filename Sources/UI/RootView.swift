@@ -48,6 +48,14 @@ struct RootView: View {
     @EnvironmentObject private var cloud: CloudSaveService
     @EnvironmentObject private var sound: SoundService
 
+    /// Distinguishes an iPad-sized canvas from an iPhone-sized one. Deliberately size class
+    /// rather than `userInterfaceIdiom`: an iPad in Slide Over or a narrow Split View
+    /// reports `.compact`, and at that width the phone layout genuinely is the right one -
+    /// an idiom check would force the roomy layout into a column too narrow for it.
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    private var isRoomy: Bool { horizontalSizeClass == .regular }
+
     @State private var sheet: ActiveSheet?
     @State private var toast: String?
     @State private var toastTask: Task<Void, Never>?
@@ -77,7 +85,7 @@ struct RootView: View {
                 if geo.size.width > geo.size.height {
                     landscapeContent(width: geo.size.width)
                 } else {
-                    portraitContent
+                    portraitContent(height: geo.size.height)
                 }
             }
 
@@ -128,7 +136,7 @@ struct RootView: View {
         )
     }
 
-    private var portraitContent: some View {
+    private func portraitContent(height: Double) -> some View {
         VStack(spacing: 8) {
             HUDView(onDebug: { present(.debug) },
                     onSettings: { present(.settings) },
@@ -143,14 +151,33 @@ struct RootView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
 
-            stageOverlay()
+            // 168pt is a sensible slice of an iPhone screen but a thin band on an iPad, and
+            // six stations over two columns only fill three rows - so the stations list runs
+            // out well before the screen does, leaving a dead gap above the tab bar. Handing
+            // the leftover height to the stage fixes both at once: the art gets room to
+            // actually be looked at, and the column below it stops floating in empty space.
+            // Proportional rather than a fixed number so it holds from an 11" iPad up to a
+            // 13" one; the stage art is laid out in fractions of its own height, so it
+            // scales rather than just growing empty floor.
+            // Clamped, not purely proportional: the stage lays its parts out in fractions of
+            // its own height, so past about 300pt the counter stops reading as a counter and
+            // becomes a slab of flat colour across the bottom third. This range is the band
+            // where the art still looks composed - the remaining slack above the tab bar is
+            // the lesser evil.
+            stageOverlay(fixedHeight: isRoomy ? min(300, max(240, height * 0.26)) : 168)
                 .padding(.horizontal, 14)
 
             ComboMeterView()
                 .padding(.horizontal, 14)
 
+            // Two columns on an iPad-sized canvas. At one column a station row stretches the
+            // full ~1300pt: name and level pinned far left, buy button pinned far right, and
+            // a vast dead gap between them that the eye has to cross for every single row.
+            // Halving the width puts the two ends back within one glance of each other, and
+            // fills the vertical space with real content instead of padding.
             StationListView(onToast: showToast,
-                            onChoosePerk: { present(.perk($0)) })
+                            onChoosePerk: { present(.perk($0)) },
+                            columns: isRoomy ? 2 : 1)
 
             navBar()
                 .padding(.horizontal, 14)

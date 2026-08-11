@@ -17,6 +17,12 @@ struct HUDView: View {
     @State private var expandedGoalID: String?
 
     var body: some View {
+        // Every number in this row used to be `.fixedSize()`, which refuses to compress at
+        // any cost. Once a player prestiges, the star pill joins the coin and gem pills and
+        // the three together demand more than the row has - the Spacer collapsed to zero and
+        // the help/settings buttons were pushed clean off the right edge, unreachable. The
+        // numbers now scale down to fit instead, and the two buttons take layout priority so
+        // they are always laid out before the pills compete for what's left.
         VStack(spacing: 8) {
             HStack(spacing: 10) {
                 currencyPill {
@@ -26,12 +32,12 @@ struct HUDView: View {
                             .font(Theme.numeric(19))
                             .foregroundStyle(Theme.text)
                             .lineLimit(1)
-                            .fixedSize()
+                            .minimumScaleFactor(0.6)
                         Text(Format.rate(engine.incomePerSecond))
                             .font(Theme.body(11, weight: .bold))
                             .foregroundStyle(Theme.positive)
                             .lineLimit(1)
-                            .fixedSize()
+                            .minimumScaleFactor(0.6)
                     }
                 }
 
@@ -46,7 +52,7 @@ struct HUDView: View {
                         .font(Theme.numeric(17))
                         .foregroundStyle(Theme.text)
                         .lineLimit(1)
-                        .fixedSize()
+                        .minimumScaleFactor(0.6)
                 }
 
                 if engine.state.lifetimeStars > 0 || engine.canPrestige {
@@ -62,7 +68,7 @@ struct HUDView: View {
                                     .font(Theme.numeric(16))
                                     .foregroundStyle(Theme.text)
                                     .lineLimit(1)
-                                    .fixedSize()
+                                    .minimumScaleFactor(0.6)
                                 // The anticipation meter: pending stars accrue live, so
                                 // the payoff visibly builds between franchises - the
                                 // strongest pull the game owns, previously invisible here.
@@ -71,13 +77,13 @@ struct HUDView: View {
                                         .font(Theme.body(10, weight: .bold))
                                         .foregroundStyle(Theme.positive)
                                         .lineLimit(1)
-                                        .fixedSize()
+                                        .minimumScaleFactor(0.6)
                                 } else {
                                     Text(Format.bonus(multiplier: Balance.starMultiplier(stars: engine.state.lifetimeStars)))
                                         .font(Theme.body(10, weight: .bold))
                                         .foregroundStyle(Theme.star)
                                         .lineLimit(1)
-                                        .fixedSize()
+                                        .minimumScaleFactor(0.6)
                                 }
                             }
                         }
@@ -100,6 +106,7 @@ struct HUDView: View {
                         .background(Circle().fill(Theme.panel.opacity(0.92)))
                 }
                 .buttonStyle(.plain)
+                .layoutPriority(1)
                 .accessibilityLabel("Help")
 
                 Button(action: onSettings) {
@@ -110,6 +117,7 @@ struct HUDView: View {
                         .background(Circle().fill(Theme.panel.opacity(0.92)))
                 }
                 .buttonStyle(.plain)
+                .layoutPriority(1)
                 .accessibilityLabel("Settings")
             }
 

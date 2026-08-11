@@ -40,16 +40,21 @@ struct StationListView: View {
             .padding(.horizontal, 16)
 
             ScrollView {
-                LazyVGrid(columns: grid, spacing: 10) {
-                    ForEach(venue.stations) { spec in
-                        StationCardView(spec: spec, onToast: onToast, onChoosePerk: onChoosePerk)
+                VStack(spacing: 10) {
+                    LazyVGrid(columns: grid, spacing: 10) {
+                        ForEach(venue.stations) { spec in
+                            StationCardView(spec: spec, onToast: onToast, onChoosePerk: onChoosePerk)
+                        }
                     }
+                    // Outside the grid, not a spanning cell inside it: `gridCellColumns` only
+                    // does anything in a `Grid`, and is silently ignored by `LazyVGrid` - so
+                    // in any multi-column layout the teaser had been quietly rendering at
+                    // half width in one column, reading as an orphaned card rather than the
+                    // full-width "here's what's next" banner it's meant to be.
                     if let next = engine.nextLockedVenue {
                         NextVenueTeaser(venue: next, onToast: onToast)
-                            .gridCellColumns(columns)
                     }
                     Color.clear.frame(height: 6)
-                        .gridCellColumns(columns)
                 }
                 .padding(.horizontal, 14)
             }
@@ -128,8 +133,11 @@ struct StationCardView: View {
             // Anchored over the cooker ring rather than centered: centered, the floating
             // payout number landed exactly on top of the station title and read as a
             // rendering glitch. Over the ring it reads as the food paying out.
+            // Wide enough for the payout label to sit inside it: at 66pt a five-character
+            // number either wrapped mid-digit or, once told not to wrap, overhung the card
+            // and got clipped by the list's bounds.
             ServeBurstOverlay(event: engine.lastServe[spec.id])
-                .frame(width: 66)
+                .frame(width: 120)
                 .offset(x: 12, y: 2)
         }
         .overlay {

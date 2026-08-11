@@ -67,8 +67,14 @@ struct CoinBurstView: View {
                     .scaleEffect(0.6 + 0.4 * local)
             }
 
+            // The overlay this sits in is only 66pt wide (anchored over the cooker ring), so
+            // a five-character payout like "+35.01K" wrapped mid-number onto a second line
+            // and read as a rendering glitch. `fixedSize` lets it lay out at its natural
+            // width and overhang the anchor instead of wrapping inside it.
             Text("+\(Format.currency(amount))")
                 .font(Theme.numeric(17))
+                .lineLimit(1)
+                .fixedSize()
                 .foregroundStyle(Theme.coin)
                 .shadow(color: .black.opacity(0.6), radius: 2, y: 1)
                 .offset(y: -46 * progress)
