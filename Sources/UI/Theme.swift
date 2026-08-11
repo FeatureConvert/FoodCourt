@@ -129,6 +129,11 @@ struct VenuePalette {
 }
 
 enum Theme {
+    /// The outline every piece of drawn art strokes itself with - sprites, venue props, signs,
+    /// rarity frames. It was previously redeclared as a local `let` in four separate Canvas
+    /// closures; it is one constant because it is one decision.
+    static let outline = Color(hex: "#2B1D14")
+
     // Shared chrome, consistent across every venue so the HUD never feels like it moved.
     static let ink = Color(hex: "#1C1622")
     static let panel = Color(hex: "#241D2E")

@@ -70,9 +70,11 @@
 		BE90C20938EA3102514A2634 /* Recipes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A353CAD590E160879630496 /* Recipes.swift */; };
 		BF0DF4C8E17DA444E35B346C /* League.swift in Sources */ = {isa = PBXBuildFile; fileRef = B558697084816A04F76970C6 /* League.swift */; };
 		C16A5659DD105E55069E0C52 /* Combo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CA66CE43888B7C621F4130C /* Combo.swift */; };
+		C79EE37AF0F5CD7AAEF2A540 /* SpriteSeedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AB2CA10EC227D58DEE2D0F1 /* SpriteSeedTests.swift */; };
 		D08D9543ECB9B90210EFBFCE /* CollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89F2E53AB8B4FAF1BD409A44 /* CollectionView.swift */; };
 		D119FA33321C01028D35F1CE /* PerkChoiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 388AFC1D19065A136570A153 /* PerkChoiceView.swift */; };
 		D4E84DE511EB946EE745296D /* GameEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97F978F2657BFE1A5089482A /* GameEngine.swift */; };
+		D5C4005C6D80D45623A66660 /* VenueScenes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4D8B62A270B89ADC697C071 /* VenueScenes.swift */; };
 		D663D254D9710CF63E1D835C /* FlashSale.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9591A328739A8243D1D2885 /* FlashSale.swift */; };
 		DA7753FD7192F3A0D960C1A5 /* ShopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6110EAE66DAA23544163D60 /* ShopView.swift */; };
 		DAA618AE10CAE02924719006 /* Icons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F8CDD98905FDF24A7F37B5 /* Icons.swift */; };
@@ -160,6 +162,8 @@
 		90ADE33E20D3F2B41202C2A1 /* Products.storekit */ = {isa = PBXFileReference; path = Products.storekit; sourceTree = "<group>"; };
 		91FAA9E9B4F61C58F14C0EF5 /* GuestChef.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestChef.swift; sourceTree = "<group>"; };
 		97F978F2657BFE1A5089482A /* GameEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngine.swift; sourceTree = "<group>"; };
+		9AB2CA10EC227D58DEE2D0F1 /* SpriteSeedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpriteSeedTests.swift; sourceTree = "<group>"; };
+		A4D8B62A270B89ADC697C071 /* VenueScenes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueScenes.swift; sourceTree = "<group>"; };
 		A6D9C15F5FAAEE676AFA42E6 /* GemSpend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GemSpend.swift; sourceTree = "<group>"; };
 		A9591A328739A8243D1D2885 /* FlashSale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlashSale.swift; sourceTree = "<group>"; };
 		AAEEE7013E714F39F25B687C /* DepthSystemsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepthSystemsTests.swift; sourceTree = "<group>"; };
@@ -202,6 +206,7 @@
 				3A2EE81608776E2BF273BBBD /* FoodSprite.swift */,
 				52F8CDD98905FDF24A7F37B5 /* Icons.swift */,
 				C10AE32D35CB2E6365F4E23C /* VenueProps.swift */,
+				A4D8B62A270B89ADC697C071 /* VenueScenes.swift */,
 			);
 			path = Art;
 			sourceTree = "<group>";
@@ -361,6 +366,7 @@
 				B88F0500C02E9FEF53B3FBA4 /* MigrationTests.swift */,
 				ED78409947694A96FF745DF8 /* ProgressionTests.swift */,
 				0CD20B6F5A66BCC6AC360C61 /* SoundServiceTests.swift */,
+				9AB2CA10EC227D58DEE2D0F1 /* SpriteSeedTests.swift */,
 				14E9FBAB04997C010D88507E /* StoreTests.swift */,
 				28BB845D19A7F52C212C6646 /* SyncAndSafetyTests.swift */,
 			);
@@ -479,6 +485,7 @@
 				7E8B6006600CE8650FE12398 /* MigrationTests.swift in Sources */,
 				1AF5363324B986459614ECC8 /* ProgressionTests.swift in Sources */,
 				659855CFDE9511A6C6B9AE2E /* SoundServiceTests.swift in Sources */,
+				C79EE37AF0F5CD7AAEF2A540 /* SpriteSeedTests.swift in Sources */,
 				EDC2E9F49F724833352C78C3 /* StoreTests.swift in Sources */,
 				74E97FC72D2BEEAC5AEF9B87 /* SyncAndSafetyTests.swift in Sources */,
 			);
@@ -556,6 +563,7 @@
 				AE6D607423F0E3DCC735265B /* Tutorial.swift in Sources */,
 				ECC05541EDFB311DC4CD681E /* TutorialOverlay.swift in Sources */,
 				82502C079735B3C036B1CB55 /* VenueProps.swift in Sources */,
+				D5C4005C6D80D45623A66660 /* VenueScenes.swift in Sources */,
 				F3A571D29B7FC1381E1054FD /* VenueSelectView.swift in Sources */,
 				62E6F3569791FF240B8F752A /* VenueStageView.swift in Sources */,
 				05EEB93DDF115946F54958A0 /* WelcomeView.swift in Sources */,

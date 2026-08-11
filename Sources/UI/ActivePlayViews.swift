@@ -94,38 +94,56 @@ struct RushBannerView: View {
 }
 
 /// The rare VIP. Gold, pulsing, and on a five second fuse.
+///
+/// One in twenty of these is a VIP critic worth ten times the tip. The engine has always known
+/// which is which (`GoldenCustomer.isCritic`), and the Help screen has always described the
+/// tier, but both rendered identically - so the player only found out which one they had caught
+/// from the toast *after* spending the tap. The critic now reads as its own character: plum
+/// suit, gold lapels and bow tie, monocle, clipboard, and a dashed ring around the whole
+/// figure. The crown itself comes from the sprite now, where it can sit correctly against the
+/// hair rather than being pinned over it at a fixed offset.
 struct GoldenCustomerView: View {
     let seed: Int
+    var isCritic: Bool = false
     let onTap: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
 
     var body: some View {
         Button(action: onTap) {
             ZStack {
                 Circle()
-                    .fill(RadialGradient(colors: [Theme.coin.opacity(0.85), .clear],
+                    .fill(RadialGradient(colors: [Theme.coin.opacity(isCritic ? 0.5 : 0.85), .clear],
                                          center: .center, startRadius: 2, endRadius: 34))
                     .frame(width: 68, height: 68)
                     .scaleEffect(pulse ? 1.15 : 0.9)
 
-                CustomerSprite(seed: seed)
+                if isCritic {
+                    // Parked, not spinning: the motion pass is deliberately deferred, and this
+                    // is design's own reduce-motion pose for the ring.
+                    Circle()
+                        .stroke(Theme.coin.opacity(0.7),
+                                style: StrokeStyle(lineWidth: 2, dash: [9, 14]))
+                        .frame(width: 62, height: 62)
+                }
+
+                CustomerSprite(seed: seed, variant: isCritic ? .critic : .golden)
                     .equatable()
                     .frame(width: 46, height: 64)
-                    .overlay(
-                        CrownIcon()
-                            .frame(width: 18, height: 18)
-                            .shadow(color: .black.opacity(0.5), radius: 2)
-                            .offset(y: -30)
-                    )
             }
         }
         .buttonStyle(.plain)
         .onAppear {
+            // Previously unconditional - this repeating animation predates the reduce-motion
+            // pass and was the one continuous loop on the stage that ignored the setting.
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)) {
                 pulse = true
             }
         }
+        .accessibilityLabel(isCritic ? "VIP critic customer" : "Golden customer")
+        .accessibilityHint(isCritic ? "Double tap to collect a x10 tip" : "Double tap to collect a tip")
         .transition(.scale.combined(with: .opacity))
     }
 }

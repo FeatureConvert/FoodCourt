@@ -38,9 +38,15 @@ struct VenueStageView: View {
                     startRadius: 0, endRadius: w * 0.75)
 
                 // Wall dressing - stays clear of the centered sign and the queue below.
-                VenuePropsView(theme: venue.theme)
-                    .frame(height: h * 0.62)
-                    .frame(maxHeight: .infinity, alignment: .top)
+                // Rebuilt rooms draw a full layered scene instead; the rest still come through
+                // the original props while the sweep works through them one at a time.
+                if VenueSceneView.rebuilt.contains(venue.theme) {
+                    VenueSceneView(theme: venue.theme, palette: palette, layer: .wall)
+                } else {
+                    VenuePropsView(theme: venue.theme)
+                        .frame(height: h * 0.62)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                }
 
                 // Floor plane.
                 VStack(spacing: 0) {
@@ -54,6 +60,12 @@ struct VenueStageView: View {
                                            startPoint: .top, endPoint: .bottom)
                                 .frame(height: 14),
                             alignment: .top)
+                }
+
+                // Floor material sits over the plane, in the same coordinate space as the wall
+                // layer above - which is why the two can be split across the floor gradient.
+                if VenueSceneView.rebuilt.contains(venue.theme) {
+                    VenueSceneView(theme: venue.theme, palette: palette, layer: .floor)
                 }
 
                 // Soft edge vignette so the stage reads as a lit interior, not a flat card.
@@ -89,7 +101,7 @@ struct VenueStageView: View {
                 // The VIP stands centre-stage. Anywhere trailing would put the tap target
                 // under the boost and rush buttons, which sit in that corner.
                 if let golden = engine.golden {
-                    GoldenCustomerView(seed: golden.seed) {
+                    GoldenCustomerView(seed: golden.seed, isCritic: golden.isCritic) {
                         let earned = engine.collectGolden()
                         Haptics.success()
                         sound.play(.reward)
@@ -99,10 +111,12 @@ struct VenueStageView: View {
                     .padding(.bottom, h * 0.14)
                 }
 
-                // Counter across the front.
+                // Counter across the front. The hairline highlight along the very top edge is
+                // what makes it read as a solid lit surface rather than a flat coloured band.
                 ZStack(alignment: .top) {
                     Rectangle().fill(palette.counterEdge)
                     Rectangle().fill(palette.counter).frame(height: 7)
+                    Rectangle().fill(Color.white.opacity(0.22)).frame(height: 1.5)
                 }
                 .frame(height: h * 0.17)
             }
