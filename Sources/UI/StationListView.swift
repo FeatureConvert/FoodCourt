@@ -206,14 +206,14 @@ struct StationCardView: View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 5) {
                 Text(spec.name)
-                    .font(Theme.body(14, weight: .black))
+                    .font(Theme.body(16, weight: .black))
                     .foregroundStyle(Theme.text)
                     .lineLimit(1)
                 if recipeStars > 0 {
                     HStack(spacing: 1) {
                         ForEach(0..<recipeStars, id: \.self) { _ in
                             Image(systemName: "star.fill")
-                                .font(.system(size: 7))
+                                .font(.system(size: 8))
                                 .foregroundStyle(Theme.star)
                         }
                     }
@@ -223,24 +223,24 @@ struct StationCardView: View {
             if state.isOwned {
                 HStack(spacing: 6) {
                     Text("Lv \(Format.count(state.level))")
-                        .font(Theme.body(11, weight: .bold))
+                        .font(Theme.body(13, weight: .bold))
                         .foregroundStyle(Theme.textDim)
                     Text("+\(Format.currency(payout))")
-                        .font(Theme.body(11, weight: .black))
+                        .font(Theme.body(13, weight: .black))
                         .foregroundStyle(Theme.coin)
                     Text(Format.cycle(cycle))
-                        .font(Theme.body(11, weight: .bold))
+                        .font(Theme.body(13, weight: .bold))
                         .foregroundStyle(Theme.textDim)
                 }
                 milestoneBar
                 staffLine
             } else {
                 Text("Tap to open this station")
-                    .font(Theme.body(11, weight: .medium))
+                    .font(Theme.body(13, weight: .medium))
                     .foregroundStyle(Theme.textDim)
             }
         }
-        .frame(minWidth: 96, alignment: .leading)
+        .frame(minWidth: 104, alignment: .leading)
     }
 
     @ViewBuilder
@@ -249,9 +249,9 @@ struct StationCardView: View {
             HStack(spacing: 4) {
                 CustomerSprite(seed: manager.spec.portraitSeed)
                     .equatable()
-                    .frame(width: 12, height: 17)
+                    .frame(width: 13, height: 18)
                 Text(manager.name)
-                    .font(Theme.body(9, weight: .bold))
+                    .font(Theme.body(10, weight: .bold))
                     .foregroundStyle(Theme.positive)
                     .lineLimit(1)
             }
@@ -274,10 +274,10 @@ struct StationCardView: View {
                 }
                 .frame(height: 5)
                 Text("Lv \(next.level): \(next.label)")
-                    .font(Theme.body(9, weight: .bold))
+                    .font(Theme.body(10, weight: .bold))
                     .foregroundStyle(Theme.textDim)
             }
-            .frame(maxWidth: 130)
+            .frame(maxWidth: 140)
         } else {
             Text("Fully upgraded")
                 .font(Theme.body(9, weight: .bold))
@@ -368,6 +368,11 @@ struct StationCardView: View {
         } else {
             let cost = engine.managerCost(for: spec.id)
             let canHire = engine.state.coins >= cost
+            // The gem-price fallback showed the same "go ahead, tap me" styling whether or
+            // not the player actually had the gems - a live report caught it looking
+            // uniformly usable even when it wasn't. Affordability now drives its own look,
+            // same as the coin branch and the primary buy button already do.
+            let canAffordGems = engine.state.gems >= GemSpend.instantManagerGemCost
             Button(action: hire) {
                 HStack(spacing: 4) {
                     if canHire {
@@ -386,8 +391,10 @@ struct StationCardView: View {
                 .frame(width: 92, height: 26)
             }
             .buttonStyle(ChunkyButtonStyle(
-                fill: canHire ? Theme.gemDeep : Theme.panelRaised,
-                shadow: Theme.ink, radius: 10
+                fill: (canHire || canAffordGems) ? Theme.gemDeep : Theme.locked,
+                shadow: Theme.ink,
+                disabled: !canHire && !canAffordGems,
+                radius: 10
             ))
             .tutorialHighlight(spec.id == 0 ? .stationHire : nil)
         }

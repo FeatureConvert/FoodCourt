@@ -36,7 +36,12 @@ struct HUDView: View {
                 }
 
                 currencyPill {
-                    GemIcon().frame(width: 20, height: 20)
+                    // CoinIcon draws a near-edge-to-edge circle (86% of its box); GemIcon's
+                    // diamond has much more built-in padding and a pointed silhouette, so it
+                    // read visibly smaller than the coin even at a near-identical frame size
+                    // (20pt vs 22pt). 27pt brings its actual visual weight to parity instead
+                    // of just matching the nominal frame number.
+                    GemIcon().frame(width: 27, height: 27)
                     Text(Format.count(engine.state.gems))
                         .font(Theme.numeric(17))
                         .foregroundStyle(Theme.text)
