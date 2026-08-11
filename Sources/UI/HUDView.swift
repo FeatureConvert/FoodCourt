@@ -7,6 +7,10 @@ struct HUDView: View {
     let onSettings: () -> Void
     let onStars: () -> Void
     let onHelp: () -> Void
+    /// Badges like the active Contract name used to be inert text - no way to learn what
+    /// "Investor Showcase" actually does without already knowing. Tapping one now surfaces
+    /// its real effect through this same callback RootView already wires to showToast.
+    let onBadgeInfo: (String) -> Void
 
     /// Which goal's explainer is unfolded - keyed by id so advancing to the next goal
     /// collapses the chip again on its own.
@@ -108,20 +112,27 @@ struct HUDView: View {
                 || engine.state.entitlements.mogul || engine.state.isHappyHour()
                 || activeContractBadge != nil {
                 HStack(spacing: 6) {
-                    if let contract = activeContractBadge {
-                        badge(contract, color: Theme.star)
+                    if let contract = activeContractBadge, let detail = engine.state.contract?.detail {
+                        badge(contract, detail: detail, color: Theme.star)
                     }
                     if engine.state.isHappyHour() {
-                        badge("HAPPY HOUR ×\(Format.trim(ActivePlay.happyHourMultiplier))", color: Theme.positive)
+                        badge("HAPPY HOUR ×\(Format.trim(ActivePlay.happyHourMultiplier))",
+                              detail: "A daily 6-8pm window: ×\(Format.trim(ActivePlay.happyHourMultiplier)) on every payout and better odds of a Golden Customer.",
+                              color: Theme.positive)
                     }
                     if engine.state.entitlements.vip {
-                        badge("VIP +\(Int(Balance.vipProfitBonus * 100))%", color: Theme.gem)
+                        badge("VIP +\(Int(Balance.vipProfitBonus * 100))%",
+                              detail: "+\(Int(Balance.vipProfitBonus * 100))% profit forever, \(Int(Balance.offlineCapHoursVIP))h offline earnings, and a Carnival Pass every season.",
+                              color: Theme.gem)
                     }
                     if engine.state.entitlements.mogul {
-                        badge("MOGUL +\(Int(Balance.mogulProfitBonus * 100))%", color: Theme.star)
+                        badge("MOGUL +\(Int(Balance.mogulProfitBonus * 100))%",
+                              detail: "+\(Int(Balance.mogulProfitBonus * 100))% profit forever and +\(Int(Balance.mogulOfflineCapBonusHours))h offline cap, stacking with VIP.",
+                              color: Theme.star)
                     }
                     ForEach(activeBoosts) { boost in
                         badge("\(boost.label) · \(Format.duration(boost.remaining(at: engine.state.now)))",
+                              detail: "\(boost.label) - ends in \(Format.duration(boost.remaining(at: engine.state.now))).",
                               color: Theme.coin)
                     }
                     Spacer(minLength: 0)
@@ -197,12 +208,20 @@ struct HUDView: View {
             .panel(Theme.panel.opacity(0.92), radius: 14)
     }
 
-    private func badge(_ text: String, color: Color) -> some View {
-        Text(text)
-            .font(Theme.body(11, weight: .bold))
-            .foregroundStyle(Theme.ink)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 4)
-            .background(Capsule().fill(color))
+    private func badge(_ text: String, detail: String, color: Color) -> some View {
+        Button {
+            Haptics.tap()
+            sound.play(.tap)
+            onBadgeInfo(detail)
+        } label: {
+            Text(text)
+                .font(Theme.body(11, weight: .bold))
+                .foregroundStyle(Theme.ink)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(color))
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Double tap for details")
     }
 }

@@ -131,7 +131,8 @@ struct RootView: View {
             HUDView(onDebug: { present(.debug) },
                     onSettings: { present(.settings) },
                     onStars: { present(.prestige) },
-                    onHelp: { present(.help) })
+                    onHelp: { present(.help) },
+                    onBadgeInfo: showToast)
                 .padding(.horizontal, 14)
 
             if engine.rushActive {
@@ -177,7 +178,8 @@ struct RootView: View {
                 HUDView(onDebug: { present(.debug) },
                         onSettings: { present(.settings) },
                         onStars: { present(.prestige) },
-                        onHelp: { present(.help) })
+                        onHelp: { present(.help) },
+                        onBadgeInfo: showToast)
 
                 if engine.rushActive {
                     RushBannerView()
