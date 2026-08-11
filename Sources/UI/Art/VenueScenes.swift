@@ -28,7 +28,7 @@ struct VenueSceneView: View {
     let layer: Layer
 
     /// Which rooms have been rebuilt. Everything else falls through to the legacy props.
-    static let rebuilt: Set<VenueTheme> = [.burger, .diner]
+    static let rebuilt: Set<VenueTheme> = [.burger, .diner, .sushi]
 
     // Material colours. These are shared across every room on purpose - only *structural*
     // colour comes from `VenuePalette`, so the coin-priced neon skin stays a pure data change.
@@ -99,6 +99,22 @@ struct VenueSceneView: View {
                     (620, 14, Self.bulbGold), (760, 26, Self.bulbCream),
                 ]
                 for (x, y, color) in bulbs { glowDot(x, y, 5, color) }
+            }
+            /// A paper lantern on its own drop cord, glow included.
+            func lantern(_ cx: CGFloat, _ cy: CGFloat, _ color: Color) {
+                stroke(Theme.outline, 2.5) { path in
+                    path.move(to: p(cx, 0)); path.addLine(to: p(cx, cy - 24))
+                }
+                context.fill(ellipse(cx, cy, 30, 30), with: .color(color.opacity(0.16)))
+                fill(ellipse(cx, cy, 17, 22), color)
+                stroke(Theme.outline, 1.5, opacity: 0.4) { path in
+                    path.move(to: p(cx - 15, cy - 7))
+                    path.addQuadCurve(to: p(cx + 15, cy - 7), control: p(cx, cy - 1))
+                    path.move(to: p(cx - 15, cy + 7))
+                    path.addQuadCurve(to: p(cx + 15, cy + 7), control: p(cx, cy + 13))
+                }
+                context.fill(rr(cx - 6, cy - 26, 12, 5, 2), with: .color(Theme.outline))
+                context.fill(rr(cx - 6, cy + 21, 12, 5, 2), with: .color(Theme.outline))
             }
             /// A skewed checkerboard built from ~70 parallelograms rather than a tiled image.
             func checkerFloor(_ color: Color, opacity: Double) {
@@ -327,6 +343,72 @@ struct VenueSceneView: View {
                 checkerFloor(.black, opacity: 0.16)
                 context.fill(ellipse(430, 300, 90, 46), with: .radialGradient(
                     Gradient(colors: [palette.accent.opacity(0.16), .clear]),
+                    center: p(430, 300), startRadius: 0, endRadius: 90 / 860 * rect.width))
+
+            case (.sushi, .wall):
+                // Panel seams, courses and wainscot - same bones as Burger/Diner, per design.
+                stroke(palette.wallBottom, 3, opacity: 0.5) { path in
+                    for x in [120.0, 340.0, 520.0, 740.0] {
+                        path.move(to: p(x, 0)); path.addLine(to: p(x, 236))
+                    }
+                }
+                stroke(palette.wallBottom, 2, opacity: 0.35) { path in
+                    for y in [88.0, 164.0] {
+                        path.move(to: p(0, y)); path.addLine(to: p(860, y))
+                    }
+                }
+                context.fill(Path(box(0, 236, 860, 64)), with: .color(palette.wallBottom))
+                context.fill(Path(box(0, 236, 860, 64)), with: .color(.white.opacity(0.06)))
+                stroke(palette.wallBottom, 2.5, opacity: 0.6) { path in
+                    for i in 0..<9 {
+                        let x = 70 + Double(i) * 100
+                        path.move(to: p(x, 236)); path.addLine(to: p(x, 300))
+                    }
+                }
+                context.fill(Path(box(0, 232, 860, 4)), with: .color(palette.accent.opacity(0.3)))
+
+                // Sake and bowl cubby shelf. Stays under x270, well clear of the sign's
+                // real x285-571 span - the same safe zone the Burger condiment shelf uses.
+                fill(rr(90, 66, 180, 124, 8), palette.floor)
+                stroke(Theme.outline, 2, opacity: 0.35) { path in
+                    path.move(to: p(90, 128)); path.addLine(to: p(270, 128))
+                    path.move(to: p(150, 66)); path.addLine(to: p(150, 190))
+                    path.move(to: p(210, 66)); path.addLine(to: p(210, 190))
+                }
+                fill(rr(104, 92, 16, 34, 6), Self.cream)
+                fill(rr(126, 98, 14, 28, 5), palette.counter)
+                fill(ellipse(180, 112, 16, 7), palette.accent)
+                fill(ellipse(180, 104, 13, 6), Self.cream)
+                fill(rr(222, 140, 34, 40, 4), Self.wood)
+                fill(ellipse(130, 160, 18, 8), Self.cream)
+
+                // Menu board - identical build to Burger and Diner.
+                fill(rr(560, 66, 180, 124, 8), Self.hardware)
+                context.fill(rr(572, 78, 156, 100, 4), with: .color(Color(hex: "#2E2A2B")))
+                context.fill(rr(600, 86, 100, 9, 4), with: .color(palette.sign.opacity(0.85)))
+                stroke(palette.sign, 5, opacity: 0.5) { path in
+                    for (i, w) in [64.0, 56.0, 70.0, 48.0].enumerated() {
+                        let y = 112 + Double(i) * 18
+                        path.move(to: p(584, y)); path.addLine(to: p(584 + w, y))
+                        path.move(to: p(672, y)); path.addLine(to: p(692, y))
+                    }
+                }
+
+                // Three paper lanterns replace the bulb garland - design's call, per §6.4 - and
+                // they stay well above y150, clear of the queue the same way the window and
+                // clock do in the other two rooms.
+                lantern(180, 76, palette.accent)
+                lantern(560, 70, Self.cream)
+                lantern(680, 80, palette.accent)
+
+            case (.sushi, .floor):
+                // Tatami bands: two straight joints, quieter than a checker or tile grid.
+                stroke(Self.wood, 2, opacity: 0.35) { path in
+                    path.move(to: p(0, 332)); path.addLine(to: p(860, 332))
+                    path.move(to: p(0, 366)); path.addLine(to: p(860, 366))
+                }
+                context.fill(ellipse(430, 300, 90, 46), with: .radialGradient(
+                    Gradient(colors: [palette.accent.opacity(0.14), .clear]),
                     center: p(430, 300), startRadius: 0, endRadius: 90 / 860 * rect.width))
 
             default:
