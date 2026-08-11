@@ -6,7 +6,12 @@ struct ComboMeterView: View {
     @EnvironmentObject private var engine: GameEngine
 
     var body: some View {
-        TimelineView(.animation) { timeline in
+        // Capped like every other TimelineView in this codebase (StationListView,
+        // TutorialOverlay) - plain `.animation` matches the display's refresh rate, which is
+        // up to 120Hz on a ProMotion phone, and this view is mounted on the main board the
+        // entire time the app is open, live combo or not. A draining bar reads just as
+        // smoothly at 30fps; it was burning 4x the frames for zero visible benefit.
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
             let now = engine.state.now
             let live = engine.combo.isLive(at: now)
             let steps = engine.state.comboMaxSteps

@@ -481,11 +481,17 @@ private struct CookerRing: View {
 
     private var isFlatOut: Bool { cycle < Self.flatOutBelow }
 
-    /// One timeline for both modes, running at the display's refresh rate. Sampling the
-    /// engine's `elapsed` directly gave a 0.6s cycle only twelve frames, which is what made
-    /// the ring look like it was running at a low frame rate.
+    /// One timeline for both modes. Sampling the engine's `elapsed` directly gave a 0.6s
+    /// cycle only twelve frames (the engine only ticks at 20Hz), which is what made the ring
+    /// look like it was running at a low frame rate - interpolating against wall-clock time
+    /// here fixes that. It doesn't need the DISPLAY's refresh rate to look smooth, though:
+    /// live-reported heat/battery drain on iPhone traced largely to this view running
+    /// uncapped (up to 120Hz on ProMotion) with up to six instances on screen simultaneously,
+    /// and the `flatOut` branch below - the common case once a station is leveled up -
+    /// recomputing a shadow blur and a gradient every one of those frames. 30fps is still
+    /// well above the twelve-frames-per-cycle floor that prompted this comment originally.
     var body: some View {
-        TimelineView(.animation) { timeline in
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
             ZStack {
                 Circle().stroke(Theme.stroke, lineWidth: 5)
 
