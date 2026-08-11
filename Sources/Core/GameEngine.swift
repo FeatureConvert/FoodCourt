@@ -1414,7 +1414,13 @@ final class GameEngine: ObservableObject {
         // gems, capped at 90 - an all-out sprint roughly doubles-to-triples idle, so the
         // cap needs real play to reach without being farmable.
         let baseline = Swift.max(1, state.gauntletBaseline)
-        let multiples = Int(score / baseline)
+        // Clamp in Double space BEFORE converting: `Int(aDoubleTooLargeToFit)` is a fatal
+        // runtime trap, not a throwable error, and a late-game sprint scores far past
+        // Int.max (9.2e18) - this crashed the app outright on any save that got there, and
+        // was what killed the 8-hour long-horizon sim. Comparing as Doubles is always safe
+        // however large the value is. The purse caps at 90 gems (6 multiples) regardless,
+        // so clamping costs the player nothing.
+        let multiples = Int(Swift.min(score / baseline, 1_000))
         let gems = Swift.min(90, multiples * 15)
         if gems > 0 { state.gems += gems }
         toast = "Gauntlet over! \(Format.currency(score)) earned - +\(gems) gems"

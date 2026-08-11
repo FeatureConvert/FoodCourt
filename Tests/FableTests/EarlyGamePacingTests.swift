@@ -314,7 +314,7 @@ final class EarlyGamePacingTests: XCTestCase {
     /// against data instead of feel alone.
     @MainActor
     func testLongHorizonPacingTimeline() {
-        let (unlockedAt, prestigeAt, rate, lifetime, starTrajectory) = simulateLongHorizon(hours: 2)
+        let (unlockedAt, prestigeAt, rate, lifetime, starTrajectory) = simulateLongHorizon(hours: 3)
         print("[LongHorizon] 2h fully-engaged session:")
         for id in 0...6 {
             if let t = unlockedAt[id] {
