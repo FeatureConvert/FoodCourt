@@ -113,12 +113,24 @@ enum Balance {
     /// A station stops getting faster past this point, otherwise cycles underflow the tick.
     static let minimumCycle: TimeInterval = 0.05
 
-    static let managerCostFactor: Double = 500
     /// The first station in a venue is deliberately cheap to staff. At the full factor the
     /// very first manager costs 2,000 against a starting balance of about 100, which put a
     /// wall in front of the player one minute in - and automation is the idea the game most
     /// needs to teach early. It also gets each new venue automating quickly.
     static let firstStationManagerFactor: Double = 60
+
+    /// Every other station was a flat `baseCost * 500` - and baseCost itself already jumps
+    /// roughly an order of magnitude per station by design, so that flat multiplier
+    /// compounded the jump instead of taming it: the Burger Shack's last station reached
+    /// 622M to staff while the Sushi Bar's first two stations cost 6K and 750K - a gap so
+    /// wide the LATER stations of the FIRST venue cost more than the EARLY stations of the
+    /// NEXT one, backwards from what "deeper venues cost more" should feel like. Raising
+    /// baseCost to a fractional power before scaling tempers that compounding without
+    /// touching the stations' own buy-in cost curve (nobody complained about that) - the
+    /// last Burger Shack station now runs about 32M, ~19x less, and the curve within any
+    /// venue steps up roughly 6x per station instead of 12x.
+    static let managerCostExponent: Double = 0.72
+    static let managerCostScale: Double = 1_311.2
 
     // Offline / retention
     static let offlineEfficiency: Double = 0.5
@@ -279,7 +291,9 @@ enum Balance {
     }
 
     static func managerCost(spec: StationSpec) -> Double {
-        spec.baseCost * (spec.id == 0 ? firstStationManagerFactor : managerCostFactor)
+        spec.id == 0
+            ? spec.baseCost * firstStationManagerFactor
+            : managerCostScale * pow(spec.baseCost, managerCostExponent)
     }
 
     // MARK: Staleness (organic-growth cap)

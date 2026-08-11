@@ -699,6 +699,24 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(e.state.league.seasonsPlayed, 1)
     }
 
+    /// Live report: the Burger Shack's last station cost ~622M to staff (baseCost * a flat
+    /// 500, and baseCost itself already jumps ~12x per station by design) while the Sushi
+    /// Bar's first two managers cost a small fraction of that - later stations of the
+    /// FIRST venue outcosting early stations of the NEXT one, backwards from "deeper
+    /// venues cost more". The fractional-power formula must keep growth well under the
+    /// old flat multiplier's 12x-per-station compounding.
+    func testManagerCostScalingIsTamedWithinAVenue() {
+        let stations = Balance.venue(0).stations
+        XCTAssertLessThan(Balance.managerCost(spec: stations[5]), 100_000_000,
+                          "the last Burger Shack station used to cost ~622M to staff")
+        for i in 2..<stations.count {
+            let ratio = Balance.managerCost(spec: stations[i])
+                / Balance.managerCost(spec: stations[i - 1])
+            XCTAssertLessThan(ratio, 8,
+                              "station-to-station growth should be well under the old flat factor's 12x")
+        }
+    }
+
     @MainActor
     func testFirstManagerIsAffordableToANewPlayer() {
         // Automation is the idea the game most needs to teach early, so the opening hire
@@ -707,7 +725,7 @@ final class FeatureTests: XCTestCase {
         let second = Balance.venue(0).stations[1]
         XCTAssertLessThan(Balance.managerCost(spec: first), 300)
         XCTAssertEqual(Balance.managerCost(spec: second),
-                       second.baseCost * Balance.managerCostFactor,
+                       Balance.managerCostScale * pow(second.baseCost, Balance.managerCostExponent),
                        "only the first station of a venue is discounted")
 
         // Reachable from the day-one daily plus a short spell of tapping.
