@@ -28,7 +28,7 @@ struct VenueSceneView: View {
     let layer: Layer
 
     /// Which rooms have been rebuilt. Everything else falls through to the legacy props.
-    static let rebuilt: Set<VenueTheme> = [.burger, .diner, .sushi]
+    static let rebuilt: Set<VenueTheme> = [.burger, .diner, .sushi, .pizza]
 
     // Material colours. These are shared across every room on purpose - only *structural*
     // colour comes from `VenuePalette`, so the coin-priced neon skin stays a pure data change.
@@ -65,6 +65,9 @@ struct VenueSceneView: View {
             }
             func ellipse(_ cx: CGFloat, _ cy: CGFloat, _ rx: CGFloat, _ ry: CGFloat) -> Path {
                 Path(ellipseIn: box(cx - rx, cy - ry, rx * 2, ry * 2))
+            }
+            func path(_ build: (inout Path) -> Void) -> Path {
+                var p = Path(); build(&p); return p
             }
             /// Stroke widths key off the smaller axis, like `VenueProps` does, so a batten line
             /// does not fatten into a ribbon on a wide, short stage.
@@ -410,6 +413,122 @@ struct VenueSceneView: View {
                 context.fill(ellipse(430, 300, 90, 46), with: .radialGradient(
                     Gradient(colors: [palette.accent.opacity(0.14), .clear]),
                     center: p(430, 300), startRadius: 0, endRadius: 90 / 860 * rect.width))
+
+            case (.pizza, .wall):
+                // Brick pattern across the whole wall, not just courses - this room's texture
+                // is denser than the panel-seam wall the other three share.
+                stroke(palette.wallBottom, 2.5, opacity: 0.45) { path in
+                    for row in 0..<8 {
+                        let y = Double(row) * 30
+                        path.move(to: p(0, y)); path.addLine(to: p(860, y))
+                        let offset = row % 2 == 0 ? 0.0 : 32.0
+                        var x = offset
+                        while x < 860 {
+                            path.move(to: p(x, y)); path.addLine(to: p(x, y + 15))
+                            x += 64
+                        }
+                    }
+                }
+                context.fill(Path(box(0, 236, 860, 64)), with: .color(palette.wallBottom))
+                stroke(palette.wallBottom, 2.5, opacity: 0.6) { path in
+                    for i in 0..<9 {
+                        let x = 70 + Double(i) * 100
+                        path.move(to: p(x, 236)); path.addLine(to: p(x, 300))
+                    }
+                }
+                context.fill(Path(box(0, 232, 860, 4)), with: .color(palette.accent.opacity(0.3)))
+
+                // Menu board sits on the left in this room - the oven claims the right wall.
+                fill(rr(100, 66, 170, 124, 8), Self.hardware)
+                context.fill(rr(112, 78, 146, 100, 4), with: .color(Color(hex: "#2E2A2B")))
+                context.fill(rr(136, 86, 98, 9, 4), with: .color(palette.sign.opacity(0.85)))
+                stroke(palette.sign, 5, opacity: 0.5) { path in
+                    for (i, w) in [60.0, 52.0, 64.0, 44.0].enumerated() {
+                        let y = 112 + Double(i) * 18
+                        path.move(to: p(124, y)); path.addLine(to: p(124 + w, y))
+                        path.move(to: p(204, y)); path.addLine(to: p(224, y))
+                    }
+                }
+
+                // Hanging rail: a pizza peel, a garlic braid, a dried pepper.
+                stroke(Theme.outline, 3.5) { path in
+                    path.move(to: p(330, 128)); path.addLine(to: p(510, 128))
+                }
+                stroke(Self.wood, 3) { path in
+                    path.move(to: p(355, 128)); path.addLine(to: p(355, 142))
+                    path.move(to: p(355, 142)); path.addLine(to: p(352, 176))
+                    path.move(to: p(355, 142)); path.addLine(to: p(358, 176))
+                }
+                fill(ellipse(355, 182, 11, 8), Color(hex: "#C9AE86"))
+                stroke(Theme.outline, 2.5) { path in
+                    path.move(to: p(420, 128)); path.addLine(to: p(420, 140))
+                }
+                fill(ellipse(420, 148, 6, 6), Self.cream)
+                fill(ellipse(414, 158, 5.5, 5.5), Self.cream)
+                fill(ellipse(426, 159, 5.5, 5.5), Self.cream)
+                stroke(Theme.outline, 2.5) { path in
+                    path.move(to: p(478, 128)); path.addLine(to: p(478, 142))
+                }
+                fill(path {
+                    $0.move(to: p(478, 142)); $0.addLine(to: p(469, 172))
+                    $0.addLine(to: p(487, 172)); $0.closeSubpath()
+                }, Theme.negative)
+
+                // Brick oven, the room's second light source - its own warm pool below.
+                // Sits at y144-236, entirely within the wall band and clear of the wainscot
+                // line, unlike Diner's jukebox this never dips into queue territory.
+                fill(path {
+                    $0.move(to: p(560, 236))
+                    $0.addQuadCurve(to: p(560, 144), control: p(556, 190))
+                    $0.addQuadCurve(to: p(740, 144), control: p(650, 88))
+                    $0.addQuadCurve(to: p(740, 236), control: p(744, 190))
+                    $0.closeSubpath()
+                }, Color(hex: "#6B4A3A"))
+                fill(path {
+                    $0.move(to: p(594, 236))
+                    $0.addQuadCurve(to: p(594, 178), control: p(591, 208))
+                    $0.addQuadCurve(to: p(706, 178), control: p(650, 130))
+                    $0.addQuadCurve(to: p(706, 236), control: p(709, 208))
+                    $0.closeSubpath()
+                }, Color(hex: "#2B1D14"), outlined: false)
+                context.fill(path {
+                    $0.move(to: p(600, 236))
+                    $0.addQuadCurve(to: p(600, 184), control: p(597, 212))
+                    $0.addQuadCurve(to: p(700, 184), control: p(650, 140))
+                    $0.addQuadCurve(to: p(700, 236), control: p(703, 212))
+                    $0.closeSubpath()
+                }, with: .radialGradient(
+                    Gradient(colors: [Color(hex: "#FFD98A"), Color(hex: "#E07A3C"), Color(hex: "#8C2E1F")]),
+                    center: p(650, 220), startRadius: 4, endRadius: 90 / 860 * rect.width))
+                context.fill(ellipse(622, 228, 12, 6), with: .color(Color(hex: "#4A3226")))
+                context.fill(ellipse(678, 228, 12, 6), with: .color(Color(hex: "#4A3226")))
+                context.fill(ellipse(650, 230, 130, 65), with: .radialGradient(
+                    Gradient(colors: [palette.accent.opacity(0.22), .clear]),
+                    center: p(650, 230), startRadius: 0, endRadius: 130 / 860 * rect.width))
+
+                // Garland: this room's own tuning, not Burger/Diner's shared warm string -
+                // design's own bulb colours here are Pizza's `accent`/`sign` almost exactly,
+                // so unlike the other two rooms this one follows the palette.
+                stroke(Theme.outline, 3) { path in
+                    path.move(to: p(0, 22))
+                    path.addQuadCurve(to: p(430, 30), control: p(215, 56))
+                    path.addQuadCurve(to: p(860, 42), control: p(645, 6))
+                }
+                for (x, y, warm) in [(120.0, 36.0, true), (280.0, 44.0, false),
+                                     (480.0, 24.0, true), (700.0, 16.0, false)] {
+                    glowDot(x, y, 5, warm ? palette.accent : palette.sign)
+                }
+
+            case (.pizza, .floor):
+                // Warm wood planks.
+                stroke(Color(hex: "#967A5C"), 2, opacity: 0.3) { path in
+                    for y in [326.0, 352.0, 378.0] {
+                        path.move(to: p(0, y)); path.addLine(to: p(860, y))
+                    }
+                }
+                context.fill(ellipse(650, 320, 130, 60), with: .radialGradient(
+                    Gradient(colors: [palette.accent.opacity(0.16), .clear]),
+                    center: p(650, 320), startRadius: 0, endRadius: 130 / 860 * rect.width))
 
             default:
                 break
