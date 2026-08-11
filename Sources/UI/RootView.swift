@@ -161,9 +161,12 @@ struct RootView: View {
     private func landscapeContent(width: Double) -> some View {
         let sidebarWidth: Double = 92
         // 0.44 left every station card too narrow for 2 real columns after the fixed
-        // sidebar and padding were subtracted - 0.36 leaves the stage a real column while
-        // giving the station grid (see below) the width two comfortable cards need.
-        let stageColumnWidth = (width - sidebarWidth) * 0.36
+        // sidebar and padding were subtracted; 0.36 was still tight enough that the level/
+        // rate text (StationCardView's fixed 66pt cooker + 92pt actions leave little room
+        // for the middle text column once split two-up) read cramped. 0.30 gives each card
+        // roughly 30pt more width while the stage still holds a real, legible size at its
+        // 2.4:1 aspect ratio.
+        let stageColumnWidth = (width - sidebarWidth) * 0.30
 
         return HStack(spacing: 0) {
             navBar(axis: .vertical)

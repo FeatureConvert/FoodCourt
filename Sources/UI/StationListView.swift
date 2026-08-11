@@ -21,11 +21,14 @@ struct StationListView: View {
                 Text("STATIONS")
                     .font(Theme.body(12, weight: .black))
                     .foregroundStyle(Theme.textDim)
-                if engine.costInflation > 1.01 {
+                if engine.staleCostInflation > 1.01 {
                     // A board that's gone a long time without a franchise reset gets
                     // proportionally pricier - this is the one place that's visible during
-                    // normal play rather than only inside the Franchise sheet.
-                    Text("\(Format.bonus(multiplier: engine.costInflation)) COSTS")
+                    // normal play rather than only inside the Franchise sheet. Staleness
+                    // only, not the full costInflation used for real pricing - that also
+                    // carries the player's permanent star multiplier, which a reset can't
+                    // undo, so it doesn't belong in a badge implying "prestige fixes this".
+                    Text("\(Format.bonus(multiplier: engine.staleCostInflation)) COSTS")
                         .font(Theme.body(9, weight: .black))
                         .foregroundStyle(Theme.negative)
                         .padding(.horizontal, 6).padding(.vertical, 3)
@@ -367,8 +370,15 @@ struct StationCardView: View {
             let canHire = engine.state.coins >= cost
             Button(action: hire) {
                 HStack(spacing: 4) {
-                    Image(systemName: canHire ? "person.fill.badge.plus" : "diamond.fill")
-                        .font(.system(size: 10, weight: .black))
+                    if canHire {
+                        Image(systemName: "person.fill.badge.plus")
+                            .font(.system(size: 10, weight: .black))
+                    } else {
+                        // The bespoke gem, not the system diamond - every other gem cost
+                        // in the game (HUD, Shop, Quests, Daily Reward, Collection)
+                        // already renders this way; this was the one holdout.
+                        GemIcon().frame(width: 11, height: 11)
+                    }
                     Text(canHire ? Format.price(cost) : "\(GemSpend.instantManagerGemCost)")
                         .font(Theme.body(10, weight: .black))
                         .lineLimit(1).minimumScaleFactor(0.7)
