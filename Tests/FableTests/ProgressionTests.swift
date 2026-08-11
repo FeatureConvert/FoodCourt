@@ -240,6 +240,42 @@ final class ProgressionTests: XCTestCase {
                        "the unlock price must not move just because the wallet did")
     }
 
+    /// A live report caught a player who dismissed the tutorial before reaching the hire-a-
+    /// manager step losing the free first hire entirely - it used to be gated on the tutorial
+    /// overlay's current step, which `skip()` freezes without ever advancing past wherever the
+    /// player happened to be. Eligibility is tracked by its own dedicated flag instead, so it
+    /// survives the tutorial being dismissed at any point.
+    @MainActor
+    func testFreeFirstManagerSurvivesDismissingTheTutorialEarly() {
+        let engine = GameEngine(state: GameState.newGame(), startTimers: false, persistence: EphemeralPersistence())
+        engine.skipTutorial()
+
+        XCTAssertTrue(engine.eligibleForFreeFirstManager(station: 0),
+                      "dismissing the tutorial before ever hiring must not forfeit the free hire")
+        XCTAssertTrue(engine.hireManager(for: 0, free: true))
+        XCTAssertFalse(engine.eligibleForFreeFirstManager(station: 0),
+                       "only the very first hire is free")
+    }
+
+    /// `TutorialState.complete(_:)` no-ops entirely once `finished` is true (skip or a normal
+    /// finish), so tutorial state alone can't be trusted to remember "already used" - this
+    /// exercises the actual claimed-flag path so it can't silently regress back to relying on
+    /// tutorial step. A later unstaffed station 0 (e.g. after a Franchise reset) must charge
+    /// normally rather than re-offering the free hire.
+    @MainActor
+    func testFreeFirstManagerDoesNotReturnAfterAPrestigeReset() {
+        let engine = GameEngine(state: GameState.newGame(), startTimers: false, persistence: EphemeralPersistence())
+        engine.skipTutorial()
+        XCTAssertTrue(engine.hireManager(for: 0, free: true))
+
+        engine.addCoins(Balance.minimumLifetimeForPrestige)
+        engine.prestige() // wipes non-premium managers, including the one just hired
+
+        XCTAssertFalse(engine.state.venues[0].stations[0].isStaffed, "prestige clears coin-tier staff")
+        XCTAssertFalse(engine.eligibleForFreeFirstManager(station: 0),
+                       "the free hire was already used earlier this save")
+    }
+
     @MainActor
     func testNextBuysExactlyUpToTheNextMilestone() {
         var state = GameState.newGame()

@@ -331,6 +331,10 @@ struct StationCardView: View {
     /// manager for that station until the perk was finally claimed. A perk still replaces
     /// the purely-informational STAFFED label once the station has a manager - nothing
     /// actionable is lost there, and the choice stays reachable the moment it can be.
+    private var eligibleForFreeFirstHire: Bool {
+        engine.eligibleForFreeFirstManager(station: spec.id)
+    }
+
     @ViewBuilder
     private var secondaryButton: some View {
         if !state.isOwned {
@@ -352,7 +356,7 @@ struct StationCardView: View {
             .font(Theme.body(10, weight: .black))
             .foregroundStyle(Theme.positive)
             .frame(width: 92, height: 26)
-        } else if engine.state.tutorial.current == .hireManager, spec.id == 0 {
+        } else if eligibleForFreeFirstHire {
             Button(action: hire) {
                 HStack(spacing: 4) {
                     Image(systemName: "person.fill.badge.plus")
@@ -418,7 +422,7 @@ struct StationCardView: View {
         // saved up the coin cost yet either after the previous step spent coins on a level.
         // Route it through the same free-grant path debug tooling uses rather than ever
         // charging for it.
-        if engine.state.tutorial.current == .hireManager, spec.id == 0 {
+        if eligibleForFreeFirstHire {
             if engine.hireManager(for: spec.id, free: true) {
                 Haptics.success()
                 sound.play(.reward)

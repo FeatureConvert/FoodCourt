@@ -312,7 +312,7 @@ final class EconomyTests: XCTestCase {
         let spec = Balance.venue(0).stations[0]
         let cost = Balance.cost(spec: spec, level: 1, quantity: 1)
         let shown = Format.price(cost)
-        XCTAssertEqual(shown, "5")
+        XCTAssertEqual(shown, "6")
         XCTAssertGreaterThanOrEqual(Double(shown) ?? 0, cost,
                                     "the number on the button has to cover the real cost")
     }

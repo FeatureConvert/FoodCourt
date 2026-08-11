@@ -595,12 +595,27 @@ final class GameEngine: ObservableObject {
         Balance.managerCost(spec: Balance.venue(state.currentVenue).stations[index]) * costInflation
     }
 
+    /// Station 0's very first manager is always free - a new save starts with only 25 gems,
+    /// well under the instant-hire gem price, and may not have saved up the coin cost either
+    /// right after the tutorial's own buy-a-level step. This used to be gated on the tutorial
+    /// overlay's current step, which meant a player who dismissed the tutorial before reaching
+    /// this step lost the free hire entirely - and `state.freeFirstManagerClaimed` (rather than
+    /// tutorial state) is what remembers it's been used, since `TutorialState.complete(_:)`
+    /// no-ops entirely once `finished` is true, which would otherwise re-offer a free manager
+    /// after every future Franchise reset for anyone who ever skipped the tutorial.
+    func eligibleForFreeFirstManager(station index: Int) -> Bool {
+        index == 0 && !state.freeFirstManagerClaimed
+    }
+
     @discardableResult
     func hireManager(for index: Int, free: Bool = false, premium: Bool = false) -> Bool {
         let venue = state.currentVenue
         guard state.venues[venue].stations.indices.contains(index) else { return false }
         let station = state.venues[venue].stations[index]
         guard station.isOwned, !station.isStaffed else { return false }
+        if eligibleForFreeFirstManager(station: index) {
+            state.freeFirstManagerClaimed = true
+        }
         let cost = managerCost(for: index)
         if !free {
             guard state.coins >= cost else { return false }

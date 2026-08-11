@@ -287,6 +287,14 @@ struct GameState: Codable, Equatable {
     /// a season settles - this is the one thing that has to survive that reassignment.
     var bestLeagueTierReached: LeagueTier = .bronze
 
+    /// Whether the once-ever free first manager (see `GameEngine.eligibleForFreeFirstManager`)
+    /// has already been granted. Deliberately its own flag rather than reusing
+    /// `tutorial.step`: `TutorialState.complete(_:)` no-ops entirely once `finished` is true
+    /// (via a normal finish OR `skip()`), so a player who dismisses the tutorial before ever
+    /// hiring would leave `step` frozen below the hire-manager step forever - which would
+    /// keep re-granting a free manager after every future Franchise reset.
+    var freeFirstManagerClaimed: Bool = false
+
     // MARK: New game
 
     static func newGame() -> GameState {
@@ -535,6 +543,7 @@ struct GameState: Codable, Equatable {
         case venueSkins, unlockedSkins
         case legacy
         case lastGuestChefPurchaseWeek, lastGuestChefSpotlightWeek
+        case freeFirstManagerClaimed
     }
 
     init() {}
@@ -634,6 +643,13 @@ struct GameState: Codable, Equatable {
             })
         }
         bestLeagueTierReached = try c.decodeIfPresent(LeagueTier.self, forKey: .bestLeagueTierReached) ?? .bronze
+        // An absent key means a save from before this flag existed. Anyone with history
+        // (a manager already hired, or any earnings/stars) already got their free hire under
+        // the old tutorial-gated system one way or another - default them to "claimed" so an
+        // established save doesn't surface a surprise free manager after its next prestige.
+        // A genuinely brand-new save with none of that still correctly defaults to false.
+        freeFirstManagerClaimed = try c.decodeIfPresent(Bool.self, forKey: .freeFirstManagerClaimed)
+            ?? (!managers.isEmpty || lifetimeEarnings > 0 || lifetimeStars > 0)
 
         errands = try c.decodeIfPresent([ActiveErrand].self, forKey: .errands) ?? []
 

@@ -137,8 +137,16 @@ struct StageActionsView: View {
                          tint: engine.boostReady ? Theme.positive : Theme.locked,
                          badge: engine.boostReady,
                          cooldown: engine.boostReady ? nil :
+                            // `remaining` counts down across the FULL span from activation to
+                            // ready (the active 15 minutes plus the 30-minute cooldown after -
+                            // see claimFreeBoost). `total` has to match that whole span, not
+                            // just the cooldown-minutes constant, or the ring sits pinned at
+                            // 0% for the entire active window and only starts filling once the
+                            // boost ends - reading as if the cooldown were 15 minutes shorter
+                            // than it actually is.
                             Cooldown(remaining: engine.boostCooldownRemaining,
-                                    total: ActivePlay.freeBoostCooldownMinutes * 60),
+                                    total: ActivePlay.freeBoostHours * 3600
+                                        + ActivePlay.freeBoostCooldownMinutes * 60),
                          action: onBoost)
                 .tutorialHighlight(.coffeeButton)
                 .accessibilityLabel("Coffee Break boost")
@@ -150,8 +158,12 @@ struct StageActionsView: View {
                                                  : (engine.rushReady ? Theme.coin : Theme.locked),
                          badge: engine.rushReady && !engine.rushActive,
                          cooldown: (engine.rushReady || engine.rushActive) ? nil :
+                            // Same fix as Coffee Break above - rushAvailableAt is set from
+                            // rushEndsAt, so `remaining` spans the run's own duration plus the
+                            // 30-minute cooldown, not the cooldown alone.
                             Cooldown(remaining: engine.rushCooldownRemaining,
-                                    total: ActivePlay.rushCooldownMinutes * 60),
+                                    total: engine.state.rushDuration
+                                        + ActivePlay.rushCooldownMinutes * 60),
                          action: onRush)
                 .accessibilityLabel("Rush Hour")
                 .accessibilityValue(engine.rushActive ? "Running"

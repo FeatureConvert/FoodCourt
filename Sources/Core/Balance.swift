@@ -38,15 +38,18 @@ struct VenueSpec: Identifiable {
     /// What it costs to open this venue's doors, in coins.
     ///
     /// Retuned repeatedly against simulations of the real engine (see EarlyGamePacingTests,
-    /// which pins this): 4_000 put the Sushi Bar under 10 minutes away; 8_000 predated the
-    /// golden-customer fixes; 16_000 dipped under 20 minutes during Happy Hour. 24_000 was
-    /// tuned to ~23 minutes worst case there too - except the sim never redeemed the free
-    /// Coffee Break boost, and a live report showed the real worst case was 8 minutes
-    /// with it. The actual fix was `ActivePlay.comboPerStep` (x5 -> x2, see Combo.swift);
-    /// with that in place, 24_000 measures ~27.5 minutes worst case (combo maxed, Happy
-    /// Hour, Coffee Break redeemed on cooldown) without needing to move this number again.
+    /// which pins this): 4_000 -> 8_000 -> 16_000 -> 24_000, each round fixing a specific
+    /// undercounted income source (golden customers, the combo cap, Coffee Break). 24_000
+    /// still measured "safe" at ~27.5 minutes - except `simulateFreshInstall` only ever
+    /// tapped 2 of the 6 stations while still spending coins leveling all 6, so those other
+    /// four produced nothing in the sim despite a real player obviously tapping everything
+    /// they own. Live reports of the Sushi Bar opening in 6-7 minutes on genuinely fresh
+    /// saves (with the debug menu confirmed untouched) matched almost exactly once the sim
+    /// was fixed to tap all six - 24_000 was never actually safe, the test just couldn't see
+    /// it. 280_000 re-measures 20-30 minutes worst case (RNG varies run to run: golden
+    /// customers and the VIP critic jackpot aren't seeded) against the corrected sim.
     var unlockCost: Double {
-        id == 0 ? 0 : stations[0].baseCost * 24_000
+        id == 0 ? 0 : stations[0].baseCost * 280_000
     }
 
     /// Deeper venues pay far more and cost far more - this is what makes moving on feel
@@ -110,13 +113,22 @@ enum Balance {
     // governs overall pace. Re-simulated against the real engine: roughly 40-45% slower
     // across the board (Sushi Bar opening moved from ~22 to ~32 minutes of continuous
     // engaged play in the long-horizon sim).
+    //
+    // Raised again (+0.06/station) alongside VenueSpec.unlockCost's own retune: the level-40
+    // speed milestone, meant to land ~5 minutes in, was actually being crossed under 2
+    // minutes once EarlyGamePacingTests' sim was fixed to tap all 6 stations instead of 2
+    // (see unlockCost's doc comment). This alone barely moved the needle on its own though -
+    // a hyperactively-tapped board's income is dominated by SIX stations compounding
+    // together, not any one station's own growth rate, so steepening it further has
+    // diminishing returns as a standalone lever. It stays paired with the unlockCost raise
+    // rather than replacing it.
     private static let stationCurve: [(cost: Double, revenue: Double, cycle: TimeInterval, growth: Double)] = [
-        (4,             1,        0.6,  1.23),
-        (60,            60,       3,    1.24),
-        (720,           540,      6,    1.25),
-        (8_640,         4_320,    12,   1.26),
-        (103_680,       51_840,   24,   1.27),
-        (1_244_160,     622_080,  48,   1.28),
+        (4,             1,        0.6,  1.29),
+        (60,            60,       3,    1.30),
+        (720,           540,      6,    1.31),
+        (8_640,         4_320,    12,   1.32),
+        (103_680,       51_840,   24,   1.33),
+        (1_244_160,     622_080,  48,   1.34),
     ]
 
     /// Levels raised alongside the steeper cost growth above - the old thresholds (10/25/50)
