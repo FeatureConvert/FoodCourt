@@ -181,13 +181,15 @@ struct RootView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
+                // Full width like the HUD above it, not squeezed into the narrow stage
+                // column - at the stage column's ~36% width the bar read as oddly cramped
+                // next to the much wider station grid it sits beside.
+                ComboMeterView()
+
                 HStack(alignment: .top, spacing: 14) {
-                    VStack(spacing: 8) {
-                        stageOverlay(fixedHeight: nil)
-                            .frame(maxHeight: .infinity)
-                        ComboMeterView()
-                    }
-                    .frame(width: stageColumnWidth)
+                    stageOverlay(fixedHeight: nil)
+                        .frame(maxHeight: .infinity)
+                        .frame(width: stageColumnWidth)
 
                     StationListView(onToast: showToast,
                                     onChoosePerk: { present(.perk($0)) },
