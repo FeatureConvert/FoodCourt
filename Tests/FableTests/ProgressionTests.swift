@@ -216,6 +216,30 @@ final class ProgressionTests: XCTestCase {
         XCTAssertEqual(engine.state.venues[0].stations[0].level, 1)
     }
 
+    /// Live report: a locked station's shown "UNLOCK" price grew as coins grew, described
+    /// as "showing a % of money rather than a fixed cost". Root cause: the price always
+    /// went through quantity(for:), which in MAX mode computes "as many levels as you can
+    /// currently afford from level 0" - a moving target that tracks the wallet, not a real
+    /// unlock cost. Unlocking must be a single fixed action regardless of buy-quantity mode.
+    @MainActor
+    func testUnlockingALockedStationIgnoresBuyQuantityMode() {
+        var state = GameState.newGame()
+        state.coins = 1e15 // enough that MAX would otherwise buy hundreds of levels at once
+        let engine = GameEngine(state: state, startTimers: false, persistence: EphemeralPersistence())
+
+        for mode in BuyQuantity.allCases {
+            engine.buyQuantity = mode
+            XCTAssertEqual(engine.quantity(for: 1), 1,
+                           "a locked station (level 0) must always show/cost exactly 1 level under \(mode)")
+        }
+
+        engine.buyQuantity = .max
+        let priceBeforeMoreCoins = engine.price(for: 1)
+        engine.addCoins(1e18)
+        XCTAssertEqual(engine.price(for: 1), priceBeforeMoreCoins, accuracy: 1e-6,
+                       "the unlock price must not move just because the wallet did")
+    }
+
     @MainActor
     func testNextBuysExactlyUpToTheNextMilestone() {
         var state = GameState.newGame()

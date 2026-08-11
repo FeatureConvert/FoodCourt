@@ -517,6 +517,14 @@ final class GameEngine: ObservableObject {
         let venueID = venue ?? state.currentVenue
         let spec = Balance.venue(venueID).stations[index]
         let level = state.venues[venueID].stations[index].level
+        // Unlocking is always a single, fixed action, whatever buy-quantity mode happens to
+        // be selected - a live report caught the actual bug this masked: with MAX picked, a
+        // locked station's shown price was "as many levels as you can currently afford from
+        // zero", which visibly grew every time coins did (read as "a % of money" rather than
+        // a real price). x10/x100/NEXT had the same category of problem, just less visibly,
+        // since a fixed 10x/100x/next-milestone jump makes just as little sense for a button
+        // that only ever says "UNLOCK".
+        guard level > 0 else { return 1 }
         if let fixed = buyQuantity.fixedAmount { return fixed }
         if buyQuantity == .next {
             // Exactly enough to land ON the next milestone level, not past it - the whole
