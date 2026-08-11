@@ -5,10 +5,20 @@ import XCTest
 /// `lastSeen` moved along so the jump doesn't manufacture offline earnings. Payout math is
 /// time-of-day dependent - Happy Hour (6-8pm local) multiplies every payout by x1.5, which
 /// silently broke exact-value assertions whenever the suite ran in the evening.
+///
+/// Anchored to a FIXED calendar date rather than "the next occurrence after now": the
+/// weekly-quest key, festival season, and guest-chef rotation are all derived from the
+/// date, so anchoring to today let those drift the pacing sims run to run (worth ~13% on
+/// venue-1 timing) even with the engine RNG seeded. A fixed anchor makes the sims actually
+/// reproducible - the whole point of seeding them.
 func pinClock(_ state: inout GameState, hour: Int, minute: Int = 30) {
-    let target = Calendar.current.nextDate(after: Date(),
-                                           matching: DateComponents(hour: hour, minute: minute),
-                                           matchingPolicy: .nextTime)!
+    var components = DateComponents()
+    components.year = 2026
+    components.month = 6
+    components.day = 15
+    components.hour = hour
+    components.minute = minute
+    let target = Calendar.current.date(from: components)!
     state.timeOffset = target.timeIntervalSince(Date())
     state.lastSeen = target
     // The pin can land up to a day ahead of the wall clock; drag the board-age anchor

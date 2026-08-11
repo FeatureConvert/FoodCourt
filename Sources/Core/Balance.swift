@@ -46,11 +46,39 @@ struct VenueSpec: Identifiable {
     /// they own. Live reports of the Sushi Bar opening in 6-7 minutes on genuinely fresh
     /// saves (with the debug menu confirmed untouched) matched almost exactly once the sim
     /// was fixed to tap all six - 24_000 was never actually safe, the test just couldn't see
-    /// it. 280_000 re-measures 20-30 minutes worst case (RNG varies run to run: golden
-    /// customers and the VIP critic jackpot aren't seeded) against the corrected sim.
+    /// it. The base then came down from 280_000 to 110_000 when `venueEscalation` below
+    /// took over the job of pricing the DEEPER venues - the two are tuned as a pair, so
+    /// neither number means much on its own.
+    ///
+    /// Worst case (hyperactive, Happy Hour, everything redeemed on cooldown) measures
+    /// ~30 minutes to the Sushi Bar; the steadier long-horizon sim, which also spends coins
+    /// hiring managers, puts it nearer 37.
     var unlockCost: Double {
-        id == 0 ? 0 : stations[0].baseCost * 280_000
+        id == 0 ? 0 : stations[0].baseCost * 110_000 * pow(Self.venueEscalation, Double(id - 1))
     }
+
+    /// Extra cost escalation per venue, ON TOP of the 25x/venue scale `baseCost` already
+    /// carries.
+    ///
+    /// At 1.0 every venue takes about the same real time to reach - the 25x cost and 25x
+    /// revenue scales cancel out - which is exactly what the first full seven-venue
+    /// measurement showed: gaps of 28/29/23/21/23/22 minutes, roughly flat with the back
+    /// half slightly FASTER than the front. Above 1.0 each venue costs progressively more
+    /// relative to what the board earns, so the arc slopes upward: later venues become
+    /// bigger commitments rather than quicker ones, which is the shape that pushes a
+    /// plateauing player toward prestige instead of pressing deeper forever.
+    ///
+    /// Measured candidates (long-horizon sim, first four venue gaps):
+    ///   1.0  ->  28 / 29 / 23 / 21   (flat, then faster - the reported problem)
+    ///   1.5  ->  50 / 50 / 54        (slope appears, but the whole arc runs long)
+    ///   2.2  ->  37 / 39 / 31 / 72   (clear upward trend, ~5h+ to the last venue)
+    ///
+    /// 1.8 splits those: a real upward slope with the full arc still inside a long session.
+    /// Adjacent values can't honestly be told apart from single runs - quest, festival and
+    /// milestone timing swing individual gaps by more than the difference between them
+    /// (note the 31-then-72 pair above), so this is a defensible setting rather than a
+    /// precisely optimal one. Real play is the arbiter.
+    static let venueEscalation: Double = 1.8
 
     /// Deeper venues pay far more and cost far more - this is what makes moving on feel
     /// like a jump rather than a grind extension. The two used mismatched bases (30 vs
