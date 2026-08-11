@@ -4,8 +4,16 @@ struct StationListView: View {
     @EnvironmentObject private var engine: GameEngine
     let onToast: (String) -> Void
     let onChoosePerk: (Int) -> Void
+    /// iPad landscape passes 2: six stations at full portrait height needed to scroll in
+    /// the landscape column's much shorter height (see RootView.landscapeContent), so two
+    /// cards per row roughly halves the height the list needs instead of just re-flowing
+    /// the same single column into a narrower, taller space.
+    var columns: Int = 1
 
     private var venue: VenueSpec { Balance.venue(engine.state.currentVenue) }
+    private var grid: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 10), count: columns)
+    }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -29,14 +37,16 @@ struct StationListView: View {
             .padding(.horizontal, 16)
 
             ScrollView {
-                LazyVStack(spacing: 10) {
+                LazyVGrid(columns: grid, spacing: 10) {
                     ForEach(venue.stations) { spec in
                         StationCardView(spec: spec, onToast: onToast, onChoosePerk: onChoosePerk)
                     }
                     if let next = engine.nextLockedVenue {
                         NextVenueTeaser(venue: next, onToast: onToast)
+                            .gridCellColumns(columns)
                     }
                     Color.clear.frame(height: 6)
+                        .gridCellColumns(columns)
                 }
                 .padding(.horizontal, 14)
             }

@@ -159,7 +159,10 @@ struct RootView: View {
     /// extra width, rather than just stretching the portrait stack sideways.
     private func landscapeContent(width: Double) -> some View {
         let sidebarWidth: Double = 92
-        let stageColumnWidth = (width - sidebarWidth) * 0.44
+        // 0.44 left every station card too narrow for 2 real columns after the fixed
+        // sidebar and padding were subtracted - 0.36 leaves the stage a real column while
+        // giving the station grid (see below) the width two comfortable cards need.
+        let stageColumnWidth = (width - sidebarWidth) * 0.36
 
         return HStack(spacing: 0) {
             navBar(axis: .vertical)
@@ -186,7 +189,8 @@ struct RootView: View {
                     .frame(width: stageColumnWidth)
 
                     StationListView(onToast: showToast,
-                                    onChoosePerk: { present(.perk($0)) })
+                                    onChoosePerk: { present(.perk($0)) },
+                                    columns: 2)
                 }
             }
             .padding(.trailing, 14)
