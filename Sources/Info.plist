@@ -9,5 +9,17 @@
 		<key>UIImageName</key>
 		<string>LaunchLogo</string>
 	</dict>
+	<!-- INFOPLIST_KEY_UISupportedInterfaceOrientations~ipad in project.yml never made it
+	     into the built Info.plist - GENERATE_INFOPLIST_FILE's INFOPLIST_KEY_* synthesis
+	     doesn't honor the ~ipad device-idiom suffix the way CFBundleIcons~ipad (written by
+	     the asset-catalog compiler, a different path) does. Writing the key directly here,
+	     in the hand-authored plist that GENERATE_INFOPLIST_FILE merges into, is the
+	     well-established mechanism and is what iOS actually reads at runtime. -->
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
 </dict>
 </plist>

@@ -31,11 +31,18 @@ targets:
         INFOPLIST_FILE: Sources/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: Food Court Tycoon
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleLightContent
+        # iPhone's default and floor: portrait-only, unaffected by the iPad landscape work
+        # below. iPad's actual orientation list lives in Sources/Info.plist as a literal
+        # UISupportedInterfaceOrientations~ipad key - GENERATE_INFOPLIST_FILE's
+        # INFOPLIST_KEY_* synthesis does not honor the ~ipad device-idiom suffix (verified:
+        # an INFOPLIST_KEY_UISupportedInterfaceOrientations~ipad build setting here silently
+        # never made it into the built app's Info.plist), so the key has to be hand-written
+        # into the source plist that GENERATE_INFOPLIST_FILE merges into instead.
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
-        # iPad is in TARGETED_DEVICE_FAMILY below; Apple requires an app that restricts
-        # orientation to also opt out of Slide Over/Split View, or support every orientation.
-        # This is a portrait-locked phone-style game, so it opts out rather than adding
-        # landscape layouts it was never designed for.
+        # Apple requires an app that restricts orientation to also opt out of Slide
+        # Over/Split View, or support every orientation (including upside-down, which nothing
+        # here does). Opting out avoids the much larger job of an arbitrary-width adaptive
+        # layout for multitasking - this only ever renders at two known aspect ratios.
         INFOPLIST_KEY_UIRequiresFullScreen: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         TARGETED_DEVICE_FAMILY: "1,2"
