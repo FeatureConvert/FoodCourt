@@ -4,16 +4,20 @@ import Foundation
 /// the phone once managers have taken over the tapping.
 enum ActivePlay {
 
-    // Combo. 10 steps x 0.4/step caps at a clean x5 rather than a stacking-friendly x10 -
-    // this multiplies with Coffee Break and Rush Hour on every station's automated income,
-    // not just a tapped one, so a lower cap matters more than it looks like it should.
+    // Combo. This multiplies with Coffee Break, Rush Hour, and Happy Hour on every
+    // station's automated income, not just a tapped one - a live report showed a
+    // hyperactive fresh install banking the Sushi Bar in 8 real minutes, and stacking
+    // this at its old x5 (10 steps x 0.4/step) with the free Coffee Break boost and Happy
+    // Hour hit up to ~15x automated income, dwarfing the pacing sim's assumptions. 10
+    // steps x 0.1/step caps at a clean x2 instead - still a genuine reward for active
+    // tapping, without letting the combo alone dominate the early economy.
     // The window itself was 1.5s, which reset the whole combo back to zero for anything
     // short of rapid-fire tapping - punishing enough that a normal tap cadence kept dying.
     // 2.5s keeps it an active-play mechanic (still requires genuine engagement, not idle
     // taps minutes apart) without demanding a metronome.
     static let comboWindow: TimeInterval = 2.5
     static let comboBaseSteps = 10
-    static let comboPerStep = 0.4
+    static let comboPerStep = 0.1
 
     // Rush Hour
     static let rushBaseSeconds: TimeInterval = 60

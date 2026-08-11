@@ -36,9 +36,13 @@ final class EarlyGamePacingTests: XCTestCase {
 
     /// Plays a fresh install the way a determined player would: the free tutorial manager
     /// on station 0, ~6 taps a second keeping the combo maxed, MAX-buying every station
-    /// whenever affordable, catching every golden customer instantly, and claiming every
-    /// quest the moment it completes. The queue is emulated at the UI's real 0.35s
-    /// rotation throttle.
+    /// whenever affordable, catching every golden customer instantly, claiming every quest
+    /// the moment it completes, AND redeeming the free Coffee Break boost (x2, no gem cost)
+    /// the instant it's off cooldown - a live report showed the Sushi Bar unlocking in 8
+    /// real minutes despite this suite's floor, and the gap was exactly this: the free
+    /// boost stacks with combo and Happy Hour, and an earlier version of this sim never
+    /// touched it, so its "worst case" wasn't. The queue is emulated at the UI's real
+    /// 0.35s rotation throttle.
     @MainActor
     private func simulateFreshInstall(minutes: Double) -> SimResult {
         // Pinned INTO Happy Hour (6-8pm, x1.5 on every payout): plenty of first sessions
@@ -69,6 +73,9 @@ final class EarlyGamePacingTests: XCTestCase {
             let beforeAdvance = engine.state.coins
             engine.advance(by: dt)
             result.passiveIncome += engine.state.coins - beforeAdvance
+
+            // Free, no gem cost, no reason a determined player skips it.
+            if engine.boostReady { _ = engine.claimFreeBoost() }
 
             // Hyperactive tapping: two taps per 0.35s step ~= 6 taps/s, combo pinned at max.
             _ = engine.tap(station: 0)

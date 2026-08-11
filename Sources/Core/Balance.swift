@@ -39,11 +39,12 @@ struct VenueSpec: Identifiable {
     ///
     /// Retuned repeatedly against simulations of the real engine (see EarlyGamePacingTests,
     /// which pins this): 4_000 put the Sushi Bar under 10 minutes away; 8_000 predated the
-    /// golden-customer fixes and measured ~12.5 minutes for a hyperactive player
-    /// (frame-perfect combo, optimal build-then-hoard); 16_000 hit ~24 minutes at noon but
-    /// dipped under the 20-minute floor during Happy Hour's x1.5 evening window - exactly
-    /// when first sessions actually happen. 24_000 holds the floor even there (~23 minutes
-    /// worst case in-window, ~34 outside it).
+    /// golden-customer fixes; 16_000 dipped under 20 minutes during Happy Hour. 24_000 was
+    /// tuned to ~23 minutes worst case there too - except the sim never redeemed the free
+    /// Coffee Break boost, and a live report showed the real worst case was 8 minutes
+    /// with it. The actual fix was `ActivePlay.comboPerStep` (x5 -> x2, see Combo.swift);
+    /// with that in place, 24_000 measures ~27.5 minutes worst case (combo maxed, Happy
+    /// Hour, Coffee Break redeemed on cooldown) without needing to move this number again.
     var unlockCost: Double {
         id == 0 ? 0 : stations[0].baseCost * 24_000
     }

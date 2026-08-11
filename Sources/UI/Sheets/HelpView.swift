@@ -75,7 +75,7 @@ struct HelpView: View {
         GuideSection(
             symbol: "flame.fill", title: "Combo and Rush Hour",
             text: """
-            Taps within a couple of seconds of each other build a combo, up to ×5 (deeper \
+            Taps within a couple of seconds of each other build a combo, up to ×2 (deeper \
             with research and Legacy perks), and it multiplies everything you earn while \
             it lasts — even from staffed stations, so it is always worth tapping. Rush \
             Hour is a 60-second ×5 on a 30-minute cooldown, and coming back promptly \
