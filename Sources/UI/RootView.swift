@@ -187,9 +187,20 @@ struct RootView: View {
                 ComboMeterView()
 
                 HStack(alignment: .top, spacing: 14) {
-                    stageOverlay(fixedHeight: nil)
-                        .frame(maxHeight: .infinity)
-                        .frame(width: stageColumnWidth)
+                    VStack(spacing: 0) {
+                        // VenueProps' own doc comment: its art assumes "the stage strip is
+                        // short and wide". Stretching the stage to fill this tall narrow
+                        // column (maxHeight: .infinity, ~36% width) inverted that entirely -
+                        // every prop stretched vertically, worst on the burger theme's menu
+                        // board, which turned into an oversized dark blob. Capping the
+                        // aspect ratio keeps every venue's art in the proportions it was
+                        // actually drawn for; the leftover column height is just breathing
+                        // room, not a deficiency to fill.
+                        stageOverlay(fixedHeight: nil)
+                            .aspectRatio(2.4, contentMode: .fit)
+                        Spacer(minLength: 0)
+                    }
+                    .frame(width: stageColumnWidth)
 
                     StationListView(onToast: showToast,
                                     onChoosePerk: { present(.perk($0)) },
