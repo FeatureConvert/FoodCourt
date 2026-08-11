@@ -582,6 +582,58 @@ final class FeatureTests: XCTestCase {
                              "a rival's pace must scale with the player's current rate, not a rate frozen at week start")
     }
 
+    /// Live report: 1.14M league score against a 32K second place after three minutes.
+    /// Root cause - rivals raced `automatedRate`, which deliberately excludes combo/
+    /// boosts/Happy Hour, while the player's real score carries all of them. Rivals now
+    /// race the player's own realized score delta, so a burst of active play (bursty,
+    /// well above automatedRate) pulls rivals up close behind rather than leaving them at
+    /// a tiny fraction of it.
+    func testRivalsRaceTheRealizedScoreNotJustAutomatedRate() {
+        var state = League.newWeek(tier: .bronze, now: Date(), seasonsPlayed: 0)
+        let start = state.lastSettledAt
+        // Automated income is nearly nothing (a fresh board), but the player is banking
+        // real score fast via taps/goldens/quests - automatedRate alone can't see this.
+        state.score = 1_140_000
+        League.advanceRivals(&state, to: start.addingTimeInterval(180), playerRate: 1)
+
+        let bestRivalScore = state.rivals.map(\.score).max() ?? 0
+        // Old behavior pinned every rival under ~1.85x automatedRate*strength*elapsed,
+        // a few hundred coins here - nowhere close to competitive with a six-figure score.
+        XCTAssertGreaterThan(bestRivalScore, state.score * 0.1,
+                             "at least one rival should be within striking distance of a bursty player, not a rounding error")
+    }
+
+    /// The other half: an idle/offline player must still see rivals crawl forward at
+    /// automatedRate, exactly as before - recentEarnRate decays toward 0 with no score
+    /// deltas to feed it, so `playerRate` remains the floor.
+    func testRivalsStillPaceOffAutomatedRateWhenThePlayerIsIdle() {
+        var state = League.newWeek(tier: .bronze, now: Date(), seasonsPlayed: 0)
+        let start = state.lastSettledAt
+        // No `state.score` change between calls - the idle case.
+        League.advanceRivals(&state, to: start.addingTimeInterval(1800), playerRate: 50)
+        League.advanceRivals(&state, to: start.addingTimeInterval(3600), playerRate: 50)
+        XCTAssertGreaterThan(state.rivals[0].score, 0)
+        XCTAssertEqual(state.recentEarnRate, 0, accuracy: 1e-6,
+                       "no score movement should decay the realized rate to zero, not linger")
+    }
+
+    /// Every save on disk predates recentEarnRate/scoreAtLastSync - decoding an older
+    /// blob must not fail or silently reset the week.
+    func testLeagueStateDecodesWithoutTheNewSyncFields() throws {
+        let json = """
+        {"tier": 1, "score": 4000, "rivals": [], "startedAt": "2026-01-01T00:00:00Z",
+         "endsAt": "2026-01-08T00:00:00Z", "lastSettledAt": "2026-01-01T00:00:00Z",
+         "seasonsPlayed": 3}
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let state = try decoder.decode(LeagueState.self, from: json.data(using: .utf8)!)
+        XCTAssertEqual(state.score, 4000)
+        XCTAssertEqual(state.recentEarnRate, 0)
+        XCTAssertEqual(state.scoreAtLastSync, state.score,
+                       "first sync after loading an old save should diff against the current score, not 0")
+    }
+
     func testStandingsRankByScoreAndIncludeThePlayer() {
         var state = League.newWeek(tier: .bronze, now: Date(), seasonsPlayed: 0)
         state.rivals.indices.forEach { state.rivals[$0].score = 0 }

@@ -113,6 +113,44 @@ struct LeagueState: Codable, Equatable {
     var endsAt: Date = Date().addingTimeInterval(League.weekLength)
     var lastSettledAt: Date = Date()
     var seasonsPlayed: Int = 0
+    /// Smoothed coins/sec the player is ACTUALLY banking - see `League.advanceRivals`.
+    var recentEarnRate: Double = 0
+    /// `score` as of the last `advanceRivals` call, so the next call can diff it.
+    var scoreAtLastSync: Double = 0
+
+    private enum CodingKeys: String, CodingKey {
+        case tier, score, rivals, startedAt, endsAt, lastSettledAt, seasonsPlayed,
+             recentEarnRate, scoreAtLastSync
+    }
+
+    init(tier: LeagueTier, score: Double, rivals: [LeagueRival], startedAt: Date,
+         endsAt: Date, lastSettledAt: Date, seasonsPlayed: Int) {
+        self.tier = tier
+        self.score = score
+        self.rivals = rivals
+        self.startedAt = startedAt
+        self.endsAt = endsAt
+        self.lastSettledAt = lastSettledAt
+        self.seasonsPlayed = seasonsPlayed
+    }
+
+    init() {}
+
+    // Every save on disk today predates recentEarnRate/scoreAtLastSync - decodeIfPresent
+    // so this isn't a decode failure the moment the fix ships (see the migration matrix's
+    // whole reason for existing: a wiped veteran save on update day is unforgivable).
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        tier = try c.decode(LeagueTier.self, forKey: .tier)
+        score = try c.decode(Double.self, forKey: .score)
+        rivals = try c.decode([LeagueRival].self, forKey: .rivals)
+        startedAt = try c.decode(Date.self, forKey: .startedAt)
+        endsAt = try c.decode(Date.self, forKey: .endsAt)
+        lastSettledAt = try c.decode(Date.self, forKey: .lastSettledAt)
+        seasonsPlayed = try c.decode(Int.self, forKey: .seasonsPlayed)
+        recentEarnRate = try c.decodeIfPresent(Double.self, forKey: .recentEarnRate) ?? 0
+        scoreAtLastSync = try c.decodeIfPresent(Double.self, forKey: .scoreAtLastSync) ?? score
+    }
 }
 
 enum League {
@@ -171,15 +209,28 @@ enum League {
     /// Advances rival scores for real elapsed time. Called on tick and on foreground, so
     /// rivals keep earning while the app is closed - as they should.
     ///
-    /// `playerRate` is the player's *current* income, not a value pinned when the week
-    /// started - an idle economy can grow the player's rate by orders of magnitude over a
-    /// single week, and a rival still earning at week-1 pace on week-7 isn't a rival anymore.
+    /// `playerRate` (`automatedRate`) is a floor, not the pace itself - it deliberately
+    /// excludes combo, Coffee Break/Rush Hour, and Happy Hour (see its doc comment: those
+    /// are real-time and not paid offline). A live report showed a hyperactive player at
+    /// 1.14M league score against a 32K second place after three minutes: rivals were
+    /// racing the player's steady-state rate while the player's actual score also carried
+    /// every one of those multipliers, a gap the combo-cap fix (x5 -> x2) only narrows.
+    /// So rivals now race `state.score` itself - exactly what they're being compared
+    /// against - smoothed over ~20s so one golden-customer spike doesn't cause a rival
+    /// sprint, with `playerRate` as the floor so rivals still crawl forward while the
+    /// player is offline (`recentEarnRate` decays toward 0 with no ticks to feed it).
     static func advanceRivals(_ state: inout LeagueState, to now: Date, playerRate: Double) {
         let elapsed = now.timeIntervalSince(state.lastSettledAt)
         guard elapsed > 0 else { return }
+
+        let instantRate = (state.score - state.scoreAtLastSync) / elapsed
+        let smoothing = min(1, elapsed / 20)
+        state.recentEarnRate += (instantRate - state.recentEarnRate) * smoothing
+        state.scoreAtLastSync = state.score
+
         state.lastSettledAt = now
         let capped = min(elapsed, weekLength)
-        let baseline = max(playerRate, 1)
+        let baseline = max(state.recentEarnRate, playerRate, 1)
         for index in state.rivals.indices {
             let rate = baseline * state.rivals[index].jitter * state.tier.rivalStrength
             state.rivals[index].score += rate * capped
