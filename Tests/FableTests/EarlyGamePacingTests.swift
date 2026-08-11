@@ -63,6 +63,10 @@ final class EarlyGamePacingTests: XCTestCase {
         let engine = GameEngine(state: state,
                                 startTimers: false,
                                 persistence: EphemeralPersistence())
+        // Pinned RNG: goldens and the VIP critic jackpot otherwise swung the SAME tuning
+        // between ~18 and ~28 minutes run to run, which made the 20-minute floor below a
+        // coin flip instead of a regression net. See GameRandom.swift.
+        engine.rng = SplitMix64(seed: 20_260_810)
         engine.buyQuantity = .max
         var result = SimResult()
         let dt: TimeInterval = 0.35
@@ -235,6 +239,7 @@ final class EarlyGamePacingTests: XCTestCase {
         var state = GameState.newGame()
         pinClock(&state, hour: 12) // outside Happy Hour - the steady-state case, not the spike
         let engine = GameEngine(state: state, startTimers: false, persistence: EphemeralPersistence())
+        engine.rng = SplitMix64(seed: 20_260_810) // same pinned seed as simulateFreshInstall
         engine.buyQuantity = .max
         engine.skipTutorial()
 
@@ -259,8 +264,13 @@ final class EarlyGamePacingTests: XCTestCase {
             if engine.boostReady { _ = engine.claimFreeBoost() }
             if engine.rushReady { _ = engine.startRush() }
 
-            _ = engine.tap(station: 0)
-            _ = engine.tap(station: 1)
+            // Tap every station of the current venue, same fix as simulateFreshInstall -
+            // this sim had the identical flaw (tapping 2 of 6 while buying levels on all
+            // 6), so every venue-transition number it produced was measured against a
+            // player earning far less than a real one does.
+            for station in Balance.venue(engine.state.currentVenue).stations {
+                _ = engine.tap(station: station.id)
+            }
 
             if engine.servedCustomers > lastServed {
                 lastServed = engine.servedCustomers

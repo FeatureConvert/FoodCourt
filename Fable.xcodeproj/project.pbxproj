@@ -22,6 +22,7 @@
 		1E72DAC185AFED13C6E14B82 /* EventsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37515A3266C48B43461F8FFF /* EventsView.swift */; };
 		228B89D93E112BDF014988A5 /* Balance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C207BD78124374F04BB52A /* Balance.swift */; };
 		273B751043EDD9E4788F384D /* SheetScaffold.swift in Sources */ = {isa = PBXBuildFile; fileRef = E16825A1724A72F0030D40D1 /* SheetScaffold.swift */; };
+		2953223E0E9AA55EDDA331E7 /* GameRandom.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4DB0CF77A65C39F0CC2BDBE /* GameRandom.swift */; };
 		2EB53E40C1F48100422B9C33 /* CoinBurst.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EB9330C29FF462CFB68BA4C /* CoinBurst.swift */; };
 		2FEFB4DEC9538D8CB0331FD2 /* Boosts.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8A230F7E6FC4B1137C45619 /* Boosts.swift */; };
 		30CFDD3FD5F954C521D0E0A2 /* OfflineEarnings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7222D4A6ECABE2F13FE32FAE /* OfflineEarnings.swift */; };
@@ -170,6 +171,7 @@
 		BF0115CD9E38675947B4A523 /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
 		C10AE32D35CB2E6365F4E23C /* VenueProps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueProps.swift; sourceTree = "<group>"; };
 		C1D05DA06D8F0FB494659C71 /* Fable.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Fable.entitlements; sourceTree = "<group>"; };
+		C4DB0CF77A65C39F0CC2BDBE /* GameRandom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameRandom.swift; sourceTree = "<group>"; };
 		C98DAA3BB768AFFC8E2F1073 /* SoundService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundService.swift; sourceTree = "<group>"; };
 		CE66E710F8BF24D2B3AE223B /* EarlyGamePacingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarlyGamePacingTests.swift; sourceTree = "<group>"; };
 		D4F2EB0B4C5701B9F89C4497 /* FeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureTests.swift; sourceTree = "<group>"; };
@@ -219,6 +221,7 @@
 				1B320AD114EF8759BA8EA4A0 /* Formatting.swift */,
 				1837A7A9214C46DF66AA3576 /* GameCenterService.swift */,
 				97F978F2657BFE1A5089482A /* GameEngine.swift */,
+				C4DB0CF77A65C39F0CC2BDBE /* GameRandom.swift */,
 				BF0115CD9E38675947B4A523 /* GameState.swift */,
 				0BD60DE9A6D7A4FCFB75AB9C /* GoalDirector.swift */,
 				91FAA9E9B4F61C58F14C0EF5 /* GuestChef.swift */,
@@ -510,6 +513,7 @@
 				9B94CEEE3AEB652BE73FB476 /* GameCenterService.swift in Sources */,
 				03E7079F368EFFC722DF4657 /* GameCenterView.swift in Sources */,
 				D4E84DE511EB946EE745296D /* GameEngine.swift in Sources */,
+				2953223E0E9AA55EDDA331E7 /* GameRandom.swift in Sources */,
 				91A5B84C81E8EB9D5B065519 /* GameState.swift in Sources */,
 				9DFC77637C324CDD1AC8A9AD /* GemSpend.swift in Sources */,
 				5B2E38F58E1760EB6269AD63 /* GoalDirector.swift in Sources */,

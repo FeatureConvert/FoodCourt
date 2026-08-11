@@ -107,6 +107,10 @@ final class GameEngine: ObservableObject {
     private static let burstMinimumInterval: CFTimeInterval = 0.25
 
     private let persistence: GamePersisting
+    /// Every chance-driven system draws from here. Production uses the system generator;
+    /// tests pin it to a `SplitMix64` seed so the pacing sims measure tuning rather than
+    /// luck - see GameRandom.swift.
+    var rng: RandomNumberGenerator = SystemRandomNumberGenerator()
     private var tickTimer: Timer?
     private var autosaveTimer: Timer?
     private var lastTickTime: CFTimeInterval = CACurrentMediaTimeCompat()
@@ -368,7 +372,7 @@ final class GameEngine: ObservableObject {
         // Bulk completions use the expected value; a single serve rolls for real so the
         // player actually sees the occasional double.
         if servings > 1 { return 1 + mods.doubleServeChance }
-        return Double.random(in: 0..<1) < mods.doubleServeChance ? 2 : 1
+        return Double.random(in: 0..<1, using: &rng) < mods.doubleServeChance ? 2 : 1
     }
 
     /// Lifetime-earnings totals worth a one-time celebration. Every crossing is permanent
@@ -642,7 +646,7 @@ final class GameEngine: ObservableObject {
     /// rare, one-off grants (festival, league, IAP), never the coin-grind staffing loop.
     @discardableResult
     func grantManager(rarity: ManagerRarity) -> ManagerSpec {
-        let spec = ManagerCatalog.random(rarity: rarity, seed: Int.random(in: 0..<10_000))
+        let spec = ManagerCatalog.random(rarity: rarity, seed: Int.random(in: 0..<10_000, using: &rng))
         state.recruit(specID: spec.id, premium: true)
         return spec
     }
@@ -716,7 +720,7 @@ final class GameEngine: ObservableObject {
 
     private func rollRecipe(venue: Int, station: Int, levels: Int) {
         let drop = Recipes.roll(cards: &state.recipeCards, venue: venue, station: station,
-                                levelsBought: levels, random: Double.random(in: 0..<1))
+                                levelsBought: levels, random: Double.random(in: 0..<1, using: &rng))
         switch drop {
         case .none:
             return
@@ -808,11 +812,11 @@ final class GameEngine: ObservableObject {
         let chance = state.goldenChance * (state.isHappyHour() ? 2 : 1)
             * Festival.modifier(seasonID: state.festival.seasonID).goldenChanceMultiplier
             * gauntletGoldenBonus
-        guard Double.random(in: 0..<1) < chance else { return }
+        guard Double.random(in: 0..<1, using: &rng) < chance else { return }
         lastGoldenSpawnAt = state.now
-        golden = GoldenCustomer(seed: Int.random(in: 0..<10_000),
+        golden = GoldenCustomer(seed: Int.random(in: 0..<10_000, using: &rng),
                                 expiresAt: state.now.addingTimeInterval(ActivePlay.goldenWindow),
-                                isCritic: Double.random(in: 0..<1) < ActivePlay.criticChance)
+                                isCritic: Double.random(in: 0..<1, using: &rng) < ActivePlay.criticChance)
     }
 
     private func expireGoldenIfNeeded(now: Date) {
@@ -824,7 +828,7 @@ final class GameEngine: ObservableObject {
     func collectGolden() -> Double {
         guard let customer = golden else { return 0 }
         golden = nil
-        let seconds = Double.random(in: ActivePlay.goldenMinSeconds...ActivePlay.goldenMaxSeconds)
+        let seconds = Double.random(in: ActivePlay.goldenMinSeconds...ActivePlay.goldenMaxSeconds, using: &rng)
         let base = Swift.max(state.automatedRate, ActivePlay.tipFloorRate(venue: state.currentVenue))
         var amount = base * seconds * tipMultiplier
         if customer.isCritic {
@@ -847,9 +851,9 @@ final class GameEngine: ObservableObject {
             .filter { state.venues[venue].stations[$0.id].isStaffed }
             .map(\.id)
         guard !staffed.isEmpty else { return }
-        guard Double.random(in: 0..<1) < ActivePlay.orderBaseChance else { return }
+        guard Double.random(in: 0..<1, using: &rng) < ActivePlay.orderBaseChance else { return }
         lastOrderSpawnAt = state.now
-        let station = staffed.randomElement() ?? staffed[0]
+        let station = staffed.randomElement(using: &rng) ?? staffed[0]
         activeOrder = StationOrder(venue: venue, station: station,
                                    expiresAt: state.now.addingTimeInterval(ActivePlay.orderWindow))
     }
@@ -865,7 +869,7 @@ final class GameEngine: ObservableObject {
         guard let order = activeOrder, order.venue == state.currentVenue,
               serves[order.station] != nil else { return }
         activeOrder = nil
-        let seconds = Double.random(in: ActivePlay.orderBonusMinSeconds...ActivePlay.orderBonusMaxSeconds)
+        let seconds = Double.random(in: ActivePlay.orderBonusMinSeconds...ActivePlay.orderBonusMaxSeconds, using: &rng)
         let base = Swift.max(state.automatedRate, ActivePlay.tipFloorRate(venue: state.currentVenue))
         addCoins(base * seconds * tipMultiplier)
     }
@@ -1434,8 +1438,8 @@ final class GameEngine: ObservableObject {
     /// `pendingToolDrop`; duplicates quietly convert to gems with a toast.
     private func rollToolDrop(_ moment: Tools.DropMoment) {
         guard let tool = Tools.roll(moment: moment,
-                                    roll1: Double.random(in: 0..<1),
-                                    roll2: Double.random(in: 0..<1)) else { return }
+                                    roll1: Double.random(in: 0..<1, using: &rng),
+                                    roll2: Double.random(in: 0..<1, using: &rng)) else { return }
         if state.tools.insert(tool.id).inserted {
             pendingToolDrop = tool
         } else {
@@ -1508,7 +1512,7 @@ final class GameEngine: ObservableObject {
         state.expedition = ActiveExpedition(
             managerIDs: managerIDs, startedAt: state.now,
             duration: tier.hours * 3600, tier: tierID,
-            roll: Double.random(in: 0..<1))
+            roll: Double.random(in: 0..<1, using: &rng))
         save()
         return true
     }
@@ -1531,7 +1535,7 @@ final class GameEngine: ObservableObject {
         var recruit: ManagerSpec?
         if won {
             state.expeditionWins += 1
-            if Double.random(in: 0..<1) < tier.recruitChance {
+            if Double.random(in: 0..<1, using: &rng) < tier.recruitChance {
                 recruit = grantManager(rarity: .epic)
             }
             rollToolDrop(.expeditionWin)
