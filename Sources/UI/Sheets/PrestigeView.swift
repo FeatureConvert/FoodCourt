@@ -282,6 +282,9 @@ private struct ResearchSection: View {
         .panel(Theme.panel)
 
         if affordableNow > 1 {
+            IntroBanner(key: IntroKey.buyAllResearch, symbol: "checkmark.circle.fill",
+                        title: "Spend everything at once",
+                        detail: "When more than one rank is affordable, this buys the cheapest first and keeps going until nothing else fits your stars - instead of tapping every node by hand.")
             buyAllButton
         }
 

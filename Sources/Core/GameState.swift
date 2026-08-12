@@ -707,11 +707,23 @@ enum IntroKey {
     static let gauntletUnlockToast = "gauntletUnlockToast"
     static let toolsUnlockToast = "toolsUnlockToast"
 
+    // One-shot explainers for the "Claim All"/"Buy All"/"Auto-assign" bulk-action buttons -
+    // each only ever appears alongside the button itself (gated on the same "more than one
+    // thing ready" condition), so a player who never has a backlog never sees it either.
+    static let claimAllQuests = "claimAllQuests"
+    static let claimAllAchievements = "claimAllAchievements"
+    static let claimAllErrandsIntro = "claimAllErrandsIntro"
+    static let autoAssignStaff = "autoAssignStaff"
+    static let claimAllFestivalIntro = "claimAllFestivalIntro"
+    static let buyAllResearch = "buyAllResearch"
+
     static let allKeys: [String] = [
         welcome, prestige, legacy, perks, research, league, festival, staff, recipes, errands,
         cosmetics, roadmap, halfwayFranchise, guestChef, icloudSync, contracts, legacyTree,
         signature, synergies, seasonTwist, expeditions, catering, tools, gauntlet,
         crewsUnlockToast, faceOffsUnlockToast, gauntletUnlockToast, toolsUnlockToast,
         tutorialDone, venueNudge,
+        claimAllQuests, claimAllAchievements, claimAllErrandsIntro, autoAssignStaff,
+        claimAllFestivalIntro, buyAllResearch,
     ]
 }

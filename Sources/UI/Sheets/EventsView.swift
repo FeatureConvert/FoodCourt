@@ -77,6 +77,9 @@ private struct FestivalSection: View {
         }
 
         if unclaimedCount > 1 {
+            IntroBanner(key: IntroKey.claimAllFestivalIntro, symbol: "checkmark.circle.fill",
+                        title: "Claim everything at once",
+                        detail: "When more than one festival tier is ready, this collects them all in a single tap instead of one at a time.")
             claimAllButton
         }
 

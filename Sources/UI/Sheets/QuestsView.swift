@@ -59,6 +59,9 @@ private struct QuestsSection: View {
         // Only worth a dedicated button once there's more than one thing to gather up -
         // for a single claimable, the row's own Claim button is no extra reach.
         if totalClaimable > 1 {
+            IntroBanner(key: IntroKey.claimAllQuests, symbol: "checkmark.circle.fill",
+                        title: "Claim everything at once",
+                        detail: "When more than one goal is ready, this collects them all in a single tap instead of one at a time.")
             claimAllButton
         }
 
@@ -335,6 +338,9 @@ private struct AchievementsSection: View {
 
     var body: some View {
         if engine.claimableAchievements.count > 1 {
+            IntroBanner(key: IntroKey.claimAllAchievements, symbol: "checkmark.circle.fill",
+                        title: "Claim everything at once",
+                        detail: "When more than one achievement is ready, this collects them all in a single tap instead of one at a time.")
             claimAllButton
         }
         ForEach(sortedSpecs) { spec in

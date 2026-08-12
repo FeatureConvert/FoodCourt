@@ -11,6 +11,12 @@ struct CloudConflictView: View {
     let remote: GameState
     let onToast: (String) -> Void
 
+    // Same "tap again to confirm" pattern as the Legacy and Danger Zone resets - this is the
+    // one screen in the app where a single mis-tap permanently deletes an empire, and it had
+    // no safety net at all.
+    @State private var confirmingCloud = false
+    @State private var confirmingDevice = false
+
     var body: some View {
         SheetScaffold(title: "Two saves found",
                       subtitle: "iCloud has progress from another device") {
@@ -19,32 +25,44 @@ struct CloudConflictView: View {
                      recommended: false)
 
             Button {
-                engine.adoptCloudSave(remote)
-                cloud.conflict = nil
-                onToast("Loaded your iCloud save")
-                dismiss()
+                if confirmingCloud {
+                    engine.adoptCloudSave(remote)
+                    cloud.conflict = nil
+                    onToast("Loaded your iCloud save")
+                    dismiss()
+                } else {
+                    confirmingCloud = true
+                    confirmingDevice = false
+                }
             } label: {
-                Text("Use the iCloud save")
+                Text(confirmingCloud ? "Tap again to confirm" : "Use the iCloud save")
                     .font(Theme.body(15, weight: .black))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
             }
-            .buttonStyle(ChunkyButtonStyle(fill: Theme.gemDeep, shadow: Theme.ink))
+            .buttonStyle(ChunkyButtonStyle(fill: confirmingCloud ? Theme.negative : Theme.gemDeep,
+                                           shadow: Theme.ink))
 
             Button {
                 // Keeping this device wins by pushing over the remote, so the two stop
                 // fighting on the next launch.
-                engine.pushToCloud()
-                cloud.conflict = nil
-                onToast("Kept this device's save")
-                dismiss()
+                if confirmingDevice {
+                    engine.pushToCloud()
+                    cloud.conflict = nil
+                    onToast("Kept this device's save")
+                    dismiss()
+                } else {
+                    confirmingDevice = true
+                    confirmingCloud = false
+                }
             } label: {
-                Text("Keep this device")
+                Text(confirmingDevice ? "Tap again to confirm" : "Keep this device")
                     .font(Theme.body(14, weight: .bold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
             }
-            .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
+            .buttonStyle(ChunkyButtonStyle(fill: confirmingDevice ? Theme.negative : Theme.panelRaised,
+                                           shadow: Theme.ink))
 
             Text("Whichever you keep replaces the other. This cannot be undone.")
                 .font(Theme.body(11, weight: .medium))

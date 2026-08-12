@@ -1258,12 +1258,12 @@ final class GameEngine: ObservableObject {
     }
 
     @discardableResult
-    func buyResearch(_ node: ResearchNode) -> Bool {
+    func buyResearch(_ node: ResearchNode, persist: Bool = true) -> Bool {
         guard canBuyResearch(node) else { return false }
         let rank = researchRank(node.id)
         state.stars -= researchCost(node)
         state.research[node.id] = rank + 1
-        save()
+        if persist { save() }
         return true
     }
 
@@ -1272,6 +1272,9 @@ final class GameEngine: ObservableObject {
     /// for its preview number, but actually spending. A player with a large star surplus
     /// after several franchise resets otherwise has to tap every affordable node in every
     /// branch by hand. Returns how many ranks were bought.
+    ///
+    /// Saves once at the end rather than once per rank - up to 90 ranks in a single tap
+    /// would otherwise be 90 synchronous full-state JSON encodes back to back.
     @discardableResult
     func buyAllAffordableResearch() -> Int {
         var bought = 0
@@ -1280,9 +1283,10 @@ final class GameEngine: ObservableObject {
                 .filter({ canBuyResearch($0) })
                 .min(by: { researchCost($0) < researchCost($1) })
             else { break }
-            guard buyResearch(node) else { break }
+            guard buyResearch(node, persist: false) else { break }
             bought += 1
         }
+        if bought > 0 { save() }
         return bought
     }
 
@@ -1337,29 +1341,34 @@ final class GameEngine: ObservableObject {
     }
 
     @discardableResult
-    func claimWeeklyQuest() -> ActiveQuest? {
+    func claimWeeklyQuest(persist: Bool = true) -> ActiveQuest? {
         guard let quest = state.weeklyQuest, quest.isComplete else { return nil }
         state.gems += quest.rewardGems
         addCoins(Swift.max(1_000, state.automatedRate * quest.rewardSeconds))
         state.weeklyQuest = nil // done for the week; next Monday rolls a fresh one
-        save()
+        if persist { save() }
         return quest
     }
 
     /// One tap collects every finished thing at once: completed quests, the weekly
     /// challenge, returned errands, and a filled catering order. Returns how many things
     /// were claimed - the Daily Plan's "claim everything" runs on this.
+    ///
+    /// Every sub-claim skips its own `save()` and this saves once at the end - `save()` does
+    /// a synchronous full-state JSON encode plus an atomic disk write, so a late-game player
+    /// with a big backlog claiming everything at once must not pay for one of those per item.
     @discardableResult
     func claimAllReady() -> Int {
         var claimed = 0
         for quest in state.quests.filter(\.isComplete) {
-            if claimQuest(id: quest.id) != nil { claimed += 1 }
+            if claimQuest(id: quest.id, persist: false) != nil { claimed += 1 }
         }
-        if claimWeeklyQuest() != nil { claimed += 1 }
+        if claimWeeklyQuest(persist: false) != nil { claimed += 1 }
         for errand in claimableErrands {
-            if collectErrand(id: errand.id) != nil { claimed += 1 }
+            if collectErrand(id: errand.id, persist: false) != nil { claimed += 1 }
         }
-        if claimCatering() != nil { claimed += 1 }
+        if claimCatering(persist: false) != nil { claimed += 1 }
+        if claimed > 0 { save() }
         return claimed
     }
 
@@ -1371,10 +1380,11 @@ final class GameEngine: ObservableObject {
     func claimAllQuests() -> Int {
         var claimed = 0
         for quest in state.quests.filter(\.isComplete) {
-            if claimQuest(id: quest.id) != nil { claimed += 1 }
+            if claimQuest(id: quest.id, persist: false) != nil { claimed += 1 }
         }
-        if claimWeeklyQuest() != nil { claimed += 1 }
-        if claimCatering() != nil { claimed += 1 }
+        if claimWeeklyQuest(persist: false) != nil { claimed += 1 }
+        if claimCatering(persist: false) != nil { claimed += 1 }
+        if claimed > 0 { save() }
         return claimed
     }
 
@@ -1384,13 +1394,14 @@ final class GameEngine: ObservableObject {
     func claimAllErrands() -> Int {
         var claimed = 0
         for errand in claimableErrands {
-            if collectErrand(id: errand.id) != nil { claimed += 1 }
+            if collectErrand(id: errand.id, persist: false) != nil { claimed += 1 }
         }
+        if claimed > 0 { save() }
         return claimed
     }
 
     @discardableResult
-    func claimQuest(id: String) -> ActiveQuest? {
+    func claimQuest(id: String, persist: Bool = true) -> ActiveQuest? {
         guard let index = state.quests.firstIndex(where: { $0.id == id }),
               state.quests[index].isComplete else { return nil }
         let quest = state.quests[index]
@@ -1403,7 +1414,7 @@ final class GameEngine: ObservableObject {
 
         state.quests.remove(at: index)
         Quests.refill(state: &state, incomePerSecond: state.automatedRate)
-        save()
+        if persist { save() }
         return quest
     }
 
@@ -1416,13 +1427,13 @@ final class GameEngine: ObservableObject {
     }
 
     @discardableResult
-    func claimAchievement(id: String) -> AchievementSpec? {
+    func claimAchievement(id: String, persist: Bool = true) -> AchievementSpec? {
         guard let spec = AchievementCatalog.spec(id),
               !state.claimedAchievements.contains(id),
               Achievements.isComplete(spec, state: state) else { return nil }
         state.claimedAchievements.insert(id)
         state.gems += spec.rewardGems
-        save()
+        if persist { save() }
         return spec
     }
 
@@ -1430,8 +1441,9 @@ final class GameEngine: ObservableObject {
     func claimAllAchievements() -> Int {
         var claimed = 0
         for spec in claimableAchievements {
-            if claimAchievement(id: spec.id) != nil { claimed += 1 }
+            if claimAchievement(id: spec.id, persist: false) != nil { claimed += 1 }
         }
+        if claimed > 0 { save() }
         return claimed
     }
 
@@ -1464,14 +1476,14 @@ final class GameEngine: ObservableObject {
     }
 
     @discardableResult
-    func collectErrand(id: String) -> ActiveErrand? {
+    func collectErrand(id: String, persist: Bool = true) -> ActiveErrand? {
         guard let index = state.errands.firstIndex(where: { $0.id == id }),
               state.errands[index].isComplete(at: state.now) else { return nil }
         var errand = state.errands.remove(at: index)
         errand.rewardCoins = errandCoinValue(errand)
         state.gems += errand.rewardGems
         addCoins(errand.rewardCoins)
-        save()
+        if persist { save() }
         return errand
     }
 
@@ -1611,7 +1623,7 @@ final class GameEngine: ObservableObject {
     }
 
     @discardableResult
-    func claimCatering() -> CateringOrder? {
+    func claimCatering(persist: Bool = true) -> CateringOrder? {
         guard var order = state.catering, order.isComplete, !order.claimed,
               order.expiresAt > state.now else { return nil }
         order.claimed = true
@@ -1620,7 +1632,7 @@ final class GameEngine: ObservableObject {
         addCoins(Swift.max(2_000, state.automatedRate * order.rewardIncomeSeconds))
         awardTickets(Festival.ticketsPerQuest)
         rollToolDrop(.cateringDelivered)
-        save()
+        if persist { save() }
         return order
     }
 
@@ -1691,7 +1703,7 @@ final class GameEngine: ObservableObject {
         state.festival.premiumUnlocked || state.entitlements.includesFestivalPremium
     }
 
-    func claimFestival(tier: Int, premium: Bool) -> FestivalReward? {
+    func claimFestival(tier: Int, premium: Bool, persist: Bool = true) -> FestivalReward? {
         guard Festival.canClaim(state.festival, tier: tier, premium: premium,
                                 premiumActive: festivalPremiumActive) else { return nil }
         let reward = premium ? Festival.tier(tier).premium : Festival.tier(tier).free
@@ -1699,7 +1711,7 @@ final class GameEngine: ObservableObject {
         else { state.festival.claimedFree.append(tier) }
         state.bestFestivalTier = Swift.max(state.bestFestivalTier, tier)
         apply(reward)
-        save()
+        if persist { save() }
         return reward
     }
 
@@ -1710,9 +1722,11 @@ final class GameEngine: ObservableObject {
     func claimAllFestival() -> Int {
         var claimed = 0
         for tier in Festival.allTiers.map(\.index) {
-            if claimFestival(tier: tier, premium: false) != nil { claimed += 1 }
-            if festivalPremiumActive, claimFestival(tier: tier, premium: true) != nil { claimed += 1 }
+            if claimFestival(tier: tier, premium: false, persist: false) != nil { claimed += 1 }
+            if festivalPremiumActive,
+               claimFestival(tier: tier, premium: true, persist: false) != nil { claimed += 1 }
         }
+        if claimed > 0 { save() }
         return claimed
     }
 

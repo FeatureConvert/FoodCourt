@@ -74,6 +74,9 @@ private struct StaffSection: View {
         }
 
         if autoAssignableCount > 0 {
+            IntroBanner(key: IntroKey.autoAssignStaff, symbol: "checkmark.circle.fill",
+                        title: "Fill open stations at once",
+                        detail: "When a benched manager and an open station both exist, this staffs everything it can in one tap instead of assigning each by hand.")
             autoAssignButton
         }
 
@@ -182,6 +185,7 @@ private struct StaffSection: View {
                     Text(spec.name)
                         .font(Theme.body(13, weight: .black))
                         .foregroundStyle(Theme.text)
+                        .lineLimit(1)
                     Text("THIS WEEK")
                         .font(Theme.body(9, weight: .black))
                         .foregroundStyle(Theme.ink)
@@ -237,7 +241,10 @@ private struct StaffSection: View {
 
     /// Best staff first - the player cares about their legendaries, not their trainees.
     private var sortedManagers: [OwnedManager] {
-        engine.state.managers.sorted { a, b in
+        let benched = Set(engine.state.unassignedManagers.map(\.id))
+        return engine.state.managers.sorted { a, b in
+            let aBenched = benched.contains(a.id), bBenched = benched.contains(b.id)
+            if aBenched != bBenched { return aBenched && !bBenched }
             if a.spec.rarity != b.spec.rarity { return a.spec.rarity > b.spec.rarity }
             return a.name < b.name
         }
@@ -280,6 +287,7 @@ private struct StaffSection: View {
                 Text(manager.name)
                     .font(Theme.body(14, weight: .black))
                     .foregroundStyle(Theme.text)
+                    .lineLimit(1)
                 Text(spec.trait.detail)
                     .font(Theme.body(11, weight: .bold))
                     .foregroundStyle(Theme.positive)
@@ -566,6 +574,9 @@ private struct ErrandsSection: View {
                     detail: "Sending a manager on an errand pays out gems and coins when it finishes, but pulls them off their station for the whole duration - best for someone already on the bench, not one currently automating something.")
 
         if engine.claimableErrands.count > 1 {
+            IntroBanner(key: IntroKey.claimAllErrandsIntro, symbol: "checkmark.circle.fill",
+                        title: "Claim everything at once",
+                        detail: "When more than one errand is ready, this collects them all in a single tap instead of one at a time.")
             claimAllButton
         }
 
