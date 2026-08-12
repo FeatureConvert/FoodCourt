@@ -58,7 +58,9 @@ private struct QuestsSection: View {
             cateringRow(order)
         }
 
-        ForEach(engine.state.quests) { quest in
+        // Claimable quests float to the top so a player never has to hunt/scroll for the
+        // one thing here that actually needs a tap.
+        ForEach(engine.state.quests.sorted { $0.isComplete && !$1.isComplete }) { quest in
             row(quest)
         }
 
@@ -282,8 +284,21 @@ private struct AchievementsSection: View {
     @EnvironmentObject private var sound: SoundService
     let onToast: (String) -> Void
 
+    /// Claimable-but-unclaimed first, same reasoning as the quest list - a player shouldn't
+    /// have to scroll the whole 27-entry catalog to find the one row with gems waiting.
+    /// Stable otherwise, so the catalog's own order still governs everything else.
+    private var sortedSpecs: [AchievementSpec] {
+        AchievementCatalog.all.sorted { lhs, rhs in
+            let lhsClaimable = Achievements.isComplete(lhs, state: engine.state)
+                && !engine.state.claimedAchievements.contains(lhs.id)
+            let rhsClaimable = Achievements.isComplete(rhs, state: engine.state)
+                && !engine.state.claimedAchievements.contains(rhs.id)
+            return lhsClaimable && !rhsClaimable
+        }
+    }
+
     var body: some View {
-        ForEach(AchievementCatalog.all) { spec in
+        ForEach(sortedSpecs) { spec in
             row(spec)
         }
     }
