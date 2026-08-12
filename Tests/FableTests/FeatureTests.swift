@@ -1141,6 +1141,7 @@ final class FeatureTests: XCTestCase {
 
         let e = engine(state)
         e.addCoins(Balance.minimumLifetimeForPrestige * 4)
+        e.debugUnlockAllVenuesAndStations()
         let awarded = e.prestige()
         XCTAssertGreaterThan(awarded, 0)
 
@@ -1181,6 +1182,7 @@ final class FeatureTests: XCTestCase {
                              "venue unlock cost is taxed too, so it can't dodge the tax")
 
         e.addCoins(Balance.minimumLifetimeForPrestige * 4)
+        e.debugUnlockAllVenuesAndStations()
         _ = e.prestige()
         XCTAssertEqual(e.staleCostInflation, 1, accuracy: 1e-9, "franchising starts a fresh, untaxed board")
         XCTAssertEqual(e.costInflation, Balance.starMultiplier(stars: e.state.lifetimeStars), accuracy: 1e-6,
@@ -1372,6 +1374,7 @@ final class FeatureTests: XCTestCase {
         var state = GameState.newGame()
         state.lifetimeEarnings = Balance.minimumLifetimeForPrestige
         let e = engine(state)
+        e.debugUnlockAllVenuesAndStations()
         XCTAssertTrue(e.canPrestige, "the seeded lifetime earnings must clear the prestige gate")
         XCTAssertEqual(e.state.prestigeCount, 0)
         e.prestige()
@@ -1757,6 +1760,7 @@ final class FeatureTests: XCTestCase {
         // like any other - legacy level is a separate multiplicative term, not folded into
         // lifetimeStars.
         e.addCoins(Balance.minimumLifetimeForPrestige)
+        e.debugUnlockAllVenuesAndStations()
         XCTAssertTrue(e.canPrestige)
         let awarded = e.prestige()
         XCTAssertGreaterThan(awarded, 0)

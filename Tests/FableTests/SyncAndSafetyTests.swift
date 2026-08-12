@@ -239,6 +239,7 @@ final class SyncAndSafetyTests: XCTestCase {
         XCTAssertEqual(engine.state.venues[0].stations[4].perks, before,
                        "choosePerk past the cap is a no-op")
 
+        engine.debugUnlockAllVenuesAndStations()
         _ = engine.prestige()
         XCTAssertEqual(engine.perkChoicesRemaining, Balance.perkChoicesPerRun,
                        "a fresh run gets a fresh budget")
@@ -288,6 +289,7 @@ final class SyncAndSafetyTests: XCTestCase {
                                 persistence: EphemeralPersistence())
         XCTAssertNil(engine.pendingContractOffer, "no pick owed before the first franchise")
 
+        engine.debugUnlockAllVenuesAndStations()
         _ = engine.prestige()
         guard let offer = engine.pendingContractOffer else { return XCTFail("pick owed after") }
         XCTAssertEqual(offer.count, 3)

@@ -42,6 +42,7 @@ final class DepthSystemsTests: XCTestCase {
         state.activeContract = "showcase"
         let engine = GameEngine(state: state, startTimers: false,
                                 persistence: EphemeralPersistence())
+        engine.debugUnlockAllVenuesAndStations()
         let base = engine.pendingStars
         let awarded = engine.prestige()
         XCTAssertEqual(awarded, Int((Double(base) * 1.2).rounded(.down)),
@@ -78,6 +79,7 @@ final class DepthSystemsTests: XCTestCase {
         state.legacyPerks = ["capital": 1]
         let engine = GameEngine(state: state, startTimers: false,
                                 persistence: EphemeralPersistence())
+        engine.debugUnlockAllVenuesAndStations()
         _ = engine.prestige()
         XCTAssertGreaterThan(engine.state.coins, 0, "the new run starts funded")
         XCTAssertLessThanOrEqual(engine.state.coins, Balance.venues[1].unlockCost,
@@ -190,6 +192,7 @@ final class DepthSystemsTests: XCTestCase {
         XCTAssertGreaterThan(engine.state.automatedRate, 0)
 
         // The old exploit: franchise, then collect the errand priced at pre-reset income.
+        engine.debugUnlockAllVenuesAndStations()
         _ = engine.prestige()
         XCTAssertEqual(engine.state.automatedRate, 0, "fresh board, nothing staffed")
         engine.debugCompleteErrands()

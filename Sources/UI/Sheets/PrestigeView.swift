@@ -142,7 +142,7 @@ private struct FranchiseSection: View {
         .disabled(!engine.canPrestige)
 
         if !engine.canPrestige {
-            Text("Earn \(Format.currency(Balance.minimumLifetimeForPrestige)) lifetime to unlock your first franchise.")
+            Text(notReadyReason)
                 .font(Theme.body(11, weight: .medium))
                 .foregroundStyle(Theme.textDim)
                 .multilineTextAlignment(.center)
@@ -199,6 +199,24 @@ private struct FranchiseSection: View {
     private var buttonTitle: String {
         guard engine.canPrestige else { return "Not ready yet" }
         return confirming ? "Tap again to confirm" : "Franchise for \(engine.pendingStars) stars"
+    }
+
+    /// Two independent gates, either of which can be the reason the button is locked - earn
+    /// enough lifetime, and open every venue and every station on the board. Both are named
+    /// when both are still open, so the message never points at only half the requirement.
+    private var notReadyReason: String {
+        let needsEarnings = engine.state.lifetimeEarnings < Balance.minimumLifetimeForPrestige
+        let needsBuildout = !engine.allVenuesAndStationsUnlocked
+        switch (needsEarnings, needsBuildout) {
+        case (true, true):
+            return "Earn \(Format.currency(Balance.minimumLifetimeForPrestige)) lifetime and open every venue and station to franchise."
+        case (true, false):
+            return "Earn \(Format.currency(Balance.minimumLifetimeForPrestige)) lifetime to unlock your first franchise."
+        case (false, true):
+            return "Open every venue and every station before you can franchise."
+        case (false, false):
+            return "Not ready yet"
+        }
     }
 
     private var divider: some View {

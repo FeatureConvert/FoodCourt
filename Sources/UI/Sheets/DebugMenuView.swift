@@ -46,7 +46,14 @@ struct DebugMenuView: View {
                 grantButton("Legend staff") { _ = engine.grantManager(rarity: .legendary) }
             }
             HStack(spacing: 8) {
-                grantButton("Force prestige") { _ = engine.prestige() }
+                grantButton("Unlock board") { engine.debugUnlockAllVenuesAndStations() }
+                grantButton("Force prestige") {
+                    // prestige() itself now guards on every venue and station being open,
+                    // same as a real player - bypass it here the same way this menu bypasses
+                    // every other real requirement.
+                    engine.debugUnlockAllVenuesAndStations()
+                    _ = engine.prestige()
+                }
                 grantButton("Force order") {
                     var attempts = 0
                     while engine.activeOrder == nil && attempts < 500 {

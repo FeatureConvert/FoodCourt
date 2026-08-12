@@ -279,6 +279,7 @@ final class ProgressionTests: XCTestCase {
         XCTAssertTrue(engine.hireManager(for: 0, free: true))
 
         engine.addCoins(Balance.minimumLifetimeForPrestige)
+        engine.debugUnlockAllVenuesAndStations()
         engine.prestige() // wipes non-premium managers, including the one just hired
 
         XCTAssertFalse(engine.state.venues[0].stations[0].isStaffed, "prestige clears coin-tier staff")
@@ -363,6 +364,7 @@ final class ProgressionTests: XCTestCase {
         engine.buyQuantity = .x10
         engine.buy(station: 0)
         engine.addGems(40)
+        engine.debugUnlockAllVenuesAndStations()
 
         let expected = engine.pendingStars
         XCTAssertGreaterThan(expected, 0)
@@ -380,6 +382,9 @@ final class ProgressionTests: XCTestCase {
     func testCanPrestigeWithZeroLifetimeStarsStillSurfacesAWayIntoTheSheet() {
         let engine = GameEngine(state: GameState.newGame(), startTimers: false, persistence: EphemeralPersistence())
         engine.addCoins(Balance.minimumLifetimeForPrestige)
+        // canPrestige also requires every venue and station open (see
+        // testAllVenuesAndStationsUnlockedGatesPrestige for that requirement on its own).
+        engine.debugUnlockAllVenuesAndStations()
 
         XCTAssertTrue(engine.canPrestige, "a fresh save that hit the threshold should be prestige-eligible")
         XCTAssertEqual(engine.state.lifetimeStars, 0, "no franchise has happened yet")
@@ -395,6 +400,9 @@ final class ProgressionTests: XCTestCase {
     func testShouldNudgePrestigeFiresForAFirstTimeEligiblePlayerRegardlessOfBoardState() {
         let engine = GameEngine(state: GameState.newGame(), startTimers: false, persistence: EphemeralPersistence())
         engine.addCoins(Balance.minimumLifetimeForPrestige)
+        // Every station owned, but nothing staffed - satisfies the new hard floor without
+        // satisfying boardIsFullyBuiltOut, which is the point of this test.
+        engine.debugUnlockAllVenuesAndStations()
 
         XCTAssertEqual(engine.state.prestigeCount, 0)
         XCTAssertFalse(engine.boardIsFullyBuiltOut, "a single fresh station isn't a built-out board")
@@ -406,6 +414,7 @@ final class ProgressionTests: XCTestCase {
     func testShouldNudgePrestigeClearsRightAfterPrestigingAndReturnsOncePlateauedAgain() {
         let engine = GameEngine(state: GameState.newGame(), startTimers: false, persistence: EphemeralPersistence())
         engine.addCoins(Balance.minimumLifetimeForPrestige)
+        engine.debugUnlockAllVenuesAndStations()
         engine.prestige()
 
         XCTAssertFalse(engine.canPrestige, "no new stars have accrued since the prestige that just happened")
@@ -413,28 +422,14 @@ final class ProgressionTests: XCTestCase {
 
         // Earn enough again post-prestige to become eligible a second time, and fully build
         // out the reset board - a repeat player who plateaus again should be re-nudged.
+        // debugUnlockAllVenuesAndStations covers the new hard floor (every venue open, every
+        // station owned); staffing every venue on top of that is what pushes the board past
+        // boardIsFullyBuiltOut's stricter bar. Real economics (what it actually costs and how
+        // long it actually takes to reach this) belong in EarlyGamePacingTests, not here -
+        // this test is only exercising the nudge logic itself.
         engine.addCoins(Balance.minimumLifetimeForPrestige * 4)
-        engine.buyQuantity = .max
-        // Chase the windfall to its true fixed point: keep max-buying every unlocked
-        // venue's stations and unlocking (+staffing) whatever becomes affordable, until a
-        // full pass changes nothing. A single MAX-buy pass per station plateaus well short
-        // of spending everything (exponential per-level cost) while still leaving enough to
-        // trivially afford the next venue - only chasing the unlocks too reaches a board
-        // that's genuinely "nothing actionable left."
-        var previousCoins = Double.infinity
-        for _ in 0..<100 {
-            for venue in Balance.venues where engine.state.venues[venue.id].unlocked {
-                for spec in venue.stations {
-                    engine.buy(station: spec.id)
-                    engine.hireManager(for: spec.id, free: true)
-                }
-            }
-            if let next = engine.nextLockedVenue, engine.canUnlock(next) {
-                engine.unlock(next)
-            }
-            if engine.state.coins == previousCoins { break }
-            previousCoins = engine.state.coins
-        }
+        engine.debugUnlockAllVenuesAndStations()
+        for venue in Balance.venues { engine.grantManagerPack(venue: venue.id) }
 
         XCTAssertTrue(engine.canPrestige)
         XCTAssertTrue(engine.boardIsFullyBuiltOut)
@@ -456,6 +451,39 @@ final class ProgressionTests: XCTestCase {
         engine.addCoins(1_000)
         XCTAssertFalse(engine.canPrestige)
         XCTAssertEqual(engine.prestige(), 0)
+    }
+
+    @MainActor
+    func testAllVenuesAndStationsUnlockedGatesPrestige() {
+        // The hard floor added on top of the earnings gate: every venue open, every station
+        // in every venue owned, checked independently of how much the player has earned.
+        let engine = GameEngine(state: GameState.newGame(), startTimers: false, persistence: EphemeralPersistence())
+        engine.addCoins(Balance.minimumLifetimeForPrestige)
+        XCTAssertFalse(engine.allVenuesAndStationsUnlocked, "a fresh board only has Burger Shack open")
+        XCTAssertFalse(engine.canPrestige, "earnings alone must not be enough")
+        XCTAssertEqual(engine.prestige(), 0)
+
+        // Every venue open, every station owned but one - still refused. `state` is
+        // private(set) on the engine, so this is built directly rather than mutated in place.
+        var partial = GameState.newGame()
+        partial.lifetimeEarnings = Balance.minimumLifetimeForPrestige
+        for id in Balance.venues.indices {
+            partial.venues[id].unlocked = true
+            for stationIndex in partial.venues[id].stations.indices {
+                partial.venues[id].stations[stationIndex].level = 1
+            }
+        }
+        partial.venues[6].stations[5].level = 0 // Food Truck Rally's last station, unowned
+        let partialEngine = GameEngine(state: partial, startTimers: false, persistence: EphemeralPersistence())
+        XCTAssertFalse(partialEngine.allVenuesAndStationsUnlocked, "Food Truck Rally's last station is unowned")
+        XCTAssertFalse(partialEngine.canPrestige)
+
+        // That one station owned too - now it's allowed.
+        partial.venues[6].stations[5].level = 1
+        let fullEngine = GameEngine(state: partial, startTimers: false, persistence: EphemeralPersistence())
+        XCTAssertTrue(fullEngine.allVenuesAndStationsUnlocked)
+        XCTAssertTrue(fullEngine.canPrestige)
+        XCTAssertGreaterThan(fullEngine.prestige(), 0)
     }
 
     @MainActor

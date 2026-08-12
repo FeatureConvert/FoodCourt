@@ -960,8 +960,23 @@ final class GameEngine: ObservableObject {
         Balance.pendingStars(lifetimeEarnings: state.lifetimeEarnings, currentStars: state.lifetimeStars)
     }
 
+    /// A hard floor on top of the earnings gate below: every venue open, every station in
+    /// every venue owned. Deliberately stricter than `boardIsFullyBuiltOut`, which is
+    /// satisfied the moment the *next* venue is merely unaffordable and only checks staffing
+    /// on venues already unlocked - this checks literal completion, all seven venues, station
+    /// ownership rather than staffing. Since a Franchise reset wipes venues back to just
+    /// Burger Shack (see `prestige()`), this floor applies to every run, not only the first.
+    var allVenuesAndStationsUnlocked: Bool {
+        Balance.venues.allSatisfy { venue in
+            state.venues[venue.id].unlocked
+                && state.venues[venue.id].stations.allSatisfy(\.isOwned)
+        }
+    }
+
     var canPrestige: Bool {
-        pendingStars > 0 && state.lifetimeEarnings >= Balance.minimumLifetimeForPrestige
+        pendingStars > 0
+            && state.lifetimeEarnings >= Balance.minimumLifetimeForPrestige
+            && allVenuesAndStationsUnlocked
     }
 
     /// Every unlocked venue fully built out - staffed on every station - with nowhere left
@@ -1969,6 +1984,19 @@ final class GameEngine: ObservableObject {
 
     func debugCompleteWeeklyQuest() {
         state.weeklyQuest?.progress = state.weeklyQuest?.target ?? 0
+    }
+
+    /// Opens every venue and buys level 1 on every station - the fastest way to clear
+    /// `allVenuesAndStationsUnlocked` on demand, since prestige otherwise requires it
+    /// legitimately, on every run.
+    func debugUnlockAllVenuesAndStations() {
+        for id in Balance.venues.indices {
+            state.venues[id].unlocked = true
+            for stationIndex in state.venues[id].stations.indices
+            where !state.venues[id].stations[stationIndex].isOwned {
+                state.venues[id].stations[stationIndex].level = 1
+            }
+        }
     }
 
     func debugCompleteErrands() {
