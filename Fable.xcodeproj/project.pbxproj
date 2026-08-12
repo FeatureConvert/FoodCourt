@@ -64,6 +64,7 @@
 		AEF7C22BE761419AA1FC5186 /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86417C4E82F8DBA0FDCEE737 /* Notifications.swift */; };
 		AF0FD8C199117D1A431555A2 /* ActivePlayViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C17466D04161D4F16C6110A /* ActivePlayViews.swift */; };
 		B3109EC527197FB0405AE433 /* FeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F2EB0B4C5701B9F89C4497 /* FeatureTests.swift */; };
+		B72891DDF5E5C05C5CE15B2A /* PrestigeScalingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98832890EF948F62445F2C19 /* PrestigeScalingTests.swift */; };
 		B7B552442FBCC018F6B28EB9 /* ChoiceSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B61B8390AFC7F75B53D6A29 /* ChoiceSheetView.swift */; };
 		BD63725F9DAA622F590E4F60 /* StoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C344A7F73D53DFFE26173A1 /* StoreService.swift */; };
 		BE87AD91F6BF12E8283E507E /* Research.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46D1911EBB949FF72F6AB016 /* Research.swift */; };
@@ -162,6 +163,7 @@
 		90ADE33E20D3F2B41202C2A1 /* Products.storekit */ = {isa = PBXFileReference; path = Products.storekit; sourceTree = "<group>"; };
 		91FAA9E9B4F61C58F14C0EF5 /* GuestChef.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestChef.swift; sourceTree = "<group>"; };
 		97F978F2657BFE1A5089482A /* GameEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngine.swift; sourceTree = "<group>"; };
+		98832890EF948F62445F2C19 /* PrestigeScalingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrestigeScalingTests.swift; sourceTree = "<group>"; };
 		9AB2CA10EC227D58DEE2D0F1 /* SpriteSeedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpriteSeedTests.swift; sourceTree = "<group>"; };
 		A4D8B62A270B89ADC697C071 /* VenueScenes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueScenes.swift; sourceTree = "<group>"; };
 		A6D9C15F5FAAEE676AFA42E6 /* GemSpend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GemSpend.swift; sourceTree = "<group>"; };
@@ -364,6 +366,7 @@
 				151BDAEA1FB511A124A63628 /* ExtremeScaleTests.swift */,
 				D4F2EB0B4C5701B9F89C4497 /* FeatureTests.swift */,
 				B88F0500C02E9FEF53B3FBA4 /* MigrationTests.swift */,
+				98832890EF948F62445F2C19 /* PrestigeScalingTests.swift */,
 				ED78409947694A96FF745DF8 /* ProgressionTests.swift */,
 				0CD20B6F5A66BCC6AC360C61 /* SoundServiceTests.swift */,
 				9AB2CA10EC227D58DEE2D0F1 /* SpriteSeedTests.swift */,
@@ -483,6 +486,7 @@
 				E2D07432C4C8F98ED8D9FCCA /* ExtremeScaleTests.swift in Sources */,
 				B3109EC527197FB0405AE433 /* FeatureTests.swift in Sources */,
 				7E8B6006600CE8650FE12398 /* MigrationTests.swift in Sources */,
+				B72891DDF5E5C05C5CE15B2A /* PrestigeScalingTests.swift in Sources */,
 				1AF5363324B986459614ECC8 /* ProgressionTests.swift in Sources */,
 				659855CFDE9511A6C6B9AE2E /* SoundServiceTests.swift in Sources */,
 				C79EE37AF0F5CD7AAEF2A540 /* SpriteSeedTests.swift in Sources */,

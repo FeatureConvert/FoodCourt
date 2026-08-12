@@ -120,12 +120,10 @@ struct GoldenCustomerView: View {
                     .scaleEffect(pulse ? 1.15 : 0.9)
 
                 if isCritic {
-                    // Parked, not spinning: the motion pass is deliberately deferred, and this
-                    // is design's own reduce-motion pose for the ring.
-                    Circle()
-                        .stroke(Theme.coin.opacity(0.7),
-                                style: StrokeStyle(lineWidth: 2, dash: [9, 14]))
-                        .frame(width: 62, height: 62)
+                    criticRing
+                } else {
+                    GoldenSparkles()
+                        .frame(width: 68, height: 68)
                 }
 
                 CustomerSprite(seed: seed, variant: isCritic ? .critic : .golden)
@@ -145,6 +143,83 @@ struct GoldenCustomerView: View {
         .accessibilityLabel(isCritic ? "VIP critic customer" : "Golden customer")
         .accessibilityHint(isCritic ? "Double tap to collect a x10 tip" : "Double tap to collect a tip")
         .transition(.scale.combined(with: .opacity))
+    }
+
+    /// Design's "Legendary rotating highlight" language applied to the Critic specifically -
+    /// same ~112 deg/s rate as `ManagerRarityFrame`'s legendary ring, same reduce-motion pose
+    /// (parked at -90, 12 o'clock) rather than a second bespoke animation.
+    private var criticRing: some View {
+        Group {
+            if reduceMotion {
+                criticRingShape.rotationEffect(.degrees(-90))
+            } else {
+                TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+                    let t = timeline.date.timeIntervalSinceReferenceDate
+                    criticRingShape.rotationEffect(.degrees(t * 112))
+                }
+            }
+        }
+    }
+
+    private var criticRingShape: some View {
+        Circle()
+            .stroke(Theme.coin.opacity(0.7), style: StrokeStyle(lineWidth: 2.5, dash: [14, 22]))
+            .frame(width: 62, height: 62)
+    }
+}
+
+/// Four eight-point sparkles pulsing around the Golden Customer - design spec: 1.8s cycle,
+/// phase-offset per sparkle, opacity 0.15->1 and scale 0.7->1.15 at the peak. One shared
+/// `TimelineView` drives all four rather than four independent ones; each sparkle only
+/// differs by a phase added before the wave function, not by its own clock.
+private struct GoldenSparkles: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Fractional position within the view + phase offset in seconds, lifted from design's
+    /// own `goldExtras` layout (four corners scattered around the figure, not a neat ring).
+    private static let sparkles: [(x: CGFloat, y: CGFloat, phase: Double)] = [
+        (0.16, 0.26, 0.0), (0.85, 0.18, 0.6), (0.89, 0.66, 1.2), (0.11, 0.72, 0.9),
+    ]
+
+    var body: some View {
+        if !reduceMotion {
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                GeometryReader { geo in
+                    ForEach(Array(Self.sparkles.enumerated()), id: \.offset) { _, s in
+                        // Raised cosine: smooth ease in/out between the trough and peak,
+                        // matching the CSS keyframe's implicit easing rather than a linear pulse.
+                        let wave = (1 - cos((t + s.phase) / 1.8 * 2 * .pi)) / 2
+                        SparkleShape()
+                            .fill(Theme.coin)
+                            .frame(width: 9, height: 9)
+                            .opacity(0.15 + wave * 0.85)
+                            .scaleEffect(0.7 + wave * 0.45)
+                            .position(x: geo.size.width * s.x, y: geo.size.height * s.y)
+                    }
+                }
+            }
+            .allowsHitTesting(false)
+        }
+    }
+}
+
+/// The eight-point sparkle outline itself, straight from design's SVG path.
+private struct SparkleShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let cx = rect.midX, cy = rect.midY
+        let scale = min(rect.width, rect.height) / 11 // path spans -5.5...5.5 on each axis
+        let points: [(CGFloat, CGFloat)] = [
+            (0, -5.5), (1.5, -1.5), (5.5, 0), (1.5, 1.5),
+            (0, 5.5), (-1.5, 1.5), (-5.5, 0), (-1.5, -1.5),
+        ]
+        var path = Path()
+        path.move(to: CGPoint(x: cx + points[0].0 * scale, y: cy + points[0].1 * scale))
+        for point in points.dropFirst() {
+            path.addLine(to: CGPoint(x: cx + point.0 * scale, y: cy + point.1 * scale))
+        }
+        path.closeSubpath()
+        return path
     }
 }
 
