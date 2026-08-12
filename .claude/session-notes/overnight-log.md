@@ -7,56 +7,49 @@ the git commits themselves are the authoritative record of what changed.
 
 ## TL;DR
 
-10 commits shipped and pushed to both devices overnight, all tested (full suite + the long
-PrestigeScalingTests simulation stayed green throughout). Five real, open questions logged
-below for a real answer when you're back - none of them were guessed at or acted on unilaterally.
-Nothing balance/pricing/pacing was changed without your sign-off.
+9 commits shipped and pushed to both devices since Robert went to bed (6 overnight + 3 first thing
+this morning once he was back and answered questions). Full suite + the long PrestigeScalingTests
+simulation stayed green throughout. One question still genuinely open (Carnival Pass - needs
+Robert to test his device); everything else got a real answer and was acted on.
 
-## Open questions (need a real answer from you, not a 4am guess)
+## Resolved this morning (Robert answered directly, no longer open)
 
-1. **Venue 5→6 unlock gap dominates every prestige cycle.** In every simulated cycle, opening
-   the last venue (Food Truck Rally) alone eats 33-47% of that cycle's total duration (cycle 0:
-   7h54m of 17h6m; cycles 1-3: 3-4h of 8.5-10.5h). `VenueSpec.venueEscalation = 1.8` is
-   mathematically identical at every step by design (deliberately upward-sloping, per its own doc
-   comment, to push a plateaued player toward prestige) - but that doc comment's own tuning data
-   only shows gaps through venue 3-4, never the venue 5-6 tail specifically, so this compounding
-   endpoint may never have actually been eyeballed. Not changed - real economy number, wide blast
-   radius. Full per-cycle table is in the chat transcript (~01:56, the "pacing pass" discussion).
+1. **Venue 5→6 unlock gap** - Robert chose "dial back just the top of the curve." Discounted the
+   final venue's unlockCost 30% off the raw escalation (`3890262`), left `venueEscalation` itself
+   untouched. Verified with a full PrestigeScalingTests run: the gap's share of total cycle time
+   came down from a 33-47% range (worst case 47%) to a tighter 33-38% range across all four
+   cycles, with overall cycle lengths unchanged.
 
-2. **Carnival Pass button report.** You said "clicking that does nothing" under Events, then
-   weren't sure if OTHER Shop purchases work either. I traced the whole code path (tap →
-   `purchasePremiumPass()` → `store.purchase()` → StoreKit → grant → `unlockFestivalPremium()`)
-   and it's structurally identical to every working purchase - no bug found by reading. Added
+3. **BoostState/ActiveQuest hardening** - Robert said do it now. Hardened both (`bfce3f3`) with
+   conservative, non-exploitable fallbacks: a corrupt/incomplete boost decodes as already-expired
+   and inert; a corrupt/incomplete quest decodes as permanently unfinishable (target pinned just
+   above whatever progress it got). Neither can hand the player something they didn't earn.
+   Added `testCorruptBoostAndQuestDecodeAsInertRatherThanThrowingOrGrantingSomething`.
+
+5. **"Franchise" vs "Prestige" naming** - Robert confirmed "Franchise." Swept all 5+ remaining
+   "Prestige" strings (`105d51b`): two RootView nudge toasts, RoadmapView's group header + item
+   title, four Achievements detail strings. Internal identifiers (IntroKey.prestige, `prestige_N`
+   ids, the `prestigeCount` property) deliberately left alone - copy sweep, not a symbol rename.
+
+## Still open
+
+2. **Carnival Pass button report.** Still unresolved - Robert hasn't checked yet whether other
+   Shop purchases work on his device. I traced the whole code path (tap → `purchasePremiumPass()`
+   → `store.purchase()` → StoreKit → grant → `unlockFestivalPremium()`) and it's structurally
+   identical to every working purchase - no bug found by reading. Added
    `testCarnivalPassUnlocksPremiumFestivalTrack` (StoreTests.swift) but couldn't run it for real:
-   `xcodebuild test` from the CLI always skips StoreKit tests (needs Xcode's own GUI test runner
-   - a pre-existing, documented limitation, not something I can work around). If NO Shop purchase
-   works, it's likely an App Store Connect/provisioning issue (needs your access). If only
-   Carnival Pass fails, there's a real narrow bug still to find - tell me and I'll keep digging.
+   `xcodebuild test` from the CLI always skips StoreKit tests (needs Xcode's own GUI test runner -
+   a pre-existing, documented limitation). If NO Shop purchase works, it's likely an App Store
+   Connect/provisioning issue (needs Robert's access). If only Carnival Pass fails, there's a real
+   narrow bug still to find.
 
-3. **BoostState and ActiveQuest still use the synthesized Decodable** (throws on any missing
-   field, aborting the whole save decode - see item below for the three siblings I already
-   hardened). Neither has a natural default for every field, so fixing it means deciding real
-   fallback semantics (e.g. should a `BoostState` missing `expiry` decode as already-expired and
-   inert?) - a judgment call, not a mechanical fix. Currently harmless (every field in both types
-   has existed since launch). Worth doing in daylight with your input, not guessed overnight.
-
-4. **HUD badge row has no horizontal scroll** (pre-existing, not something I introduced tonight).
-   I added 2 new badges (errand/Face-Off countdowns) to a row that was already a plain HStack +
-   Spacer with no ScrollView. Up to 8 badges could theoretically be active at once now (contract,
-   happy hour, VIP, mogul, errand, Face-Off, N boosts) - I couldn't verify overflow risk on an
-   actual iPad since I have no device-access path while you're asleep (only iPhone simulators are
-   already authorized in this session). Worth an eyeball on your/Kristin's real iPad if the HUD
-   ever looks cramped with a lot going on.
-
-5. **"Franchise" vs "Prestige" naming split.** The canonical in-game name for the reset mechanic
-   is clearly "Franchise" (sheet title, confirm button, success toast, FAQ, and GoalDirector's own
-   "Franchise 5 times" goal all use it) - but 5+ other player-visible strings still say "Prestige"
-   instead: two RootView nudge toasts, RoadmapView's group header + item title ("Prestige N×"),
-   and four Achievements detail strings (one of which, `prestige_3`, has title "Franchise Master"
-   but detail "Prestige 15 times" - both terms in the same row). Real naming decision spanning 5
-   files, not a typo fix. My read: standardize on "Franchise" since the button/toast/FAQ already
-   commit to it - but didn't sweep the rest without you confirming, since a half-applied rename
-   is worse than the current inconsistency.
+4. **HUD badge row has no horizontal scroll** (pre-existing, not something introduced this
+   session). 2 new badges (errand/Face-Off countdowns) were added to a row that was already a
+   plain HStack + Spacer with no ScrollView. Up to 8 badges could theoretically be active at once
+   now (contract, happy hour, VIP, mogul, errand, Face-Off, N boosts) - overflow risk on an actual
+   iPad still unverified (no iPad simulator access grantable overnight; only iPhone simulators
+   were already authorized in this session). Worth an eyeball on a real iPad if the HUD ever
+   looks cramped with a lot going on.
 
 ## Shipped overnight (chronological, each batch tested + pushed to both devices)
 
@@ -107,6 +100,9 @@ Nothing balance/pricing/pacing was changed without your sign-off.
 
 7. Also added `c4e38b4` (Carnival Pass purchase test coverage, see open question #2) before bed
    was mentioned - included here for completeness since it's part of the same investigation.
+
+8. **`105d51b`, `3890262`, `bfce3f3`** — the three items resolved this morning once Robert was
+   back; see "Resolved this morning" above for detail.
 
 ## What was surveyed and came back clean (no action needed)
 
