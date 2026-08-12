@@ -47,7 +47,7 @@ struct VenueSceneView: View {
     /// Which rooms have split their hanging décor into `.hangingLayer` for the sway loop.
     /// `VenueStageView` only mounts the swaying wrapper for these - an empty `.hangingLayer`
     /// Canvas would still cost a pointless 30fps timeline for a room that draws nothing there.
-    static let hasHangingLayer: Set<VenueTheme> = [.burger, .diner]
+    static let hasHangingLayer: Set<VenueTheme> = [.burger, .diner, .sushi, .taco, .dessert, .pizza]
 
     // Material colours. These are shared across every room on purpose - only *structural*
     // colour comes from `VenuePalette`, so the coin-priced neon skin stays a pure data change.
@@ -428,13 +428,6 @@ struct VenueSceneView: View {
                     }
                 }
 
-                // Three paper lanterns replace the bulb garland - design's call, per §6.4 - and
-                // they stay well above y150, clear of the queue the same way the window and
-                // clock do in the other two rooms.
-                lantern(180, 76, palette.accent)
-                lantern(560, 70, Self.cream)
-                lantern(680, 80, palette.accent)
-
             case (.sushi, .floor):
                 // Tatami bands: two straight joints, quieter than a checker or tile grid.
                 stroke(Self.wood, 2, opacity: 0.35) { path in
@@ -537,19 +530,6 @@ struct VenueSceneView: View {
                     Gradient(colors: [palette.accent.opacity(0.22), .clear]),
                     center: p(650, 230), startRadius: 0, endRadius: 130 / 860 * rect.width))
 
-                // Garland: this room's own tuning, not Burger/Diner's shared warm string -
-                // design's own bulb colours here are Pizza's `accent`/`sign` almost exactly,
-                // so unlike the other two rooms this one follows the palette.
-                stroke(Theme.outline, 3) { path in
-                    path.move(to: p(0, 22))
-                    path.addQuadCurve(to: p(430, 30), control: p(215, 56))
-                    path.addQuadCurve(to: p(860, 42), control: p(645, 6))
-                }
-                for (x, y, warm) in [(120.0, 36.0, true), (280.0, 44.0, false),
-                                     (480.0, 24.0, true), (700.0, 16.0, false)] {
-                    glowDot(x, y, 5, warm ? palette.accent : palette.sign)
-                }
-
             case (.pizza, .floor):
                 // Warm wood planks.
                 stroke(Color(hex: "#967A5C"), 2, opacity: 0.3) { path in
@@ -630,31 +610,6 @@ struct VenueSceneView: View {
                     }
                 }
 
-                // Papel picado bunting replaces the garland entirely here - eight notched
-                // flags, not five round bulbs, and no glowDot halo since these are paper, not
-                // lit. A festive, deliberately varied palette rather than a room-tinted one.
-                stroke(Theme.outline, 2.5) { path in
-                    path.move(to: p(0, 18))
-                    path.addQuadCurve(to: p(430, 28), control: p(215, 52))
-                    path.addQuadCurve(to: p(860, 40), control: p(645, 4))
-                }
-                let flagColors = [palette.accent, Color(hex: "#E07A3C"), Color(hex: "#F4A9A0"), Theme.gem]
-                let flagPositions: [(CGFloat, CGFloat)] = [
-                    (70, 26), (160, 38), (250, 44), (340, 38), (500, 24), (590, 16), (680, 20), (770, 28),
-                ]
-                for (i, pos) in flagPositions.enumerated() {
-                    let (fx, fy) = pos
-                    let color = flagColors[i % flagColors.count]
-                    fill(path {
-                        $0.move(to: p(fx, fy)); $0.addLine(to: p(fx + 26, fy))
-                        $0.addLine(to: p(fx + 26, fy + 14)); $0.addLine(to: p(fx + 21, fy + 18))
-                        $0.addLine(to: p(fx + 16, fy + 14)); $0.addLine(to: p(fx + 11, fy + 18))
-                        $0.addLine(to: p(fx + 6, fy + 14)); $0.addLine(to: p(fx, fy + 18))
-                        $0.closeSubpath()
-                    }, color)
-                    context.fill(ellipse(fx + 13, fy + 8, 2.5, 2.5), with: .color(palette.wallBottom))
-                }
-
             case (.dessert, .wall):
                 stroke(palette.wallBottom, 3, opacity: 0.5) { path in
                     for x in [120.0, 340.0, 520.0, 740.0] {
@@ -703,24 +658,6 @@ struct VenueSceneView: View {
                         path.move(to: p(584, y)); path.addLine(to: p(584 + w, y))
                         path.move(to: p(672, y)); path.addLine(to: p(692, y))
                     }
-                }
-
-                // Three pendant globes, not a bulb string - "the softest room in the set."
-                // Design centres these at y58-74, which sits inside the sign's real hidden
-                // band here (y44-151, the same wider-than-reference-frame sign behind every
-                // "invisible built-in" fix in this sweep) - all three would have been
-                // completely covered. Raised to clear it the way the garland bulbs already do
-                // in Burger/Diner/Pizza, which mostly sit above y44 rather than beside it.
-                stroke(Theme.outline, 2.5) { path in
-                    path.move(to: p(320, 0)); path.addLine(to: p(320, 22))
-                    path.move(to: p(430, 0)); path.addLine(to: p(430, 10))
-                    path.move(to: p(540, 0)); path.addLine(to: p(540, 26))
-                }
-                for (x, y, color) in [(320.0, 22.0, palette.sign), (430.0, 10.0, palette.accent),
-                                      (540.0, 26.0, palette.counter)] {
-                    context.fill(ellipse(x, y, 26, 26), with: .color(color.opacity(0.2)))
-                    fill(ellipse(x, y, 13, 13), color)
-                    context.fill(ellipse(x, y, 6, 6), with: .color(.white.opacity(0.6)))
                 }
 
             case (.dessert, .floor):
@@ -818,7 +755,13 @@ struct VenueSceneView: View {
 
                 fill(rr(546, 80, 30, 18, 4), Self.hardware)
 
-                // String lights on two poles across the lot, not a garland on a wall.
+                // String lights on two poles across the lot, not a garland on a wall. Held out
+                // of the sway pass, unlike the other rooms' hanging décor: the wire's endpoints
+                // are drawn to meet these two poles exactly, and the poles are rigid, grounded
+                // posts that can't rotate with it - a whole-layer rotation would visibly pull
+                // the wire away from the pole tops at both seams. Would need the wire redrawn
+                // per frame with a varying sag instead of a transform; not worth it for +/-1
+                // degree of motion, so this one stays static.
                 stroke(Theme.outline, 3) { path in
                     path.move(to: p(40, 60))
                     path.addQuadCurve(to: p(430, 84), control: p(235, 110))
@@ -856,10 +799,79 @@ struct VenueSceneView: View {
 
             // Hanging décor, split from `.wall` so `VenueStageView` can sway the whole layer as
             // one rigid piece. Burger and Diner share the same physical garland (see
-            // `warmGarland`'s own doc comment); the other five rooms' hanging elements
-            // (lanterns, flags, pendants, string lights) haven't moved off `.wall` yet.
+            // `warmGarland`'s own doc comment); Food Truck's string lights stay in `.wall` -
+            // see the note at that call site for why.
             case (.burger, .hangingLayer), (.diner, .hangingLayer):
                 warmGarland()
+
+            // This room's own tuning, not Burger/Diner's shared warm string - design's own
+            // bulb colours here are Pizza's `accent`/`sign` almost exactly, so unlike the
+            // other two this one follows the palette.
+            case (.pizza, .hangingLayer):
+                stroke(Theme.outline, 3) { path in
+                    path.move(to: p(0, 22))
+                    path.addQuadCurve(to: p(430, 30), control: p(215, 56))
+                    path.addQuadCurve(to: p(860, 42), control: p(645, 6))
+                }
+                for (x, y, warm) in [(120.0, 36.0, true), (280.0, 44.0, false),
+                                     (480.0, 24.0, true), (700.0, 16.0, false)] {
+                    glowDot(x, y, 5, warm ? palette.accent : palette.sign)
+                }
+
+            // Three lanterns on separate cords, rotated as one rigid layer around the canvas's
+            // top-center rather than each around its own cord - a simplification shared with
+            // the garland's own whole-layer rotation, not a per-lantern independent swing.
+            // Revisit if it reads wrong on device; cheap either way since it's the same
+            // TimelineView the garland already uses, not a second clock.
+            case (.sushi, .hangingLayer):
+                lantern(180, 76, palette.accent)
+                lantern(560, 70, Self.cream)
+                lantern(680, 80, palette.accent)
+
+            // Papel picado bunting - eight notched flags, not five round bulbs, and no
+            // glowDot halo since these are paper, not lit. A festive, deliberately varied
+            // palette rather than a room-tinted one.
+            case (.taco, .hangingLayer):
+                stroke(Theme.outline, 2.5) { path in
+                    path.move(to: p(0, 18))
+                    path.addQuadCurve(to: p(430, 28), control: p(215, 52))
+                    path.addQuadCurve(to: p(860, 40), control: p(645, 4))
+                }
+                let flagColors = [palette.accent, Color(hex: "#E07A3C"), Color(hex: "#F4A9A0"), Theme.gem]
+                let flagPositions: [(CGFloat, CGFloat)] = [
+                    (70, 26), (160, 38), (250, 44), (340, 38), (500, 24), (590, 16), (680, 20), (770, 28),
+                ]
+                for (i, pos) in flagPositions.enumerated() {
+                    let (fx, fy) = pos
+                    let color = flagColors[i % flagColors.count]
+                    fill(path {
+                        $0.move(to: p(fx, fy)); $0.addLine(to: p(fx + 26, fy))
+                        $0.addLine(to: p(fx + 26, fy + 14)); $0.addLine(to: p(fx + 21, fy + 18))
+                        $0.addLine(to: p(fx + 16, fy + 14)); $0.addLine(to: p(fx + 11, fy + 18))
+                        $0.addLine(to: p(fx + 6, fy + 14)); $0.addLine(to: p(fx, fy + 18))
+                        $0.closeSubpath()
+                    }, color)
+                    context.fill(ellipse(fx + 13, fy + 8, 2.5, 2.5), with: .color(palette.wallBottom))
+                }
+
+            // Three pendant globes, not a bulb string - "the softest room in the set." Design
+            // centres these at y58-74, which sits inside the sign's real hidden band here
+            // (y44-151, the same wider-than-reference-frame sign behind every "invisible
+            // built-in" fix in this sweep) - all three would have been completely covered.
+            // Raised to clear it the way the garland bulbs already do in Burger/Diner/Pizza,
+            // which mostly sit above y44 rather than beside it.
+            case (.dessert, .hangingLayer):
+                stroke(Theme.outline, 2.5) { path in
+                    path.move(to: p(320, 0)); path.addLine(to: p(320, 22))
+                    path.move(to: p(430, 0)); path.addLine(to: p(430, 10))
+                    path.move(to: p(540, 0)); path.addLine(to: p(540, 26))
+                }
+                for (x, y, color) in [(320.0, 22.0, palette.sign), (430.0, 10.0, palette.accent),
+                                      (540.0, 26.0, palette.counter)] {
+                    context.fill(ellipse(x, y, 26, 26), with: .color(color.opacity(0.2)))
+                    fill(ellipse(x, y, 13, 13), color)
+                    context.fill(ellipse(x, y, 6, 6), with: .color(.white.opacity(0.6)))
+                }
 
             default:
                 break
