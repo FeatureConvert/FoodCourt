@@ -32,7 +32,7 @@ struct VenueSceneView: View {
     let layer: Layer
 
     /// Which rooms have been rebuilt. Everything else falls through to the legacy props.
-    static let rebuilt: Set<VenueTheme> = [.burger, .diner, .sushi, .pizza, .taco, .dessert]
+    static let rebuilt: Set<VenueTheme> = [.burger, .diner, .sushi, .pizza, .taco, .dessert, .foodtruck]
 
     // Material colours. These are shared across every room on purpose - only *structural*
     // colour comes from `VenuePalette`, so the coin-priced neon skin stays a pure data change.
@@ -738,6 +738,98 @@ struct VenueSceneView: View {
                 context.fill(ellipsec(652, 378, 9, 9), with: .color(palette.accent.opacity(0.75)))
                 context.fill(rrc(680, 372, 24, 16, 3), with: .color(palette.sign.opacity(0.75)))
                 context.fill(ellipsec(736, 378, 9, 9), with: .color(palette.counter.opacity(0.75)))
+
+            case (.foodtruck, .wall):
+                // No wall bones here at all - "not a room," per design. The sky gradient is
+                // already the shared wallTop/wallBottom layer under this one in
+                // VenueStageView, so this pass only adds what sits in front of it: moon,
+                // stars, a distant skyline, and the truck itself as the architecture.
+                context.fill(ellipse(700, 60, 24, 24), with: .color(Color(hex: "#FFEFD1").opacity(0.9)))
+                for (x, y, r) in [(692.0, 54.0, 5.0), (708.0, 66.0, 3.5), (698.0, 70.0, 2.5)] {
+                    context.fill(ellipse(x, y, r, r), with: .color(Color(hex: "#D9C6A0").opacity(0.55)))
+                }
+                for (x, y, r) in [(120.0, 48.0, 1.6), (210.0, 72.0, 1.3), (560.0, 40.0, 1.5),
+                                  (800.0, 96.0, 1.3), (380.0, 52.0, 1.2)] {
+                    context.fill(ellipse(x, y, r, r), with: .color(Color(hex: "#FFEFD1")))
+                }
+                context.fill(path {
+                    $0.move(to: p(0, 300)); $0.addLine(to: p(60, 262)); $0.addLine(to: p(112, 300))
+                    $0.closeSubpath()
+                }, with: .color(Color(hex: "#2E1608").opacity(0.8)))
+                context.fill(path {
+                    $0.move(to: p(760, 300)); $0.addLine(to: p(816, 256)); $0.addLine(to: p(860, 288))
+                    $0.addLine(to: p(860, 300)); $0.closeSubpath()
+                }, with: .color(Color(hex: "#2E1608").opacity(0.8)))
+
+                // The truck. Corrugated cream body, cyan awning, glowing serving window, chalk
+                // menu panel, a roundel logo, and the AC unit that fills in the right end.
+                fill(rr(150, 96, 560, 204, 18), Color(hex: "#FFEFD1"))
+                stroke(Color(hex: "#D9C6A0"), 3, opacity: 0.7) { path in
+                    for x in [190.0, 230.0, 270.0, 620.0, 660.0] {
+                        path.move(to: p(x, 100)); path.addLine(to: p(x, 296))
+                    }
+                }
+                fill(rr(150, 96, 560, 18, 9), palette.accent)
+
+                fill(path {
+                    $0.move(to: p(300, 130)); $0.addLine(to: p(560, 130))
+                    $0.addLine(to: p(574, 156)); $0.addLine(to: p(286, 156)); $0.closeSubpath()
+                }, palette.accent)
+                stroke(Color(hex: "#FFEFD1"), 6, opacity: 0.6) { path in
+                    for x in stride(from: 312.0, through: 528.0, by: 36) {
+                        path.move(to: p(x, 130)); path.addLine(to: p(x - 13, 156))
+                    }
+                }
+
+                fill(rr(300, 164, 260, 96, 8), Color(hex: "#2E2118"))
+                context.fill(rr(308, 172, 244, 80, 5), with: .radialGradient(
+                    Gradient(colors: [Color(hex: "#FFB84D").opacity(0.4), Color(hex: "#5C2E12").opacity(0.4)]),
+                    center: CGPoint(x: box(308, 172, 244, 80).midX, y: box(308, 172, 244, 80).midY),
+                    startRadius: 0, endRadius: 120 / 860 * rect.width))
+                stroke(Color(hex: "#0B131C"), 3, opacity: 0.7) { path in
+                    path.move(to: p(316, 212)); path.addLine(to: p(544, 212))
+                }
+                context.fill(rr(330, 218, 34, 18, 3), with: .color(Color(hex: "#0B131C").opacity(0.7)))
+                context.fill(rr(470, 218, 44, 18, 3), with: .color(Color(hex: "#0B131C").opacity(0.7)))
+                fill(rr(296, 256, 268, 12, 5), palette.counter)
+
+                fill(rr(600, 170, 86, 98, 6), Color(hex: "#2E2A2B"))
+                stroke(Color(hex: "#FFEFD1"), 4.5, opacity: 0.55) { path in
+                    for (i, w) in [48.0, 56.0, 40.0, 52.0].enumerated() {
+                        let y = 188 + Double(i) * 18
+                        path.move(to: p(612, y)); path.addLine(to: p(612 + w, y))
+                    }
+                }
+                fill(ellipse(216, 196, 30, 30), palette.accent)
+                stroke(Theme.outline, 2.5) { path in
+                    path.move(to: p(204, 190)); path.addQuadCurve(to: p(222, 184), control: p(210, 180))
+                    path.move(to: p(206, 206)); path.addQuadCurve(to: p(226, 206), control: p(216, 214))
+                }
+
+                fill(rr(546, 80, 30, 18, 4), Self.hardware)
+
+                // String lights on two poles across the lot, not a garland on a wall.
+                stroke(Theme.outline, 3) { path in
+                    path.move(to: p(40, 60))
+                    path.addQuadCurve(to: p(430, 84), control: p(235, 110))
+                    path.addQuadCurve(to: p(820, 96), control: p(625, 58))
+                }
+                stroke(Theme.outline, 5) { path in
+                    path.move(to: p(40, 60)); path.addLine(to: p(40, 300))
+                    path.move(to: p(820, 96)); path.addLine(to: p(820, 300))
+                }
+                for (x, y, warm) in [(140.0, 84.0, false), (430.0, 84.0, true), (720.0, 76.0, false)] {
+                    glowDot(x, y, 5, warm ? Color(hex: "#FFEFD1") : palette.accent)
+                }
+
+            case (.foodtruck, .floor):
+                // Pavement with a few expansion cracks - no plank, tile, or checker here.
+                stroke(Color(hex: "#7A7266"), 2, opacity: 0.4) { path in
+                    path.move(to: p(0, 340)); path.addLine(to: p(860, 340))
+                    path.move(to: p(120, 300)); path.addLine(to: p(90, 400))
+                    path.move(to: p(400, 300)); path.addLine(to: p(386, 400))
+                    path.move(to: p(690, 300)); path.addLine(to: p(714, 400))
+                }
 
             case (.taco, .floor):
                 // Terracotta grid: a wider, calmer lattice than the checker or planks.
