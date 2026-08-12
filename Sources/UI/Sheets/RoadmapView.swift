@@ -21,7 +21,7 @@ struct RoadmapSection: View {
             group("Venues", items: venueItems)
             group("League", items: leagueItems)
             group("Research", items: researchItems)
-            group("Prestige", items: prestigeItems)
+            group("Franchise", items: prestigeItems)
             group("Legacy", items: legacyItems)
         }
     }
@@ -54,7 +54,7 @@ struct RoadmapSection: View {
 
     private var prestigeItems: [Item] {
         [1, 5, 15, 30].map { n in
-            Item(id: "prestige-\(n)", title: "Prestige \(n)×",
+            Item(id: "prestige-\(n)", title: "Franchise \(n)×",
                 detail: "\(engine.state.prestigeCount) / \(n)",
                 done: engine.state.prestigeCount >= n)
         }

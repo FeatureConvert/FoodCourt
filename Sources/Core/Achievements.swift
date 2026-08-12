@@ -100,15 +100,15 @@ enum AchievementCatalog {
                         metric: .leagueTier, threshold: Double(LeagueTier.diamond.rawValue), rewardGems: 120, symbol: "trophy.fill"),
 
         // Prestige
-        AchievementSpec(id: "prestige_1", title: "Fresh Start", detail: "Prestige once",
+        AchievementSpec(id: "prestige_1", title: "Fresh Start", detail: "Franchise once",
                         metric: .prestiges, threshold: 1, rewardGems: 15, symbol: "arrow.triangle.2.circlepath"),
-        AchievementSpec(id: "prestige_2", title: "Serial Founder", detail: "Prestige 5 times",
+        AchievementSpec(id: "prestige_2", title: "Serial Founder", detail: "Franchise 5 times",
                         metric: .prestiges, threshold: 5, rewardGems: 45, symbol: "arrow.triangle.2.circlepath"),
-        AchievementSpec(id: "prestige_3", title: "Franchise Master", detail: "Prestige 15 times",
+        AchievementSpec(id: "prestige_3", title: "Franchise Master", detail: "Franchise 15 times",
                         metric: .prestiges, threshold: 15, rewardGems: 120, symbol: "arrow.triangle.2.circlepath"),
         // 40 franchises at the intended 3-7 day cadence is roughly the six-month arc's
         // finish line - the prestige track's capstone, matching earn_4 above.
-        AchievementSpec(id: "prestige_4", title: "Food Court Legend", detail: "Prestige 40 times",
+        AchievementSpec(id: "prestige_4", title: "Food Court Legend", detail: "Franchise 40 times",
                         metric: .prestiges, threshold: 40, rewardGems: 250, symbol: "arrow.triangle.2.circlepath"),
     ]
 

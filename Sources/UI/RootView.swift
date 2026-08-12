@@ -558,12 +558,12 @@ struct RootView: View {
     private func announcePrestigeNudge() {
         if engine.state.prestigeCount == 0 {
             if engine.hasSeenIntro(IntroKey.prestige) {
-                showToast("You've earned enough to prestige! Tap the star for a permanent profit boost.")
+                showToast("You've earned enough to franchise! Tap the star for a permanent profit boost.")
             } else {
                 present(.prestigeIntro)
             }
         } else {
-            showToast("Nothing left to build here — prestige again for another permanent boost.")
+            showToast("Nothing left to build here — franchise again for another permanent boost.")
         }
     }
 
