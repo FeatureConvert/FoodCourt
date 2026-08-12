@@ -325,6 +325,21 @@ final class SyncAndSafetyTests: XCTestCase {
         XCTAssertEqual(engine.state.legacyPerks[offer[0].id], 1)
     }
 
+    /// Once every perk is maxed out, `owed` (level minus total picks) stays positive forever -
+    /// there's no way to ever bring it back to zero. `pendingLegacyPerkOffer` must still resolve
+    /// to nil past that point rather than dangling a permanent, unfulfillable "pick owed" state.
+    @MainActor
+    func testLegacyOfferResolvesToNilOnceEveryPerkIsMaxed() {
+        var state = GameState.newGame()
+        state.legacy.level = 20   // well past the 12 total stacks (3+2+3+2+2) available
+        state.legacyPerks = ["capital": 3, "patience": 2, "nightshift": 3, "showman": 2, "negotiator": 2]
+        let engine = GameEngine(state: state, startTimers: false, persistence: EphemeralPersistence())
+
+        XCTAssertNil(engine.pendingLegacyPerkOffer, "nothing left to offer once every perk is maxed")
+        engine.chooseLegacyPerk("capital")
+        XCTAssertEqual(engine.state.legacyPerks["capital"], 3, "an exhausted tree must reject every pick")
+    }
+
     func testLegacyTreeEffectsAggregate() {
         let effects = LegacyTree.effects(taken: ["patience": 2, "negotiator": 1, "showman": 1])
         XCTAssertEqual(effects.staleGraceBonusHours, 8)

@@ -61,6 +61,44 @@ passes, log open questions rather than blocking on them, don't spend money on cr
   starts the notification silently skips to tomorrow instead of firing for tonight. Arguably
   intended (can't schedule in the past) - worth a decision from Robert either way, not a clear bug.
 
+- Third bug-hunt survey (crash-risk: force-unwraps, stale-index array access, Int overflow,
+  decode fragility) found no live force-unwraps or try! (prior passes already cleaned those up),
+  and confirmed NaN/overflow guards from earlier fixes still hold. Two real-but-not-currently-
+  reachable findings: fixed the safe one (CollectionView.placementLabel + QuestsView's catering
+  requirements list both subscripted Balance.venue(_).stations by a PERSISTED index rather than
+  a catalog-derived one - reconcileWithCatalog only grows station arrays, never shrinks, so this
+  can't fire with today's catalog, but would crash on a save from a future catalog edit that
+  removes/reorders a station. Added bounds guards, no behavior change today). Committed 6a439f7,
+  pushed to both devices.
+
+3. **Codable hardening inconsistency (not fixed, logged as a question).** GameState/StationState/
+   Entitlements/etc. all have hand-written init(from:) using decodeIfPresent so an old save missing
+   a newer field decodes gracefully. VenueState, BoostState, TutorialState, FestivalState, and
+   ActiveQuest still use the synthesized decoder, which throws keyNotFound on any missing field -
+   currently harmless (every field in those 5 types has existed since launch), but the next new
+   field added to any of them would abort the WHOLE save decode instead of degrading, the exact
+   failure mode other structs' doc comments explicitly call unacceptable. Didn't fix myself:
+   converting 5 structs to hand-written decoders is real surface area to get subtly wrong
+   unsupervised overnight, and it's really a "should this be a project-wide policy" call for
+   Robert, not a bug to patch. Worth doing carefully in daylight with tests, not at 3am.
+
+- Visually verified the venue-skin fix on the iPhone 17 Pro Max simulator (injected a save with
+  neon equipped on Burger Shack): background gradient, station-card buy/unlock button colors, and
+  the Venues tab row all correctly switched to neon purple/green. Confirms the earlier fix works,
+  not just compiles.
+
+4. **HUD badge row has no horizontal scroll (pre-existing, not something I introduced).** Wanted
+   to check whether my 2 new errand/Face-Off badges could push the HUD badge row off-screen on
+   iPad, especially landscape - couldn't verify on an actual iPad simulator (no device access
+   grantable while Robert's asleep; the iPhone-only simulator I have access to doesn't exercise
+   iPad's .regular size class code path). From reading RootView.landscapeContent, the HUD (badges
+   included) already renders at full width in landscape, same as portrait, and the badge row was
+   already a plain HStack + Spacer with no ScrollView before I touched it - so this isn't a
+   regression I caused, but with up to 8 possible badges now (contract, happy hour, VIP, mogul,
+   errand, Face-Off, N boosts) simultaneously active, it could theoretically overflow even iPad's
+   width. Given I can't visually verify a fix and this predates tonight's changes, not touching
+   it - flagging for Robert to eyeball on his/Kristin's actual iPad if it ever looks cramped.
+
 ## Rules for tonight
 - Ship: bug fixes, QOL matching already-approved patterns, test coverage, performance fixes.
 - Don't ship without flagging: economy/pricing/drop-rate/pacing number changes - log as a question instead.
