@@ -102,9 +102,9 @@ struct StationCardView: View {
     private var venueID: Int { engine.state.currentVenue }
     private var state: StationState { engine.state.venues[venueID].stations[spec.id] }
     private var palette: VenuePalette { VenuePalette.of(Balance.venue(venueID).theme) }
-    private var cycle: TimeInterval { engine.state.cycleTime(venue: venueID, station: spec.id) }
+    private var cycle: TimeInterval { engine.cachedCycleTime(venue: venueID, station: spec.id) }
     private var payout: Double {
-        engine.state.baseRevenue(venue: venueID, station: spec.id) * engine.payoutMultiplier
+        engine.cachedBaseRevenue(venue: venueID, station: spec.id) * engine.payoutMultiplier
     }
     private var recipeStars: Int {
         Recipes.stars(engine.state.recipeCards, venue: venueID, station: spec.id)

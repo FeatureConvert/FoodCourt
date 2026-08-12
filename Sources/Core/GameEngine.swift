@@ -114,6 +114,36 @@ final class GameEngine: ObservableObject {
     private var lastBurstAt: [Int: CFTimeInterval] = [:]
     private static let burstMinimumInterval: CFTimeInterval = 0.25
 
+    /// `state.modifiers(venue:station:)` walks every manager in the venue plus the research
+    /// and tools dictionaries, and `advance(by:)` already computes it once per owned station
+    /// on every tick to run the actual game math. Station-row UI wants the same numbers just
+    /// to display them, so it reads this cache (refreshed every tick, ~50ms) instead of
+    /// redoing that walk again on every render. `cachedModifiers` falls back to a direct
+    /// (correct, just uncached) computation for anything not yet in here - a fresh
+    /// preview/test engine that never ticks, or a station advance() hasn't reached yet -
+    /// so a cache miss can never show a wrong number, only an uncached one.
+    private struct StationKey: Hashable { let venue: Int; let station: Int }
+    private var modifiersCache: [StationKey: StationModifiers] = [:]
+
+    func cachedModifiers(venue: Int, station: Int) -> StationModifiers {
+        modifiersCache[StationKey(venue: venue, station: station)]
+            ?? state.modifiers(venue: venue, station: station)
+    }
+
+    func cachedCycleTime(venue: Int, station: Int) -> TimeInterval {
+        let spec = Balance.venue(venue).stations[station]
+        let level = state.venues[venue].stations[station].level
+        let base = Balance.cycleTime(spec: spec, level: level)
+        return max(Balance.minimumCycle, base / cachedModifiers(venue: venue, station: station).speed)
+    }
+
+    func cachedBaseRevenue(venue: Int, station: Int) -> Double {
+        let spec = Balance.venue(venue).stations[station]
+        let level = state.venues[venue].stations[station].level
+        return Balance.revenuePerCycle(spec: spec, level: level)
+            * cachedModifiers(venue: venue, station: station).profit
+    }
+
     private let persistence: GamePersisting
     /// Every chance-driven system draws from here. Production uses the system generator;
     /// tests pin it to a `SplitMix64` seed so the pacing sims measure tuning rather than
@@ -295,6 +325,7 @@ final class GameEngine: ObservableObject {
                 // recomputes them internally, and they walk every manager in the venue, so
                 // calling all three per station tripled the work on every tick.
                 let mods = state.modifiers(venue: venue.id, station: spec.id)
+                modifiersCache[StationKey(venue: venue.id, station: spec.id)] = mods
                 let cycle = max(Balance.minimumCycle,
                                 Balance.cycleTime(spec: spec, level: station.level) / mods.speed)
                 let revenue = Balance.revenuePerCycle(spec: spec, level: station.level)

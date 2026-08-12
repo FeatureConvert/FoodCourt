@@ -221,6 +221,38 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(e.autoAssignBenchedManagers(), 0, "no open stations or bench left")
     }
 
+    /// The station-row UI reads `cachedModifiers`/`cachedCycleTime`/`cachedBaseRevenue`
+    /// instead of recomputing the manager/research/synergy walk on every render - this
+    /// checks the cache never disagrees with a fresh, uncached computation, whether or not
+    /// anything has ticked yet.
+    @MainActor
+    func testCachedModifiersFallBackBeforeFirstTickAndAgreeAfterAdvance() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 5
+        _ = state.hire(specID: "sam", venue: 0, station: 0)
+        let e = engine(state)
+
+        // Nothing has ticked yet (startTimers: false, no advance() called) - the cache is
+        // empty, so this must fall back to the same number a direct computation gives.
+        XCTAssertEqual(e.cachedModifiers(venue: 0, station: 0), e.state.modifiers(venue: 0, station: 0))
+
+        // After a tick, the cache holds the value advance() itself just computed and used.
+        e.advance(by: 0.05)
+        XCTAssertEqual(e.cachedModifiers(venue: 0, station: 0), e.state.modifiers(venue: 0, station: 0))
+        XCTAssertEqual(e.cachedCycleTime(venue: 0, station: 0),
+                       e.state.cycleTime(venue: 0, station: 0), accuracy: 1e-9)
+        XCTAssertEqual(e.cachedBaseRevenue(venue: 0, station: 0),
+                       e.state.baseRevenue(venue: 0, station: 0), accuracy: 1e-9)
+
+        // A later change (benching the manager, which drops the bond profit bonus) is
+        // reflected as soon as the next tick recomputes it - the cache never gets stuck.
+        e.assign(managerID: nil, venue: 0, station: 0)
+        e.advance(by: 0.05)
+        XCTAssertEqual(e.cachedModifiers(venue: 0, station: 0), e.state.modifiers(venue: 0, station: 0))
+        XCTAssertEqual(e.cachedModifiers(venue: 0, station: 0).profit, 1, accuracy: 1e-9,
+                       "no manager, no perks, no research - profit modifier should be back to 1")
+    }
+
     // MARK: 6 - Research
 
     func testResearchRespectsPrerequisites() {
