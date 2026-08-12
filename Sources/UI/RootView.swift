@@ -375,10 +375,10 @@ struct RootView: View {
             if let message { showToast(message); engine.toast = nil }
         }
         .onChange(of: store.lastGrant) { _, new in
-            if let new { sound.play(.bigReward); showToast(new) }
+            if let new { sound.play(.bigReward); showToast(new); store.lastGrant = nil }
         }
         .onChange(of: store.errorMessage) { _, new in
-            if let new { sound.play(.denied); showToast(new) }
+            if let new { sound.play(.denied); showToast(new); store.errorMessage = nil }
         }
         .onChange(of: engine.shouldNudgePrestige) { _, nudge in
             if nudge { announcePrestigeNudge() }
