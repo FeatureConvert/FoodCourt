@@ -21,6 +21,10 @@ struct VenueSceneView: View {
         case wall
         /// Floor material, drawn over the floor gradient.
         case floor
+        /// Front face of the counter band only - design's y340-400. Kept separate from `wall`
+        /// and `floor` because the counter is a much shorter, always-on-top view in
+        /// `VenueStageView`, not the full-height canvas the other two layers share.
+        case counterFront
     }
 
     let theme: VenueTheme
@@ -28,7 +32,7 @@ struct VenueSceneView: View {
     let layer: Layer
 
     /// Which rooms have been rebuilt. Everything else falls through to the legacy props.
-    static let rebuilt: Set<VenueTheme> = [.burger, .diner, .sushi, .pizza, .taco]
+    static let rebuilt: Set<VenueTheme> = [.burger, .diner, .sushi, .pizza, .taco, .dessert]
 
     // Material colours. These are shared across every room on purpose - only *structural*
     // colour comes from `VenuePalette`, so the coin-priced neon skin stays a pure data change.
@@ -68,6 +72,23 @@ struct VenueSceneView: View {
             }
             func path(_ build: (inout Path) -> Void) -> Path {
                 var p = Path(); build(&p); return p
+            }
+            /// Same idea as `p`/`box`, but for the `.counterFront` layer: that view is only
+            /// `h * 0.17` tall in `VenueStageView`, not the full stage, so it needs its own y
+            /// divisor - design's counter band spans y340-400, a 60-unit strip, not the shared
+            /// 0-400 frame the wall and floor layers use.
+            func pc(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+                CGPoint(x: rect.minX + x / 860 * rect.width, y: rect.minY + (y - 340) / 60 * rect.height)
+            }
+            func boxc(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> CGRect {
+                CGRect(x: rect.minX + x / 860 * rect.width, y: rect.minY + (y - 340) / 60 * rect.height,
+                       width: w / 860 * rect.width, height: h / 60 * rect.height)
+            }
+            func rrc(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat, _ radius: CGFloat) -> Path {
+                Path(roundedRect: boxc(x, y, w, h), cornerRadius: radius / 860 * rect.width)
+            }
+            func ellipsec(_ cx: CGFloat, _ cy: CGFloat, _ rx: CGFloat, _ ry: CGFloat) -> Path {
+                Path(ellipseIn: boxc(cx - rx, cy - ry, rx * 2, ry * 2))
             }
             /// Stroke widths key off the smaller axis, like `VenueProps` does, so a batten line
             /// does not fatten into a ribbon on a wide, short stage.
@@ -623,6 +644,100 @@ struct VenueSceneView: View {
                     }, color)
                     context.fill(ellipse(fx + 13, fy + 8, 2.5, 2.5), with: .color(palette.wallBottom))
                 }
+
+            case (.dessert, .wall):
+                stroke(palette.wallBottom, 3, opacity: 0.5) { path in
+                    for x in [120.0, 340.0, 520.0, 740.0] {
+                        path.move(to: p(x, 0)); path.addLine(to: p(x, 236))
+                    }
+                }
+                stroke(palette.wallBottom, 2, opacity: 0.35) { path in
+                    for y in [88.0, 164.0] {
+                        path.move(to: p(0, y)); path.addLine(to: p(860, y))
+                    }
+                }
+                context.fill(Path(box(0, 236, 860, 64)), with: .color(palette.wallBottom))
+                context.fill(Path(box(0, 236, 860, 64)), with: .color(.white.opacity(0.06)))
+                stroke(palette.wallBottom, 2.5, opacity: 0.6) { path in
+                    for i in 0..<9 {
+                        let x = 70 + Double(i) * 100
+                        path.move(to: p(x, 236)); path.addLine(to: p(x, 300))
+                    }
+                }
+                // Mint trim, not gold or pink - the note in design's own reference is that this
+                // is what keeps the room off a pure pink monochrome.
+                context.fill(Path(box(0, 232, 860, 4)), with: .color(palette.accent.opacity(0.45)))
+
+                // Pastry wall shelf: two shelves of small cakes and macarons, not a single prop.
+                fill(rr(100, 80, 170, 110, 10), Color(hex: "#5C4168"))
+                stroke(Theme.outline, 2.5, opacity: 0.5) { path in
+                    path.move(to: p(112, 116)); path.addLine(to: p(258, 116))
+                    path.move(to: p(112, 152)); path.addLine(to: p(258, 152))
+                }
+                fill(rr(126, 96, 22, 20, 4), palette.counter)
+                context.fill(ellipse(137, 94, 4, 4), with: .color(Theme.negative))
+                context.stroke(ellipse(137, 94, 4, 4), with: .color(Theme.outline), lineWidth: 1.5)
+                fill(rr(176, 100, 26, 16, 8), palette.accent)
+                fill(rr(222, 96, 20, 20, 4), palette.sign)
+                fill(rr(130, 132, 26, 20, 4), palette.sign)
+                fill(rr(180, 136, 22, 16, 7), palette.counter)
+                fill(rr(222, 132, 24, 20, 4), palette.accent)
+
+                // Menu board.
+                fill(rr(560, 66, 180, 124, 8), Self.hardware)
+                context.fill(rr(572, 78, 156, 100, 4), with: .color(Color(hex: "#2E2A2B")))
+                context.fill(rr(600, 86, 100, 9, 4), with: .color(palette.sign.opacity(0.85)))
+                stroke(palette.sign, 5, opacity: 0.5) { path in
+                    for (i, w) in [64.0, 56.0, 70.0, 48.0].enumerated() {
+                        let y = 112 + Double(i) * 18
+                        path.move(to: p(584, y)); path.addLine(to: p(584 + w, y))
+                        path.move(to: p(672, y)); path.addLine(to: p(692, y))
+                    }
+                }
+
+                // Three pendant globes, not a bulb string - "the softest room in the set."
+                // Design centres these at y58-74, which sits inside the sign's real hidden
+                // band here (y44-151, the same wider-than-reference-frame sign behind every
+                // "invisible built-in" fix in this sweep) - all three would have been
+                // completely covered. Raised to clear it the way the garland bulbs already do
+                // in Burger/Diner/Pizza, which mostly sit above y44 rather than beside it.
+                stroke(Theme.outline, 2.5) { path in
+                    path.move(to: p(320, 0)); path.addLine(to: p(320, 22))
+                    path.move(to: p(430, 0)); path.addLine(to: p(430, 10))
+                    path.move(to: p(540, 0)); path.addLine(to: p(540, 26))
+                }
+                for (x, y, color) in [(320.0, 22.0, palette.sign), (430.0, 10.0, palette.accent),
+                                      (540.0, 26.0, palette.counter)] {
+                    context.fill(ellipse(x, y, 26, 26), with: .color(color.opacity(0.2)))
+                    fill(ellipse(x, y, 13, 13), color)
+                    context.fill(ellipse(x, y, 6, 6), with: .color(.white.opacity(0.6)))
+                }
+
+            case (.dessert, .floor):
+                // Sprinkle dots, alternating counter and accent tints.
+                for (x, y, color) in [(120.0, 336.0, palette.counter), (300.0, 368.0, palette.accent),
+                                      (520.0, 330.0, palette.counter), (700.0, 372.0, palette.accent),
+                                      (800.0, 336.0, palette.counter)] {
+                    context.fill(ellipse(x, y, 3, 3), with: .color(color.opacity(0.4)))
+                }
+                context.fill(ellipse(430, 300, 90, 46), with: .radialGradient(
+                    Gradient(colors: [palette.accent.opacity(0.14), .clear]),
+                    center: p(430, 300), startRadius: 0, endRadius: 90 / 860 * rect.width))
+
+            case (.dessert, .counterFront):
+                // Glass display-case windows - this room's signature detail, called out by name
+                // in the brief, so it earns the one bespoke counter-front layer in this sweep
+                // rather than the shared plain band every other room still uses.
+                for caseX: CGFloat in [80, 620] {
+                    context.fill(rrc(caseX, 356, 160, 38, 6), with: .color(palette.sign.opacity(0.14)))
+                    context.stroke(rrc(caseX, 356, 160, 38, 6), with: .color(.white.opacity(0.35)), lineWidth: 2)
+                }
+                context.fill(rrc(104, 372, 24, 16, 3), with: .color(palette.sign.opacity(0.75)))
+                context.fill(ellipsec(156, 378, 9, 9), with: .color(palette.counter.opacity(0.75)))
+                context.fill(rrc(184, 374, 26, 14, 6), with: .color(palette.accent.opacity(0.75)))
+                context.fill(ellipsec(652, 378, 9, 9), with: .color(palette.accent.opacity(0.75)))
+                context.fill(rrc(680, 372, 24, 16, 3), with: .color(palette.sign.opacity(0.75)))
+                context.fill(ellipsec(736, 378, 9, 9), with: .color(palette.counter.opacity(0.75)))
 
             case (.taco, .floor):
                 // Terracotta grid: a wider, calmer lattice than the checker or planks.

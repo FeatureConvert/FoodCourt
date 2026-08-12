@@ -117,6 +117,9 @@ struct VenueStageView: View {
                     Rectangle().fill(palette.counterEdge)
                     Rectangle().fill(palette.counter).frame(height: 7)
                     Rectangle().fill(Color.white.opacity(0.22)).frame(height: 1.5)
+                    if VenueSceneView.rebuilt.contains(venue.theme) {
+                        VenueSceneView(theme: venue.theme, palette: palette, layer: .counterFront)
+                    }
                 }
                 .frame(height: h * 0.17)
             }
