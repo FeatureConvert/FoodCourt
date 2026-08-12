@@ -112,7 +112,11 @@ private struct QuestsSection: View {
                     .font(Theme.body(9, weight: .medium))
                     .foregroundStyle(Theme.textDim)
             }
-            ForEach(order.requirements.keys.sorted(), id: \.self) { station in
+            // Guards against a stale order rolled against an older catalog naming a station
+            // index the current build no longer has - skip it rather than crash on the subscript.
+            ForEach(order.requirements.keys.sorted().filter {
+                Balance.venue(order.venue).stations.indices.contains($0)
+            }, id: \.self) { station in
                 let spec = Balance.venue(order.venue).stations[station]
                 let need = order.requirements[station] ?? 0
                 let have = min(order.progress[station] ?? 0, need)

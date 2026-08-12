@@ -345,7 +345,9 @@ private struct StaffSection: View {
 
     private func placementLabel(_ placement: (venue: Int, station: Int)?) -> String {
         guard let placement else { return "Assign" }
-        return Balance.venue(placement.venue).stations[placement.station].name
+        let stations = Balance.venue(placement.venue).stations
+        guard stations.indices.contains(placement.station) else { return "Assign" }
+        return stations[placement.station].name
     }
 
     private func rarityColor(_ rarity: ManagerRarity) -> Color {
