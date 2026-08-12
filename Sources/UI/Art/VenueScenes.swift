@@ -28,7 +28,7 @@ struct VenueSceneView: View {
     let layer: Layer
 
     /// Which rooms have been rebuilt. Everything else falls through to the legacy props.
-    static let rebuilt: Set<VenueTheme> = [.burger, .diner, .sushi, .pizza]
+    static let rebuilt: Set<VenueTheme> = [.burger, .diner, .sushi, .pizza, .taco]
 
     // Material colours. These are shared across every room on purpose - only *structural*
     // colour comes from `VenuePalette`, so the coin-priced neon skin stays a pure data change.
@@ -529,6 +529,113 @@ struct VenueSceneView: View {
                 context.fill(ellipse(650, 320, 130, 60), with: .radialGradient(
                     Gradient(colors: [palette.accent.opacity(0.16), .clear]),
                     center: p(650, 320), startRadius: 0, endRadius: 130 / 860 * rect.width))
+
+            case (.taco, .wall):
+                stroke(palette.wallBottom, 3, opacity: 0.5) { path in
+                    for x in [120.0, 340.0, 520.0, 740.0] {
+                        path.move(to: p(x, 0)); path.addLine(to: p(x, 236))
+                    }
+                }
+                stroke(palette.wallBottom, 2, opacity: 0.35) { path in
+                    for y in [88.0, 164.0] {
+                        path.move(to: p(0, y)); path.addLine(to: p(860, y))
+                    }
+                }
+                // Saturated tile wainscot - a straight checkerboard, not the floor's skewed one.
+                var tiles = Path()
+                for row in 0..<4 {
+                    for col in 0..<27 {
+                        guard (row + col) % 2 == 0 else { continue }
+                        tiles.addRect(box(Double(col) * 16, 236 + Double(row) * 16, 16, 16))
+                    }
+                }
+                context.fill(tiles, with: .color(palette.accent.opacity(0.85)))
+                context.fill(Path(box(0, 236, 860, 64)), with: .color(palette.wallBottom.opacity(0.25)))
+                context.fill(Path(box(0, 232, 860, 4)), with: .color(palette.accent.opacity(0.4)))
+
+                // Griddle hatch: a warm cooking glow, same family as Burger's pass-through.
+                fill(rr(90, 66, 190, 124, 10), Self.hardware)
+                context.fill(rr(102, 78, 166, 100, 5), with: .color(Color(hex: "#14202E")))
+                context.fill(rr(102, 78, 166, 100, 5), with: .radialGradient(
+                    Gradient(colors: [Color(hex: "#FFB84D").opacity(0.5), Color(hex: "#5C2E12").opacity(0.5)]),
+                    center: CGPoint(x: box(102, 78, 166, 100).midX, y: box(102, 78, 166, 100).midY),
+                    startRadius: 0, endRadius: 100 / 860 * rect.width))
+                stroke(Color(hex: "#0B131C"), 3, opacity: 0.8) { path in
+                    path.move(to: p(112, 118)); path.addLine(to: p(258, 118))
+                    path.move(to: p(112, 148)); path.addLine(to: p(258, 148))
+                }
+                context.fill(rr(120, 124, 30, 20, 3), with: .color(Color(hex: "#0B131C").opacity(0.7)))
+                context.fill(rr(90, 178, 190, 12, 4), with: .color(Theme.stroke))
+                context.fill(ellipse(150, 178, 15, 4), with: .color(Self.cream))
+
+                // Chili ristras - two hanging strings of pods between the hatch and the menu.
+                // Pod Y values are absolute (matching design's own coordinates), not stacked
+                // offsets - the first version of this accumulated them as segment lengths and
+                // sent the string past the floor.
+                for (sx, stemBottom, pods): (CGFloat, CGFloat, [(CGFloat, Color)]) in [
+                    (470, 116, [(125, Theme.negative), (147, Theme.negative), (169, Theme.negative)]),
+                    (510, 114, [(122, Color(hex: "#C4462F")), (141, Color(hex: "#C4462F"))]),
+                ] {
+                    stroke(Theme.outline, 2) { path in
+                        path.move(to: p(sx, 100)); path.addLine(to: p(sx, stemBottom))
+                    }
+                    for (cy, color) in pods {
+                        stroke(Theme.outline, 2) { path in
+                            path.move(to: p(sx, cy - 8)); path.addLine(to: p(sx, cy + 8))
+                        }
+                        fill(ellipse(sx, cy, 7, 8), color)
+                    }
+                }
+
+                // Menu board.
+                fill(rr(560, 66, 180, 124, 8), Self.hardware)
+                context.fill(rr(572, 78, 156, 100, 4), with: .color(Color(hex: "#2E2A2B")))
+                context.fill(rr(600, 86, 100, 9, 4), with: .color(palette.sign.opacity(0.85)))
+                stroke(palette.sign, 5, opacity: 0.5) { path in
+                    for (i, w) in [64.0, 56.0, 70.0, 48.0].enumerated() {
+                        let y = 112 + Double(i) * 18
+                        path.move(to: p(584, y)); path.addLine(to: p(584 + w, y))
+                        path.move(to: p(672, y)); path.addLine(to: p(692, y))
+                    }
+                }
+
+                // Papel picado bunting replaces the garland entirely here - eight notched
+                // flags, not five round bulbs, and no glowDot halo since these are paper, not
+                // lit. A festive, deliberately varied palette rather than a room-tinted one.
+                stroke(Theme.outline, 2.5) { path in
+                    path.move(to: p(0, 18))
+                    path.addQuadCurve(to: p(430, 28), control: p(215, 52))
+                    path.addQuadCurve(to: p(860, 40), control: p(645, 4))
+                }
+                let flagColors = [palette.accent, Color(hex: "#E07A3C"), Color(hex: "#F4A9A0"), Theme.gem]
+                let flagPositions: [(CGFloat, CGFloat)] = [
+                    (70, 26), (160, 38), (250, 44), (340, 38), (500, 24), (590, 16), (680, 20), (770, 28),
+                ]
+                for (i, pos) in flagPositions.enumerated() {
+                    let (fx, fy) = pos
+                    let color = flagColors[i % flagColors.count]
+                    fill(path {
+                        $0.move(to: p(fx, fy)); $0.addLine(to: p(fx + 26, fy))
+                        $0.addLine(to: p(fx + 26, fy + 14)); $0.addLine(to: p(fx + 21, fy + 18))
+                        $0.addLine(to: p(fx + 16, fy + 14)); $0.addLine(to: p(fx + 11, fy + 18))
+                        $0.addLine(to: p(fx + 6, fy + 14)); $0.addLine(to: p(fx, fy + 18))
+                        $0.closeSubpath()
+                    }, color)
+                    context.fill(ellipse(fx + 13, fy + 8, 2.5, 2.5), with: .color(palette.wallBottom))
+                }
+
+            case (.taco, .floor):
+                // Terracotta grid: a wider, calmer lattice than the checker or planks.
+                stroke(Color(hex: "#B08A50"), 2, opacity: 0.35) { path in
+                    path.move(to: p(0, 330)); path.addLine(to: p(860, 330))
+                    path.move(to: p(0, 364)); path.addLine(to: p(860, 364))
+                    for x in [86.0, 258.0, 430.0, 602.0, 774.0] {
+                        path.move(to: p(x, 300)); path.addLine(to: p(x, 400))
+                    }
+                }
+                context.fill(ellipse(430, 300, 90, 46), with: .radialGradient(
+                    Gradient(colors: [palette.accent.opacity(0.16), .clear]),
+                    center: p(430, 300), startRadius: 0, endRadius: 90 / 860 * rect.width))
 
             default:
                 break
