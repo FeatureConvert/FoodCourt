@@ -120,6 +120,7 @@ final class StoreService: ObservableObject {
     @Published private(set) var products: [String: Product] = [:]
     @Published private(set) var isLoadingProducts = false
     @Published private(set) var purchasingID: String?
+    @Published private(set) var isRestoring = false
     @Published var errorMessage: String?
     /// Shown as a toast after a successful grant.
     @Published var lastGrant: String?
@@ -218,6 +219,9 @@ final class StoreService: ObservableObject {
     }
 
     func restore() async {
+        guard !isRestoring else { return }
+        isRestoring = true
+        defer { isRestoring = false }
         do {
             try await AppStore.sync()
         } catch {

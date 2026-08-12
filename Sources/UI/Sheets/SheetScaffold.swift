@@ -35,6 +35,7 @@ struct SheetScaffold<Content: View>: View {
                             .background(Circle().fill(Theme.panelRaised))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Close")
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 18)

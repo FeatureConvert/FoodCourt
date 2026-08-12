@@ -31,12 +31,13 @@ struct ShopView: View {
             Button {
                 Task { await store.restore() }
             } label: {
-                Text("Restore Purchases")
+                Text(store.isRestoring ? "Restoring..." : "Restore Purchases")
                     .font(Theme.body(13, weight: .bold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
             }
             .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
+            .disabled(store.isRestoring)
             .padding(.top, 8)
 
             Text("Nothing here is required to finish the game. Purchases are billed to your Apple Account. Gems are a virtual currency with no cash value.")

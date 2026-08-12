@@ -155,6 +155,24 @@ final class FeatureTests: XCTestCase {
         XCTAssertNil(e.pendingPerkLevel(venue: 0, station: 0))
     }
 
+    /// A double-tap (or a second tap landing in the confirm-to-dismiss window) must not burn
+    /// a second one of the run's four precious perk choices for a pick already made.
+    @MainActor
+    func testDoubleChoosingTheSamePerkOnlyCountsOnce() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 100
+        let e = engine(state)
+
+        e.choosePerk(venue: 0, station: 0, level: 100, index: 0)
+        let usedAfterFirst = e.state.perkChoicesUsed
+        let mathAfterFirst = e.state.baseRevenue(venue: 0, station: 0)
+
+        e.choosePerk(venue: 0, station: 0, level: 100, index: 1)   // even a different index
+        XCTAssertEqual(e.state.perkChoicesUsed, usedAfterFirst, "a repeat pick must not spend a second choice")
+        XCTAssertEqual(e.state.venues[0].stations[0].perks[100], 0, "the original pick must stick")
+        XCTAssertEqual(e.state.baseRevenue(venue: 0, station: 0), mathAfterFirst, accuracy: 1e-6)
+    }
+
     // MARK: 5 - Managers
 
     func testManagerTraitsApplyToTheRightScope() {

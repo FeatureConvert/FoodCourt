@@ -107,9 +107,10 @@ struct SettingsView: View {
             Button {
                 Task { await store.restore() }
             } label: {
-                label("Restore Purchases", system: "arrow.clockwise")
+                label(store.isRestoring ? "Restoring..." : "Restore Purchases", system: "arrow.clockwise")
             }
             .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink))
+            .disabled(store.isRestoring)
 
             SectionLabel(text: "Danger zone")
             if confirmingReset {

@@ -814,6 +814,10 @@ final class GameEngine: ObservableObject {
     }
 
     func choosePerk(venue: Int, station: Int, level: Int, index: Int) {
+        // A perk once chosen at this level can't be chosen again - without this, a double-tap
+        // in the moment between confirming and the sheet's dismiss animation burns a second
+        // one of the run's four precious choices for no extra effect.
+        guard state.venues[venue].stations[station].perks[level] == nil else { return }
         guard perkChoicesRemaining > 0 else { return }
         state.venues[venue].stations[station].perks[level] = index
         state.perkChoicesUsed += 1

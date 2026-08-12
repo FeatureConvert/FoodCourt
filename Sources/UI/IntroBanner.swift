@@ -45,6 +45,7 @@ struct IntroBanner: View {
                         .background(Circle().fill(Theme.ink.opacity(0.5)))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Dismiss")
             }
             .padding(12)
             .panel(Theme.panelRaised)
