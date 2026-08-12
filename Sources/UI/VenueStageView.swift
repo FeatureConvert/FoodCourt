@@ -147,8 +147,7 @@ struct CustomerQueueView: View {
     var body: some View {
         HStack(alignment: .bottom, spacing: 6) {
             ForEach(seeds, id: \.self) { seed in
-                CustomerSprite(seed: seed)
-                    .equatable()
+                BobbingSprite(seed: seed)
                     .frame(width: 44, height: 62)
                     .transition(.asymmetric(
                         insertion: .move(edge: .leading).combined(with: .opacity),
@@ -189,5 +188,32 @@ struct CustomerQueueView: View {
         engine.rollGoldenCustomer()
         // ...and a separate chance for a specific station to get an order.
         engine.rollStationOrder()
+    }
+}
+
+/// A queued customer with a slow idle bob - design spec: +/-2.6 units of the 150-unit rig
+/// frame, 2.9s ease-in-out, phase-offset per figure. The offset is a plain `.offset(y:)` on an
+/// otherwise-unchanged `.equatable()` sprite, so the only per-frame cost is repositioning an
+/// already-rendered layer, not redrawing the figure - and it's confined to this one small
+/// view, not the wall/floor scene around it.
+private struct BobbingSprite: View {
+    let seed: Int
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        if reduceMotion {
+            CustomerSprite(seed: seed).equatable()
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+                // Deterministic per-seed phase, not random per-frame, so a given customer's
+                // bob doesn't visibly jump when the view re-renders.
+                let phase = Double(seed % 29) / 29.0 * 2.9
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                let bob = sin((t + phase) / 2.9 * 2 * .pi) * (2.6 / 150.0) * 62
+                CustomerSprite(seed: seed).equatable()
+                    .offset(y: bob)
+            }
+        }
     }
 }

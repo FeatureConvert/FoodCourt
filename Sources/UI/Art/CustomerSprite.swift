@@ -557,10 +557,17 @@ private struct Look {
 ///
 /// Complexity escalates rather than just hue, so the tier reads before colour registers:
 /// plain ring, then a faceted inner dash, then a fake-bloom outer glow, then the legendary
-/// highlight arc and crest. The highlight is parked at -90 (12 o'clock) rather than rotating -
-/// the motion pass is deliberately deferred, and this is design's own reduce-motion pose.
+/// highlight arc and crest. The highlight rotates at design's ~112 deg/s; reduce-motion parks
+/// it at -90 (12 o'clock), which was this view's only pose until the motion pass.
+///
+/// Only a `rarity == .legendary` frame with motion enabled pays for a `TimelineView` - every
+/// common/rare/epic portrait (the overwhelming majority) still renders as a single static
+/// `Canvas`, exactly as before. A manager-list row redrawing 30x/sec would be wasted work for
+/// tiers that have nothing moving.
 struct ManagerRarityFrame: View {
     let rarity: ManagerRarity
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var ringColor: Color {
         switch rarity {
@@ -572,6 +579,17 @@ struct ManagerRarityFrame: View {
     }
 
     var body: some View {
+        if rarity == .legendary && !reduceMotion {
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                frame(angle: t * (112 * .pi / 180))
+            }
+        } else {
+            frame(angle: -.pi / 2)
+        }
+    }
+
+    private func frame(angle: Double) -> some View {
         Canvas { context, size in
             let rect = CGRect(origin: .zero, size: size)
             let w = rect.width
@@ -607,7 +625,7 @@ struct ManagerRarityFrame: View {
                 var highlight = ring(inset: w * 0.02)
                 highlight = highlight.applying(
                     CGAffineTransform(translationX: rect.midX, y: rect.midY)
-                        .rotated(by: -.pi / 2)
+                        .rotated(by: angle)
                         .translatedBy(x: -rect.midX, y: -rect.midY))
                 context.stroke(highlight, with: .color(Color(hex: "#FFF3C4")),
                                style: StrokeStyle(lineWidth: w * 0.05, lineCap: .round,
