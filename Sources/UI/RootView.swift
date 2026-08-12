@@ -62,7 +62,8 @@ struct RootView: View {
     @State private var lastPresented: ActiveSheet?
 
     private var palette: VenuePalette {
-        VenuePalette.of(Balance.venue(engine.state.currentVenue).theme)
+        VenuePalette.of(Balance.venue(engine.state.currentVenue).theme,
+                        skin: engine.state.skin(venue: engine.state.currentVenue))
     }
 
     // Split into three layers (content -> sheeted -> observed) purely for the

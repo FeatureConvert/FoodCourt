@@ -362,6 +362,7 @@ private struct StaffSection: View {
 
 private struct RecipeSection: View {
     @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
 
@@ -500,6 +501,7 @@ private struct RecipeSection: View {
                     Button {
                         if engine.crownSignatureDish(venue: venue.id, station: spec.id) {
                             Haptics.success()
+                            sound.play(.reward)
                         }
                     } label: {
                         FoodSprite(art: spec.art, colors: spec.colors)

@@ -101,7 +101,9 @@ struct StationCardView: View {
 
     private var venueID: Int { engine.state.currentVenue }
     private var state: StationState { engine.state.venues[venueID].stations[spec.id] }
-    private var palette: VenuePalette { VenuePalette.of(Balance.venue(venueID).theme) }
+    private var palette: VenuePalette {
+        VenuePalette.of(Balance.venue(venueID).theme, skin: engine.state.skin(venue: venueID))
+    }
     private var cycle: TimeInterval { engine.cachedCycleTime(venue: venueID, station: spec.id) }
     private var payout: Double {
         engine.cachedBaseRevenue(venue: venueID, station: spec.id) * engine.payoutMultiplier

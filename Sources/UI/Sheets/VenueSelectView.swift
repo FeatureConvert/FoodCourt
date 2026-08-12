@@ -15,7 +15,7 @@ struct VenueSelectView: View {
     }
 
     private func row(_ venue: VenueSpec) -> some View {
-        let palette = VenuePalette.of(venue.theme)
+        let palette = VenuePalette.of(venue.theme, skin: engine.state.skin(venue: venue.id))
         let unlocked = engine.state.venues[venue.id].unlocked
         let current = engine.state.currentVenue == venue.id
         let affordable = engine.canUnlock(venue)
