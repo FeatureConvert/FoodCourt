@@ -807,9 +807,12 @@ final class FeatureTests: XCTestCase {
     func testTutorialSurvivesHiringTheFreeManagerBeforeTappingOrBuying() {
         // The free first-station hire has no prerequisite - a player can claim it as their
         // very first action, before the tutorial has even asked them to tap or buy anything.
-        // Reported live: doing exactly that left the tutorial permanently stuck on "Hire some
-        // help," pointing at station 0's hire button after it had already been used to hire
-        // for free and no longer existed.
+        // Reported live TWICE now: the first report was hiring then never revisiting the hire
+        // step (fixed by skipping hireManager/coffeeBreak from buy()); the second was hiring
+        // as the literal first action and never tapping or buying at all, which that first fix
+        // never covered - the overlay stayed on "Cook something," pointing at a station that
+        // was now staffed and auto-running, and tapping an already-staffed station is a no-op
+        // the player has no reason to ever attempt.
         let e = engine()
         XCTAssertEqual(e.state.tutorial.current, .tapStation)
 
@@ -817,15 +820,23 @@ final class FeatureTests: XCTestCase {
         // eligibleForFreeFirstManager is true; hireManager itself doesn't infer it.
         XCTAssertTrue(e.hireManager(for: 0, free: true))
         XCTAssertTrue(e.state.freeFirstManagerClaimed)
-        XCTAssertEqual(e.state.tutorial.current, .tapStation, "hiring out of order must not skip ahead")
+        // Staffed before ever being tapped or bought - tapStation, buyLevel, and hireManager
+        // are all moot now, and a new save locks Coffee Break out for its first 15 minutes, so
+        // the whole chain skips straight to the first step actually actionable.
+        XCTAssertEqual(e.state.tutorial.current, .openGoals,
+                       "hiring before tapping or buying must skip every step it makes moot")
+    }
 
-        e.addCoins(1_000)
-        e.tap(station: 0)
-        XCTAssertEqual(e.state.tutorial.current, .buyLevel)
-        e.buy(station: 0)
-        // Station 0 is already staffed, so the hire step's own target is gone - it must skip
-        // straight past, the same way it would if coffee break weren't ready yet either.
-        XCTAssertEqual(e.state.tutorial.current, .openGoals)
+    @MainActor
+    func testTutorialSkipsOnlyThroughHireManagerWhenCoffeeBreakIsAlreadyReady() {
+        // Same bare hire-first scenario, but with the coffee break lock already past - the
+        // skip chain inside hireManager() must stop at coffeeBreak, not run past it too.
+        let e = engine()
+        e.debugAdvanceClock(seconds: 20 * 60) // clear the new-save Coffee Break lock
+        XCTAssertTrue(e.boostReady)
+
+        XCTAssertTrue(e.hireManager(for: 0, free: true))
+        XCTAssertEqual(e.state.tutorial.current, .coffeeBreak)
     }
 
     @MainActor

@@ -643,6 +643,17 @@ final class GameEngine: ObservableObject {
         }
         state.hire(specID: ManagerCatalog.traineeID, venue: venue, station: index, premium: premium)
         advanceQuests(kind: .hire, to: Double(state.assignedManagerCount))
+        // The free first-manager hire (see eligibleForFreeFirstManager) has no prerequisite -
+        // a player can claim it before ever tapping or buying a level. When they do, the
+        // station is staffed and auto-running before the tutorial ever reached tapStation or
+        // buyLevel, so neither target's real-world condition will ever become true: tapping an
+        // already-staffed station is a no-op, and there's no reason to manually buy a level
+        // that's already earning on its own. Skip straight through whatever's still ahead of
+        // hireManager instead of leaving the overlay stuck asking for an action the player has
+        // no way, or reason, to perform.
+        while let current = state.tutorial.current, current.rawValue < TutorialStep.hireManager.rawValue {
+            state.tutorial.complete(current)
+        }
         state.tutorial.complete(.hireManager)
         // A new save locks Coffee Break out for its first 15 minutes, so the very next
         // tutorial step would instruct the player to tap something that's visibly disabled.
