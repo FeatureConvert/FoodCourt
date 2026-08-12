@@ -30,9 +30,9 @@ enum GoalDirector {
             return Goal(id: "first-manager", title: "Hire your first manager",
                         detail: "A staffed station runs itself - even while the app is closed. Everything starts here.")
         }
-        if bestLevel < 25 {
-            return Goal(id: "level-25", title: "Take a station to Lv 25",
-                        detail: "Milestone levels pay huge speed and profit jumps - and Lv 25 unlocks your first perk choice.")
+        if bestLevel < 100 {
+            return Goal(id: "level-100", title: "Take a station to Lv 100",
+                        detail: "Milestone levels pay huge speed and profit jumps - and Lv 100 unlocks your first perk choice.")
         }
         if venuesOpen < 2 {
             return Goal(id: "venue-2", title: "Open your second venue",

@@ -93,7 +93,7 @@ struct HelpView: View {
             symbol: "sparkles", title: "Milestones and perks",
             text: """
             Every station gets automatic speed and profit bonuses at levels 40, 100, 250, \
-            500, 1000 and 2000. Levels 25, 50, 100 and 500 also offer a perk choice — but \
+            500, 1000 and 2000. Levels 100, 250, 500 and 1000 also offer a perk choice — but \
             you only get four choices per franchise run, so pick which stations deserve a \
             personal build. Perks last until your next reset and stack with the milestones.
             """),

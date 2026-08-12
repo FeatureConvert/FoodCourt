@@ -221,7 +221,7 @@ final class SyncAndSafetyTests: XCTestCase {
     func testPerkChoicesCapPerRunAndResetOnPrestige() {
         var state = GameState.newGame()
         // Five stations past the first choice milestone - more candidates than budget.
-        for idx in 0..<5 { state.venues[0].stations[idx].level = 30 }
+        for idx in 0..<5 { state.venues[0].stations[idx].level = 100 }
         state.lifetimeEarnings = Balance.minimumLifetimeForPrestige
         let engine = GameEngine(state: state, startTimers: false,
                                 persistence: EphemeralPersistence())
@@ -229,13 +229,13 @@ final class SyncAndSafetyTests: XCTestCase {
 
         for idx in 0..<Balance.perkChoicesPerRun {
             XCTAssertNotNil(engine.pendingPerkLevel(venue: 0, station: idx))
-            engine.choosePerk(venue: 0, station: idx, level: 25, index: 0)
+            engine.choosePerk(venue: 0, station: idx, level: 100, index: 0)
         }
         XCTAssertEqual(engine.perkChoicesRemaining, 0)
         XCTAssertNil(engine.pendingPerkLevel(venue: 0, station: 4),
                      "the budget is spent - the fifth station gets no prompt this run")
         let before = engine.state.venues[0].stations[4].perks
-        engine.choosePerk(venue: 0, station: 4, level: 25, index: 0)
+        engine.choosePerk(venue: 0, station: 4, level: 100, index: 0)
         XCTAssertEqual(engine.state.venues[0].stations[4].perks, before,
                        "choosePerk past the cap is a no-op")
 
@@ -393,10 +393,10 @@ final class SyncAndSafetyTests: XCTestCase {
         var state = GameState.newGame()
         XCTAssertEqual(GoalDirector.currentGoal(for: state)?.id, "first-manager")
 
-        state.venues[0].stations[0].level = 30
+        state.venues[0].stations[0].level = 100
         state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
         XCTAssertEqual(GoalDirector.currentGoal(for: state)?.id, "venue-2",
-                       "one manager + Lv 30 station means the next rung is expansion")
+                       "one manager + Lv 100 station means the next rung is expansion")
 
         state.venues[1].unlocked = true
         for idx in 1...4 { state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: idx) }

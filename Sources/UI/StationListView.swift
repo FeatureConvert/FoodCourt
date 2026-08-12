@@ -233,12 +233,15 @@ struct StationCardView: View {
                     Text("Lv \(Format.count(state.level))")
                         .font(Theme.body(13, weight: .bold))
                         .foregroundStyle(Theme.textDim)
+                        .lineLimit(1)
                     Text("+\(Format.currency(payout))")
                         .font(Theme.body(13, weight: .black))
                         .foregroundStyle(Theme.coin)
+                        .lineLimit(1)
                     Text(Format.cycle(cycle))
                         .font(Theme.body(13, weight: .bold))
                         .foregroundStyle(Theme.textDim)
+                        .lineLimit(1)
                 }
                 milestoneBar
                 staffLine

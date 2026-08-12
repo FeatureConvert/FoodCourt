@@ -25,6 +25,7 @@ struct WelcomeView: View {
     private let tips: [(symbol: String, text: String)] = [
         ("arrow.triangle.2.circlepath", "Keep coins moving - buy the next level the moment you can afford it."),
         ("bolt.fill", "Milestone levels (40, 100, 250…) double your speed or profit outright - worth rushing toward."),
+        ("gift.fill", "Some milestone levels also offer a permanent perk to pick - save them for stations you're actually committed to."),
         ("star.fill", "Don't sit on a finished board: costs creep up the longer you wait, so franchising every few days beats holding out."),
     ]
 

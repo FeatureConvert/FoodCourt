@@ -21,15 +21,30 @@ struct Perk: Identifiable, Equatable {
 
 enum Perks {
 
-    /// Deliberately the same levels as the auto milestones: hitting one is already a moment,
-    /// so that is where the choice belongs. The milestone bonus still applies on top.
+    /// The same levels as the auto milestones (see `Balance.milestones`) - hitting one is
+    /// already a moment, so that is where the choice belongs. The milestone bonus still
+    /// applies on top. Used to include 25 and 50, neither an actual milestone level, which
+    /// meant most of a run's four total choices got spent on whichever station happened to
+    /// hit 25 first - usually within the opening minutes, on a station picked essentially at
+    /// random rather than one the player had actually settled into. Moved to the hundreds
+    /// tier so all four choices land on stations worth the commitment, later venues included,
+    /// rather than being front-loaded onto day-one picks.
     /// Level 500 is the specialization tier - the picks there change how a station FEELS
     /// (chunky batches, rapid fire, jackpot serves), not just its numbers, so two late-game
     /// boards finally diverge in texture and not only in multipliers.
-    static let choiceLevels = [25, 50, 100, 500]
+    static let choiceLevels = [100, 250, 500, 1000]
 
     static func choices(at level: Int) -> [Perk] {
         switch level {
+        case 1000:
+            return [
+                Perk(id: 0, title: "Legendary Recipe", detail: "+500% profit",
+                     symbol: "trophy.fill", effect: .profit(6)),
+                Perk(id: 1, title: "Lightning Line", detail: "80% faster cycles",
+                     symbol: "bolt.circle.fill", effect: .speed(1 / 0.2)),
+                Perk(id: 2, title: "Endless Line", detail: "65% chance to serve twice",
+                     symbol: "infinity", effect: .doubleServe(0.65)),
+            ]
         case 500:
             return [
                 Perk(id: 0, title: "Batch Mode", detail: "×5 cycle time, ×6 payout - big, slow, satisfying servings",
@@ -39,25 +54,16 @@ enum Perks {
                 Perk(id: 2, title: "Tip Magnet", detail: "25% chance every serve pays double",
                      symbol: "sparkles", effect: .doubleServe(0.25)),
             ]
-        case 25:
+        case 250:
             return [
-                Perk(id: 0, title: "Bigger Portions", detail: "+150% profit",
-                     symbol: "arrow.up.circle.fill", effect: .profit(2.5)),
-                Perk(id: 1, title: "Sharp Knives", detail: "40% faster cycles",
-                     symbol: "bolt.fill", effect: .speed(1 / 0.6)),
-                Perk(id: 2, title: "Generous Scoops", detail: "20% chance to serve twice",
-                     symbol: "square.on.square.fill", effect: .doubleServe(0.2)),
+                Perk(id: 0, title: "Master Recipe", detail: "+400% profit",
+                     symbol: "crown.fill", effect: .profit(5)),
+                Perk(id: 1, title: "Turbo Line", detail: "70% faster cycles",
+                     symbol: "wind", effect: .speed(1 / 0.3)),
+                Perk(id: 2, title: "Loyal Regulars", detail: "55% chance to serve twice",
+                     symbol: "person.3.fill", effect: .doubleServe(0.55)),
             ]
-        case 50:
-            return [
-                Perk(id: 0, title: "Premium Menu", detail: "+200% profit",
-                     symbol: "crown.fill", effect: .profit(3)),
-                Perk(id: 1, title: "Second Burner", detail: "50% faster cycles",
-                     symbol: "flame.fill", effect: .speed(2)),
-                Perk(id: 2, title: "Regulars", detail: "30% chance to serve twice",
-                     symbol: "person.2.fill", effect: .doubleServe(0.3)),
-            ]
-        default:
+        default: // 100
             return [
                 Perk(id: 0, title: "Signature Dish", detail: "+300% profit",
                      symbol: "star.circle.fill", effect: .profit(4)),

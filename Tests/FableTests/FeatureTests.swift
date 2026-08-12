@@ -125,33 +125,33 @@ final class FeatureTests: XCTestCase {
     // MARK: 4 - Perks
 
     func testPerkChoicesStackMultiplicatively() {
-        let chosen = [25: 0, 50: 0]     // both profit perks
-        XCTAssertEqual(Perks.profitMultiplier(chosen: chosen), 2.5 * 3, accuracy: 1e-9)
+        let chosen = [100: 0, 250: 0]     // both profit perks
+        XCTAssertEqual(Perks.profitMultiplier(chosen: chosen), 4 * 5, accuracy: 1e-9)
         XCTAssertEqual(Perks.speedMultiplier(chosen: chosen), 1, accuracy: 1e-9)
     }
 
     func testDoubleServeChancesCombineAsIndependentRolls() {
-        let chosen = [25: 2, 50: 2]     // 20% and 30%
-        // Not 50% - it's 1 - (0.8 * 0.7).
-        XCTAssertEqual(Perks.doubleServeChance(chosen: chosen), 1 - 0.8 * 0.7, accuracy: 1e-9)
+        let chosen = [100: 2, 250: 2]     // 45% and 55%
+        // Not 100% - it's 1 - (0.55 * 0.45).
+        XCTAssertEqual(Perks.doubleServeChance(chosen: chosen), 1 - 0.55 * 0.45, accuracy: 1e-9)
     }
 
     func testPendingPerkAppearsOnlyOnceReachedAndClearsWhenChosen() {
-        XCTAssertNil(Perks.pending(level: 24, chosen: [:]))
-        XCTAssertEqual(Perks.pending(level: 25, chosen: [:]), 25)
-        XCTAssertEqual(Perks.pending(level: 60, chosen: [25: 0]), 50)
-        XCTAssertNil(Perks.pending(level: 60, chosen: [25: 0, 50: 1]))
+        XCTAssertNil(Perks.pending(level: 99, chosen: [:]))
+        XCTAssertEqual(Perks.pending(level: 100, chosen: [:]), 100)
+        XCTAssertEqual(Perks.pending(level: 260, chosen: [100: 0]), 250)
+        XCTAssertNil(Perks.pending(level: 260, chosen: [100: 0, 250: 1]))
     }
 
     @MainActor
     func testChoosingAPerkChangesTheStationMath() {
         var state = GameState.newGame()
-        state.venues[0].stations[0].level = 25
+        state.venues[0].stations[0].level = 100
         let e = engine(state)
 
         let before = e.state.baseRevenue(venue: 0, station: 0)
-        e.choosePerk(venue: 0, station: 0, level: 25, index: 0)   // +150% profit
-        XCTAssertEqual(e.state.baseRevenue(venue: 0, station: 0), before * 2.5, accuracy: 1e-6)
+        e.choosePerk(venue: 0, station: 0, level: 100, index: 0)   // +300% profit
+        XCTAssertEqual(e.state.baseRevenue(venue: 0, station: 0), before * 4, accuracy: 1e-6)
         XCTAssertNil(e.pendingPerkLevel(venue: 0, station: 0))
     }
 
@@ -1181,11 +1181,28 @@ final class FeatureTests: XCTestCase {
     func testStaleBoardCostsMoreAndFranchisingResetsTheStalenessPortion() {
         let e = engine()
         XCTAssertEqual(e.costInflation, 1, accuracy: 1e-9, "a brand new board isn't taxed yet")
-        let freshPrice = e.price(for: 0)
 
+        // Elapsed time alone must NOT tax an incomplete board: a calibration run against the
+        // real venue-unlock curve found venue 5 never unlocking inside 150 simulated hours of
+        // maximally-engaged play, because this same tax was compounding the whole time - a
+        // player working as fast as possible toward the (now mandatory) full-buildout gate was
+        // being taxed for not having already passed it. See staleCostInflation's doc comment.
         e.debugSkip(hours: Balance.staleGraceHours + 24 * 3)
-        XCTAssertGreaterThan(e.costInflation, 1, "a board that's sat for days should cost more")
-        XCTAssertEqual(e.price(for: 0), freshPrice * e.costInflation, accuracy: freshPrice * 0.01,
+        XCTAssertEqual(e.costInflation, 1, accuracy: 1e-9,
+                       "an incomplete board is never stale, no matter how much time passes")
+
+        // Only once the board is actually fully built out does the tax apply - matching
+        // canPrestige's own gate, since that's the moment a player could act and is choosing
+        // not to. Board age was already skipped past grace above, so buildout and staleness
+        // land in the same instant here - price(for:) is compared against Balance's own raw,
+        // uninflated cost rather than a "fresh" price captured before this point, since no
+        // such moment exists once time has already been fast-forwarded.
+        e.debugUnlockAllVenuesAndStations()
+        let rawPrice = Balance.cost(spec: Balance.venue(0).stations[0],
+                                    level: e.state.venues[0].stations[0].level,
+                                    quantity: e.quantity(for: 0))
+        XCTAssertGreaterThan(e.costInflation, 1, "a fully built, stale board should cost more")
+        XCTAssertEqual(e.price(for: 0), rawPrice * e.costInflation, accuracy: rawPrice * e.costInflation * 0.01,
                        "the station price scales with the same inflation factor")
         XCTAssertGreaterThan(e.managerCost(for: 0), Balance.managerCost(spec: Balance.venue(0).stations[0]),
                              "manager hire cost is taxed too")
@@ -1193,7 +1210,6 @@ final class FeatureTests: XCTestCase {
                              "venue unlock cost is taxed too, so it can't dodge the tax")
 
         e.addCoins(Balance.minimumLifetimeForPrestige * 4)
-        e.debugUnlockAllVenuesAndStations()
         _ = e.prestige()
         XCTAssertEqual(e.staleCostInflation, 1, accuracy: 1e-9, "franchising starts a fresh, untaxed board")
         XCTAssertEqual(e.costInflation, Balance.starMultiplier(stars: e.state.lifetimeStars), accuracy: 1e-6,
