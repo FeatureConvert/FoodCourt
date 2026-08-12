@@ -123,10 +123,21 @@ struct HUDView: View {
 
             if !activeBoosts.isEmpty || engine.state.entitlements.vip
                 || engine.state.entitlements.mogul || engine.state.isHappyHour()
-                || activeContractBadge != nil {
+                || activeContractBadge != nil || errandBadge != nil || faceOffBadge != nil {
                 HStack(spacing: 6) {
                     if let contract = activeContractBadge, let detail = engine.state.contract?.detail {
                         badge(contract, detail: detail, color: Theme.star)
+                    }
+                    // Errands and Face-Offs otherwise only show their status inside the
+                    // Collection sheet - checking on either meant re-opening it repeatedly,
+                    // unlike a boost's countdown which is always visible right here.
+                    if let errandBadge {
+                        badge(errandBadge.text, detail: errandBadge.detail,
+                              color: errandBadge.ready ? Theme.positive : Theme.coin)
+                    }
+                    if let faceOffBadge {
+                        badge(faceOffBadge.text, detail: faceOffBadge.detail,
+                              color: faceOffBadge.ready ? Theme.positive : Theme.coin)
                     }
                     if engine.state.isHappyHour() {
                         badge("HAPPY HOUR ×\(Format.trim(ActivePlay.happyHourMultiplier))",
@@ -212,6 +223,29 @@ struct HUDView: View {
     private var activeContractBadge: String? {
         guard let contract = engine.state.contract, contract.id != "straight" else { return nil }
         return contract.title.uppercased()
+    }
+
+    private var errandBadge: (text: String, detail: String, ready: Bool)? {
+        let errands = engine.state.errands
+        guard !errands.isEmpty else { return nil }
+        let readyCount = errands.filter { $0.isComplete(at: engine.state.now) }.count
+        if readyCount > 0 {
+            let label = readyCount > 1 ? "ERRANDS READY (\(readyCount))" : "ERRAND READY"
+            return (label, "Collect it from the Staff sheet.", true)
+        }
+        let soonest = errands.map { $0.remaining(at: engine.state.now) }.min() ?? 0
+        return ("ERRAND · \(Format.duration(soonest))",
+                "Back in \(Format.duration(soonest)) - collect it from the Staff sheet.", false)
+    }
+
+    private var faceOffBadge: (text: String, detail: String, ready: Bool)? {
+        guard let expedition = engine.state.expedition else { return nil }
+        if expedition.isComplete(at: engine.state.now) {
+            return ("FACE-OFF READY", "Results are in - see them in the Staff sheet.", true)
+        }
+        let remaining = expedition.remaining(at: engine.state.now)
+        return ("FACE-OFF · \(Format.duration(remaining))",
+                "Back in \(Format.duration(remaining)) - see it in the Staff sheet.", false)
     }
 
     private func currencyPill<Content: View>(@ViewBuilder content: () -> Content) -> some View {
