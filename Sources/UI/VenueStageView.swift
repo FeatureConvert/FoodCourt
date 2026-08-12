@@ -42,6 +42,9 @@ struct VenueStageView: View {
                 // the original props while the sweep works through them one at a time.
                 if VenueSceneView.rebuilt.contains(venue.theme) {
                     VenueSceneView(theme: venue.theme, palette: palette, layer: .wall)
+                    if VenueSceneView.hasHangingLayer.contains(venue.theme) {
+                        SwayingHangingLayer(theme: venue.theme, palette: palette)
+                    }
                 } else {
                     VenuePropsView(theme: venue.theme)
                         .frame(height: h * 0.62)
@@ -196,6 +199,34 @@ struct CustomerQueueView: View {
 /// otherwise-unchanged `.equatable()` sprite, so the only per-frame cost is repositioning an
 /// already-rendered layer, not redrawing the figure - and it's confined to this one small
 /// view, not the wall/floor scene around it.
+/// Sways the hanging décor layer (garland/lantern/flag/pendant) as one rigid piece around its
+/// top edge - a physical wire or cord swinging, not each bulb moving independently. `±1°`,
+/// design's own number (see the retired comment on `warmGarland`'s old call site); the 5.5s
+/// period isn't otherwise documented and is this pass's own choice - slower than the 2.5-2.9s
+/// bob/ring cadences elsewhere, since a slack wire of bulbs reads as heavier than a customer or
+/// a rarity ring. Same capped 30fps clock and reduce-motion parking as the rest of the pass;
+/// rotating the whole pre-rendered Canvas is one GPU-composited transform, not a redraw, so this
+/// costs about the same as `.wall` itself already did.
+private struct SwayingHangingLayer: View {
+    let theme: VenueTheme
+    let palette: VenuePalette
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        if reduceMotion {
+            VenueSceneView(theme: theme, palette: palette, layer: .hangingLayer)
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                let angle = sin(t / 5.5 * 2 * .pi) * 1.0
+                VenueSceneView(theme: theme, palette: palette, layer: .hangingLayer)
+                    .rotationEffect(.degrees(angle), anchor: .top)
+            }
+        }
+    }
+}
+
 private struct BobbingSprite: View {
     let seed: Int
 

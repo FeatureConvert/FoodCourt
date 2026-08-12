@@ -11,13 +11,17 @@ import SwiftUI
 /// Rooms move onto this path one at a time (see `rebuilt`); anything not listed still draws
 /// through the original `VenuePropsView`, so a half-finished sweep never ships a blank room.
 ///
-/// Motion is deliberately absent. Design specifies steam, garland sway and flicker, but the
-/// venue stage is on screen for the entire session and is currently free per frame, so the
-/// loops are held for a later pass and every element is drawn in design's own reduce-motion
-/// rest pose.
+/// Motion is being reintroduced one loop and one room at a time now that the rest of the
+/// motion pass (queue bob, rarity rings, Golden sparkles) has shipped and held up on device -
+/// this is the always-on-screen surface that caused the original heat report, so it's the
+/// last piece and the most cautious about it. Garland sway is first (see `.hangingLayer`);
+/// everything else not yet split off still draws through `.wall` at design's own
+/// reduce-motion rest pose, same as before.
 struct VenueSceneView: View {
     enum Layer {
-        /// Everything behind the floor plane: wall texture, wainscot, built-ins, hanging layer.
+        /// Everything behind the floor plane: wall texture, wainscot, built-ins. The hanging
+        /// layer (garland/lantern/flag/pendant) has its own case below, split out room by room
+        /// as each one joins the motion pass - anything not yet split still draws here.
         case wall
         /// Floor material, drawn over the floor gradient.
         case floor
@@ -25,6 +29,12 @@ struct VenueSceneView: View {
         /// and `floor` because the counter is a much shorter, always-on-top view in
         /// `VenueStageView`, not the full-height canvas the other two layers share.
         case counterFront
+        /// The hanging décor alone (garland/lantern/flag/pendant/string-lights), split into its
+        /// own canvas so `VenueStageView` can apply a whole-layer `.rotationEffect(anchor: .top)`
+        /// to it for the sway loop without re-drawing the built-ins underneath every frame.
+        /// Rooms move onto this path one at a time, same as `rebuilt` above; anything not yet
+        /// split still draws its hanging décor as part of `.wall`, at rest.
+        case hangingLayer
     }
 
     let theme: VenueTheme
@@ -33,6 +43,11 @@ struct VenueSceneView: View {
 
     /// Which rooms have been rebuilt. Everything else falls through to the legacy props.
     static let rebuilt: Set<VenueTheme> = [.burger, .diner, .sushi, .pizza, .taco, .dessert, .foodtruck]
+
+    /// Which rooms have split their hanging décor into `.hangingLayer` for the sway loop.
+    /// `VenueStageView` only mounts the swaying wrapper for these - an empty `.hangingLayer`
+    /// Canvas would still cost a pointless 30fps timeline for a room that draws nothing there.
+    static let hasHangingLayer: Set<VenueTheme> = [.burger, .diner]
 
     // Material colours. These are shared across every room on purpose - only *structural*
     // colour comes from `VenuePalette`, so the coin-priced neon skin stays a pure data change.
@@ -239,9 +254,6 @@ struct VenueSceneView: View {
                     }
                 }
 
-                // Bulb garland, at rest. Design sways this +/-1 degree; held for the motion pass.
-                warmGarland()
-
             case (.burger, .floor):
                 checkerFloor(.black, opacity: 0.09)
 
@@ -358,8 +370,6 @@ struct VenueSceneView: View {
                         path.move(to: p(672, y)); path.addLine(to: p(692, y))
                     }
                 }
-
-                warmGarland()
 
             case (.diner, .floor):
                 // "The bold checkerboard the brief says this room earns" - design's own words;
@@ -843,6 +853,13 @@ struct VenueSceneView: View {
                 context.fill(ellipse(430, 300, 90, 46), with: .radialGradient(
                     Gradient(colors: [palette.accent.opacity(0.16), .clear]),
                     center: p(430, 300), startRadius: 0, endRadius: 90 / 860 * rect.width))
+
+            // Hanging décor, split from `.wall` so `VenueStageView` can sway the whole layer as
+            // one rigid piece. Burger and Diner share the same physical garland (see
+            // `warmGarland`'s own doc comment); the other five rooms' hanging elements
+            // (lanterns, flags, pendants, string lights) haven't moved off `.wall` yet.
+            case (.burger, .hangingLayer), (.diner, .hangingLayer):
+                warmGarland()
 
             default:
                 break
