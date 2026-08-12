@@ -60,6 +60,37 @@ struct ActiveQuest: Codable, Equatable, Identifiable {
         default:    return "\(Format.count(Int(shown))) / \(Format.count(Int(target)))"
         }
     }
+
+    enum CodingKeys: String, CodingKey {
+        case id, kind, target, progress, rewardGems, rewardSeconds
+    }
+
+    init(id: String, kind: QuestKind, target: Double, progress: Double,
+         rewardGems: Int, rewardSeconds: Double) {
+        self.id = id
+        self.kind = kind
+        self.target = target
+        self.progress = progress
+        self.rewardGems = rewardGems
+        self.rewardSeconds = rewardSeconds
+    }
+
+    /// Hand-written for the same reason as every other persisted state in this save: a
+    /// synthesized decoder throws on any key an older save doesn't have, which would corrupt
+    /// the whole save the moment a new field ships. No field here has a natural "unset"
+    /// default, so a missing/corrupt quest decodes as permanently unfinishable (`target` above
+    /// any real `progress` can reach) rather than guessing at values that might hand out a
+    /// free claim - the safe direction to err is toward nothing claimable, not a completed
+    /// quest with no explanation. `Quests.refill` naturally replaces it on the next slot check.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        kind = try c.decodeIfPresent(QuestKind.self, forKey: .kind) ?? .serve
+        progress = try c.decodeIfPresent(Double.self, forKey: .progress) ?? 0
+        target = try c.decodeIfPresent(Double.self, forKey: .target) ?? (progress + 1)
+        rewardGems = try c.decodeIfPresent(Int.self, forKey: .rewardGems) ?? 0
+        rewardSeconds = try c.decodeIfPresent(Double.self, forKey: .rewardSeconds) ?? 0
+    }
 }
 
 enum Quests {

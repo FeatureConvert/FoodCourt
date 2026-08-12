@@ -37,6 +37,31 @@ final class MigrationTests: XCTestCase {
         XCTAssertFalse(festival.premiumUnlocked)
     }
 
+    /// BoostState and ActiveQuest don't have a natural default for every field, so their
+    /// hardened decoders lean conservative on purpose: a corrupt/incomplete boost decodes as
+    /// already-expired (inert), and a corrupt/incomplete quest decodes as permanently
+    /// unfinishable (target set just above whatever progress it got) - neither can hand the
+    /// player something they didn't earn. Confirms both actually land there instead of
+    /// throwing or, worse, decoding as already complete/active.
+    func testCorruptBoostAndQuestDecodeAsInertRatherThanThrowingOrGrantingSomething() throws {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let empty = "{}".data(using: .utf8)!
+
+        let boost = try decoder.decode(BoostState.self, from: empty)
+        XCTAssertFalse(boost.isActive(at: Date()), "a fieldless boost must decode as already-expired")
+        XCTAssertEqual(boost.multiplier, 1, "a neutral multiplier, not a free bonus")
+
+        let quest = try decoder.decode(ActiveQuest.self, from: empty)
+        XCTAssertFalse(quest.isComplete, "a fieldless quest must never decode as already claimable")
+        XCTAssertEqual(quest.rewardGems, 0)
+
+        // Same guarantee even when SOME fields are present and only the rest are missing.
+        let partial = try decoder.decode(ActiveQuest.self,
+            from: "{\"progress\": 500}".data(using: .utf8)!)
+        XCTAssertFalse(partial.isComplete, "target must land above whatever progress decoded to")
+    }
+
     /// A schema-1 launch-era save: five venues, hasManager flags, the old ad-cooldown key,
     /// none of the thirty systems that came later.
     func testLaunchEraSaveDecodesPlayable() throws {

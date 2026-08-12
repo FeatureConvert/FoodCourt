@@ -71,6 +71,32 @@ struct BoostState: Codable, Equatable, Identifiable {
 
     func isActive(at now: Date) -> Bool { expiry > now }
     func remaining(at now: Date) -> TimeInterval { max(0, expiry.timeIntervalSince(now)) }
+
+    enum CodingKeys: String, CodingKey {
+        case id, label, multiplier, expiry
+    }
+
+    init(id: String, label: String, multiplier: Double, expiry: Date) {
+        self.id = id
+        self.label = label
+        self.multiplier = multiplier
+        self.expiry = expiry
+    }
+
+    /// Hand-written for the same reason as every other persisted state in this save: a
+    /// synthesized decoder throws on any key an older save doesn't have, which would corrupt
+    /// the whole save the moment a new field ships. No field here has a natural "unset"
+    /// default the way most other persisted state does, so a missing/corrupt boost decodes as
+    /// already-expired and inert (`expiry = .distantPast`) rather than guessing at a value that
+    /// might hand out free multiplier time - the safe direction to err is toward granting
+    /// nothing, not something the player didn't earn.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        label = try c.decodeIfPresent(String.self, forKey: .label) ?? ""
+        multiplier = try c.decodeIfPresent(Double.self, forKey: .multiplier) ?? 1
+        expiry = try c.decodeIfPresent(Date.self, forKey: .expiry) ?? .distantPast
+    }
 }
 
 /// Non-consumable purchases. Kept separate from currency so a restore can rebuild them
