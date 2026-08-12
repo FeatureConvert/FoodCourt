@@ -45,10 +45,8 @@ passes, log open questions rather than blocking on them, don't spend money on cr
   pushed to both devices.
 - Ran two background bug-hunt surveys (Legacy/Contracts/Tools/Cosmetics/Sound/Tutorial/
   Notifications; and Formatting/race-conditions/empty-states/accessibility/date-edge-cases).
-  First one found the skin bug above plus a low-confidence Legacy-tree "permanently owed perk
-  pick past level 13" note (not acted on - no reproduced failure, just a hypothetical future
-  landmine if code ever branches on the raw owed count instead of the derived offer array;
-  worth a second look if Legacy levels ever get easier to reach in bulk). Second survey still
+  First one found the skin bug above plus a Legacy-tree "permanently owed perk pick past level
+  13" concern - later verified SAFE by hand (see below, no fix needed). Second survey still
   running as of this note.
 
 - Second bug-hunt survey found and fixed: perk double-tap could burn a second precious choice
@@ -86,6 +84,11 @@ passes, log open questions rather than blocking on them, don't spend money on cr
   neon equipped on Burger Shack): background gradient, station-card buy/unlock button colors, and
   the Venues tab row all correctly switched to neon purple/green. Confirms the earlier fix works,
   not just compiles.
+
+- Verified the Legacy tree "permanently owed" concern by hand: pendingLegacyPerkOffer already
+  resolves to nil once every perk is maxed (offer.isEmpty wins over the raw owed count), so it
+  was never actually a live bug. Added testLegacyOfferResolvesToNilOnceEveryPerkIsMaxed to lock
+  the invariant in for the future. Committed 258bf7d, pushed to both devices.
 
 4. **HUD badge row has no horizontal scroll (pre-existing, not something I introduced).** Wanted
    to check whether my 2 new errand/Face-Off badges could push the HUD badge row off-screen on

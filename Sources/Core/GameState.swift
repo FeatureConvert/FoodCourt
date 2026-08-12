@@ -42,6 +42,24 @@ struct VenueState: Codable, Equatable {
     static func fresh(venue: VenueSpec, unlocked: Bool) -> VenueState {
         VenueState(unlocked: unlocked, stations: venue.stations.map { _ in StationState() })
     }
+
+    enum CodingKeys: String, CodingKey {
+        case unlocked, stations
+    }
+
+    init(unlocked: Bool = false, stations: [StationState] = []) {
+        self.unlocked = unlocked
+        self.stations = stations
+    }
+
+    /// Hand-written for the same reason as every other persisted state in this save: a
+    /// synthesized decoder throws on any key an older save doesn't have, which would corrupt
+    /// the whole save the moment a new field ships.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        unlocked = try c.decodeIfPresent(Bool.self, forKey: .unlocked) ?? false
+        stations = try c.decodeIfPresent([StationState].self, forKey: .stations) ?? []
+    }
 }
 
 /// A timed global profit multiplier. Several can stack; the engine multiplies them together.

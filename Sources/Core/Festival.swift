@@ -44,6 +44,40 @@ struct FestivalState: Codable, Equatable {
     var serveCounter: Int = 0
     /// Tickets this season that came from serving, so the drip can be capped.
     var ticketsFromServing: Int = 0
+
+    enum CodingKeys: String, CodingKey {
+        case seasonID, tickets, claimedFree, claimedPremium, premiumUnlocked, endsAt,
+             serveCounter, ticketsFromServing
+    }
+
+    init(seasonID: Int = 1, tickets: Int = 0, claimedFree: [Int] = [], claimedPremium: [Int] = [],
+         premiumUnlocked: Bool = false, endsAt: Date = Date().addingTimeInterval(Festival.seasonLength),
+         serveCounter: Int = 0, ticketsFromServing: Int = 0) {
+        self.seasonID = seasonID
+        self.tickets = tickets
+        self.claimedFree = claimedFree
+        self.claimedPremium = claimedPremium
+        self.premiumUnlocked = premiumUnlocked
+        self.endsAt = endsAt
+        self.serveCounter = serveCounter
+        self.ticketsFromServing = ticketsFromServing
+    }
+
+    /// Hand-written for the same reason as every other persisted state in this save: a
+    /// synthesized decoder throws on any key an older save doesn't have, which would corrupt
+    /// the whole save the moment a new field ships.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        seasonID = try c.decodeIfPresent(Int.self, forKey: .seasonID) ?? 1
+        tickets = try c.decodeIfPresent(Int.self, forKey: .tickets) ?? 0
+        claimedFree = try c.decodeIfPresent([Int].self, forKey: .claimedFree) ?? []
+        claimedPremium = try c.decodeIfPresent([Int].self, forKey: .claimedPremium) ?? []
+        premiumUnlocked = try c.decodeIfPresent(Bool.self, forKey: .premiumUnlocked) ?? false
+        endsAt = try c.decodeIfPresent(Date.self, forKey: .endsAt)
+            ?? Date().addingTimeInterval(Festival.seasonLength)
+        serveCounter = try c.decodeIfPresent(Int.self, forKey: .serveCounter) ?? 0
+        ticketsFromServing = try c.decodeIfPresent(Int.self, forKey: .ticketsFromServing) ?? 0
+    }
 }
 
 enum Festival {

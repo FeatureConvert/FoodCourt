@@ -14,6 +14,29 @@ final class MigrationTests: XCTestCase {
         return state
     }
 
+    /// VenueState, TutorialState, and FestivalState all default every field, but until this
+    /// pass they still used the synthesized Decodable, which throws keyNotFound on ANY missing
+    /// key rather than falling back to that default - a field added to any of them later would
+    /// have aborted the whole save decode, not just that one feature. Confirms all three now
+    /// decode an empty object into their documented defaults instead of throwing.
+    func testFieldlessStatesDecodeToTheirDefaults() throws {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let empty = "{}".data(using: .utf8)!
+
+        let venue = try decoder.decode(VenueState.self, from: empty)
+        XCTAssertEqual(venue, VenueState())
+
+        let tutorial = try decoder.decode(TutorialState.self, from: empty)
+        XCTAssertEqual(tutorial, TutorialState())
+
+        let festival = try decoder.decode(FestivalState.self, from: empty)
+        XCTAssertEqual(festival.seasonID, 1)
+        XCTAssertEqual(festival.tickets, 0)
+        XCTAssertTrue(festival.claimedFree.isEmpty)
+        XCTAssertFalse(festival.premiumUnlocked)
+    }
+
     /// A schema-1 launch-era save: five venues, hasManager flags, the old ad-cooldown key,
     /// none of the thirty systems that came later.
     func testLaunchEraSaveDecodesPlayable() throws {

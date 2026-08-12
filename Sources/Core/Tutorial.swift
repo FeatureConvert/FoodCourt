@@ -58,6 +58,24 @@ struct TutorialState: Codable, Equatable {
     var step: Int = 0
     var finished: Bool = false
 
+    enum CodingKeys: String, CodingKey {
+        case step, finished
+    }
+
+    init(step: Int = 0, finished: Bool = false) {
+        self.step = step
+        self.finished = finished
+    }
+
+    /// Hand-written for the same reason as every other persisted state in this save: a
+    /// synthesized decoder throws on any key an older save doesn't have, which would corrupt
+    /// the whole save the moment a new field ships.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        step = try c.decodeIfPresent(Int.self, forKey: .step) ?? 0
+        finished = try c.decodeIfPresent(Bool.self, forKey: .finished) ?? false
+    }
+
     var current: TutorialStep? {
         finished ? nil : TutorialStep(rawValue: step)
     }
