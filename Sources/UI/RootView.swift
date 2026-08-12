@@ -91,12 +91,22 @@ struct RootView: View {
 
             TutorialOverlay(onSkip: { engine.skipTutorial() })
 
-            if let toast {
-                ToastView(message: toast)
-                    .padding(.bottom, 120)
-                    .frame(maxHeight: .infinity, alignment: .bottom)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
+            toastOverlay
+        }
+    }
+
+    /// A `.sheet(item:)` presentation covers the whole window at the OS level - a toast
+    /// attached only to `mainContent` renders correctly but sits BEHIND whichever sheet is
+    /// currently up, invisible for as long as it's open. Every sheet's own `onToast` still
+    /// bubbles up to this same `showToast`/`toast` state, so the fix is to render this same
+    /// overlay a second time on the sheet's own presented content (see `sheetedContent`)
+    /// rather than inventing a second, sheet-local toast system.
+    @ViewBuilder private var toastOverlay: some View {
+        if let toast {
+            ToastView(message: toast)
+                .padding(.bottom, 120)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 
@@ -256,6 +266,8 @@ struct RootView: View {
                 sheetContent(for: which)
                     .presentationDetents(detents(for: which))
                     .presentationDragIndicator(.visible)
+                    .overlay(toastOverlay)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: toast)
             }
     }
 
