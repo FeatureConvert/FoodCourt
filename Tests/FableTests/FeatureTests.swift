@@ -419,6 +419,32 @@ final class FeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testOfflineDoubleWithGemsWorksAfterTheFreeOneIsSpent() {
+        // Reported live: once the free daily double was already used, the welcome-back screen
+        // had no way to double at all - just "No thanks, collect" with nothing to decline.
+        let e = engine()
+        let report = OfflineReport(elapsed: 7200, credited: 7200, coins: 5_000,
+                                   wasCapped: false, capHours: 2)
+        XCTAssertTrue(e.claimOfflineDouble(report))
+        XCTAssertFalse(e.offlineDoubleAvailable())
+
+        e.addGems(1_000)
+        let coinsBefore = e.state.coins
+        let gemsBefore = e.state.gems
+        XCTAssertTrue(e.claimOfflineDoubleWithGems(report))
+        XCTAssertEqual(e.state.coins, coinsBefore + 5_000, accuracy: 1)
+        XCTAssertEqual(e.state.gems, gemsBefore - GameEngine.offlineDoubleGemCost)
+        // Doesn't touch the free path's own gate - it's still spent for today, not refreshed.
+        XCTAssertFalse(e.offlineDoubleAvailable())
+
+        // Not enough gems: no partial charge, no coins.
+        let broke = engine()
+        let coinsBeforeBroke = broke.state.coins
+        XCTAssertFalse(broke.claimOfflineDoubleWithGems(report))
+        XCTAssertEqual(broke.state.coins, coinsBeforeBroke, accuracy: 1)
+    }
+
+    @MainActor
     func testVIPCarriesTheCarnivalPassEverySeason() {
         let e = engine()
         e.awardTickets(Festival.ticketsRequired(forTier: 3))
@@ -775,6 +801,31 @@ final class FeatureTests: XCTestCase {
         e.completeTutorialStep(.openGoals)
         XCTAssertNil(e.state.tutorial.current)
         XCTAssertTrue(e.state.tutorial.finished)
+    }
+
+    @MainActor
+    func testTutorialSurvivesHiringTheFreeManagerBeforeTappingOrBuying() {
+        // The free first-station hire has no prerequisite - a player can claim it as their
+        // very first action, before the tutorial has even asked them to tap or buy anything.
+        // Reported live: doing exactly that left the tutorial permanently stuck on "Hire some
+        // help," pointing at station 0's hire button after it had already been used to hire
+        // for free and no longer existed.
+        let e = engine()
+        XCTAssertEqual(e.state.tutorial.current, .tapStation)
+
+        // The free-hire button (StationListView) passes free: true explicitly when
+        // eligibleForFreeFirstManager is true; hireManager itself doesn't infer it.
+        XCTAssertTrue(e.hireManager(for: 0, free: true))
+        XCTAssertTrue(e.state.freeFirstManagerClaimed)
+        XCTAssertEqual(e.state.tutorial.current, .tapStation, "hiring out of order must not skip ahead")
+
+        e.addCoins(1_000)
+        e.tap(station: 0)
+        XCTAssertEqual(e.state.tutorial.current, .buyLevel)
+        e.buy(station: 0)
+        // Station 0 is already staffed, so the hire step's own target is gone - it must skip
+        // straight past, the same way it would if coffee break weren't ready yet either.
+        XCTAssertEqual(e.state.tutorial.current, .openGoals)
     }
 
     @MainActor

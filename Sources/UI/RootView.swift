@@ -418,7 +418,7 @@ struct RootView: View {
         case .perk(let station): PerkChoiceView(station: station, onToast: showToast)
         case .offline:
             if let report = engine.pendingOfflineReport {
-                OfflineEarningsView(report: report)
+                OfflineEarningsView(report: report, onToast: showToast)
             }
         case .cosmetics(let venue): CosmeticsView(venue: venue, onToast: showToast)
         case .welcome: WelcomeView()

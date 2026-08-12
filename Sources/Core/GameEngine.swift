@@ -571,6 +571,22 @@ final class GameEngine: ObservableObject {
         state.venues[venue].stations[index].level += amount
 
         state.tutorial.complete(.buyLevel)
+        // The free first-station hire (see eligibleForFreeFirstManager) has no prerequisite -
+        // a player can claim it before tapping or buying anything at all. If they do, station
+        // 0 is already staffed by the time the tutorial would normally reach this step, so its
+        // target (a hire button that no longer exists there) is gone before the step even
+        // starts, and nothing else may be unlocked yet to hire instead. Skip it the same way
+        // coffeeBreak already does below when its own target isn't actionable.
+        if state.tutorial.current == .hireManager,
+           state.venues[venue].stations.contains(where: { $0.isStaffed }) {
+            state.tutorial.complete(.hireManager)
+            // Chained for the same reason hireManager() below checks it: a new save locks
+            // Coffee Break out for its first 15 minutes, so skipping straight into a step
+            // that's also not actionable yet would just trade one stuck step for another.
+            if state.tutorial.current == .coffeeBreak, !boostReady {
+                state.tutorial.complete(.coffeeBreak)
+            }
+        }
         rollRecipe(venue: venue, station: index, levels: amount)
         advanceQuests(kind: .level, to: Double(Quests.highestStationLevel(state)))
         checkPerkUnlock(venue: venue, station: index, levelBefore: levelBefore)
@@ -1802,6 +1818,21 @@ final class GameEngine: ObservableObject {
     func claimOfflineDouble(_ report: OfflineReport, calendar: Calendar = .current) -> Bool {
         guard offlineDoubleAvailable(calendar: calendar) else { return false }
         state.lastOfflineDoubleDay = calendar.startOfDay(for: state.now)
+        addCoins(report.coins)
+        save()
+        return true
+    }
+
+    /// Price to double a welcome-back payout with gems once the free daily double is already
+    /// spent - previously there was no way to double at all in that case, which left the
+    /// screen showing only "No thanks, collect" with nothing to have said no to.
+    static let offlineDoubleGemCost = 40
+
+    /// Doesn't touch `lastOfflineDoubleDay` - that flag gates the free path only, and this
+    /// one exists specifically for when the free path is already used today.
+    @discardableResult
+    func claimOfflineDoubleWithGems(_ report: OfflineReport) -> Bool {
+        guard spendGems(GameEngine.offlineDoubleGemCost) else { return false }
         addCoins(report.coins)
         save()
         return true
