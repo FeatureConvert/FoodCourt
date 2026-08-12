@@ -102,6 +102,23 @@ final class EconomyTests: XCTestCase {
         }
     }
 
+    /// A real engine simulation showed the last venue's unlock step eating 33-47% of an entire
+    /// prestige cycle's total time, every cycle - a much steeper jump than every step before it,
+    /// which grew smoothly. -30% on just this one step, not the escalation curve's shape.
+    func testFinalVenueUnlockCostIsDiscountedThirtyPercentOffTheRawEscalation() {
+        let last = Balance.venues.last!
+        let raw = last.stations[0].baseCost * 110_000
+            * pow(VenueSpec.venueEscalation, Double(last.id - 1))
+        XCTAssertEqual(last.unlockCost, raw * 0.7, accuracy: raw * 1e-9)
+
+        // Every venue before the last one is untouched - the escalation arc's shape still holds.
+        for venue in Balance.venues.dropLast() where venue.id > 0 {
+            let expected = venue.stations[0].baseCost * 110_000
+                * pow(VenueSpec.venueEscalation, Double(venue.id - 1))
+            XCTAssertEqual(venue.unlockCost, expected, accuracy: expected * 1e-9, "\(venue.name)")
+        }
+    }
+
     // MARK: Prestige
 
     func testStarsScaleWithSquareRootOfLifetime() {

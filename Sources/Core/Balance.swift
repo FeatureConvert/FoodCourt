@@ -54,7 +54,18 @@ struct VenueSpec: Identifiable {
     /// ~30 minutes to the Sushi Bar; the steadier long-horizon sim, which also spends coins
     /// hiring managers, puts it nearer 37.
     var unlockCost: Double {
-        id == 0 ? 0 : stations[0].baseCost * 110_000 * pow(Self.venueEscalation, Double(id - 1))
+        guard id > 0 else { return 0 }
+        let raw = stations[0].baseCost * 110_000 * pow(Self.venueEscalation, Double(id - 1))
+        // The last venue's step measured disproportionately steeper than every step before
+        // it - a real engine simulation showed opening it alone eating 33-47% of an entire
+        // prestige cycle's total time, every cycle, while the venue-to-venue gaps leading up
+        // to it grew smoothly. venueEscalation itself is uniform by design (see its own doc
+        // comment - later venues SHOULD cost more, on purpose), so this is a discount on just
+        // the final step rather than a change to the arc's shape. -30% matches the rounding
+        // this game already uses for faucet/sink adjustments elsewhere (quests -50%,
+        // achievements -30%, festival -40%, daily -35%, league -35%).
+        guard id == Balance.venues.count - 1 else { return raw }
+        return raw * 0.7
     }
 
     /// Extra cost escalation per venue, ON TOP of the 25x/venue scale `baseCost` already
