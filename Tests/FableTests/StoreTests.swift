@@ -89,6 +89,26 @@ final class StoreTests: XCTestCase {
         XCTAssertTrue(store.isOwned(vip))
     }
 
+    /// Robert reported the Carnival Pass button under Events doing nothing on-device. The
+    /// button itself (EventsView.purchasePremiumPass) calls the exact same `store.purchase`
+    /// every other IAP button does, and reading the whole path (grant -> unlockFestivalPremium
+    /// -> state.festival.premiumUnlocked) didn't turn up a bug - this exercises it end to end
+    /// against the real StoreKit 2 code path to either confirm that or catch what reading
+    /// the code missed.
+    func testCarnivalPassUnlocksPremiumFestivalTrack() async throws {
+        XCTAssertFalse(engine.festivalPremiumActive)
+
+        guard let pass = ShopCatalog.item(for: Festival.premiumProductID) else {
+            return XCTFail("Carnival Pass product missing from the catalog")
+        }
+        await store.purchase(pass)
+
+        XCTAssertNil(store.errorMessage, "purchase reported an error: \(store.errorMessage ?? "")")
+        XCTAssertTrue(engine.state.festival.premiumUnlocked)
+        XCTAssertTrue(engine.festivalPremiumActive)
+        XCTAssertTrue(store.isOwned(pass))
+    }
+
     func testStarterPackGrantsGemsManagersAndABoost() async throws {
         // Open a second station so the manager pack has something to staff.
         engine.addCoins(10_000)
