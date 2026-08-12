@@ -517,8 +517,21 @@ final class GameEngine: ObservableObject {
     /// same for the star-multiplier portion, since lifetimeStars is permanent by design -
     /// showing the full combined number there would make "reset for normal prices" a lie
     /// for anyone who has ever prestiged.
+    ///
+    /// Held at 1x for as long as `allVenuesAndStationsUnlocked` is false - the tax exists to
+    /// punish a player who COULD prestige and is choosing to stall, not one who is working as
+    /// fast as possible toward a gate they cannot yet pass. Since that gate now requires the
+    /// whole board finished (see `canPrestige`), and finishing it is itself the thing this tax
+    /// would otherwise be taxing, letting it run during the mandatory rebuild created a
+    /// feedback loop with no exit: a calibration run against the real venue-unlock curve found
+    /// venue 5 never unlocking inside 150 simulated hours because the tax had already inflated
+    /// every cost roughly 15,000x by the time the board reached it. `prestige()` wipes the
+    /// board and re-requires full completion on every cycle, not just the first, so this
+    /// exemption applies every cycle's rebuild - not only before the player's first-ever
+    /// prestige.
     var staleCostInflation: Double {
-        Balance.stalenessMultiplier(
+        guard allVenuesAndStationsUnlocked else { return 1 }
+        return Balance.stalenessMultiplier(
             boardAgeHours: boardAgeHours,
             graceBonusHours: (state.contract?.staleGraceDeltaHours ?? 0)
                 + state.legacyEffects.staleGraceBonusHours)
