@@ -71,7 +71,20 @@ final class GameEngine: ObservableObject {
     @Published private(set) var state: GameState
     @Published private(set) var lastServe: [Int: ServeEvent] = [:]
     @Published private(set) var servedCustomers: Int = 0
-    @Published var buyQuantity: BuyQuantity = .x1
+    /// Backed directly by `UserDefaults`, same as `SoundService`'s reason for doing the same
+    /// thing rather than `@AppStorage` (that wrapper only works inside a View) - a device
+    /// preference, not game state, so it doesn't belong in the save file. Used to just default
+    /// back to .x1 on every launch, which was a real annoyance for anyone who always buys at
+    /// x100 or Max. Read/write both gated on `EphemeralPersistence` in `init`/`didSet` below -
+    /// the test host and the app under test share one real `UserDefaults.standard`, so without
+    /// that gate a test setting `.max` would leak into every later test in the same run (and
+    /// into a real device's saved preference during local development).
+    @Published var buyQuantity: BuyQuantity = .x1 {
+        didSet {
+            guard !(persistence is EphemeralPersistence) else { return }
+            UserDefaults.standard.set(buyQuantity.rawValue, forKey: "buyQuantity")
+        }
+    }
 
     @Published var pendingOfflineReport: OfflineReport?
 
@@ -94,11 +107,6 @@ final class GameEngine: ObservableObject {
     /// Set by `prestige()` for the end-of-run recap the UI shows after the reset - the
     /// numbers have to be captured BEFORE the board wipes them.
     @Published var lastRunRecap: RunRecap?
-    /// A flash sale that just started, waiting on its one-shot popup - separate from
-    /// `state.flashSale` itself so relaunching mid-sale (or the sale surviving a
-    /// background/foreground cycle) doesn't show the interrupting popup again.
-    @Published var pendingFlashSaleAnnouncement: FlashSale?
-
     /// Payouts waiting to be shown, and when each station last showed one. A fast station
     /// completes ten-plus cycles a second; spawning a burst per cycle restarts the animation
     /// before it can play, so they are pooled and shown as one larger number.
@@ -124,6 +132,11 @@ final class GameEngine: ObservableObject {
         self.state = state ?? persistence.load()
         self.state.reconcileWithCatalog()
         Boosts.prune(&self.state)
+        if !(persistence is EphemeralPersistence),
+           let raw = UserDefaults.standard.string(forKey: "buyQuantity"),
+           let saved = BuyQuantity(rawValue: raw) {
+            buyQuantity = saved
+        }
         bootstrapSystems()
         if startTimers { start() }
     }
@@ -140,7 +153,6 @@ final class GameEngine: ObservableObject {
         Festival.rolloverIfNeeded(&state.festival, now: state.now)
         rollWeeklyQuestIfNeeded()
         rollCateringIfNeeded()
-        checkFlashSaleIfNeeded()
     }
 
     func start() {
@@ -207,7 +219,6 @@ final class GameEngine: ObservableObject {
         settleLeagueIfFinished()
         rollWeeklyQuestIfNeeded()
         rollCateringIfNeeded()
-        checkFlashSaleIfNeeded()
         state.lastSeen = state.now
         lastTickTime = CACurrentMediaTimeCompat()
     }
@@ -347,7 +358,6 @@ final class GameEngine: ObservableObject {
         // that ended while the app was open just sat there until the next relaunch.
         settleLeagueIfFinished()
         Festival.rolloverIfNeeded(&state.festival, now: now)
-        checkFlashSaleIfNeeded()
     }
 
     /// Releases pooled payouts, at most one burst per station per interval, so each animation
@@ -1255,24 +1265,6 @@ final class GameEngine: ObservableObject {
     var claimableQuests: Int {
         state.quests.filter(\.isComplete).count
             + ((state.weeklyQuest?.isComplete ?? false) ? 1 : 0)
-    }
-
-    // MARK: Flash sale
-
-    /// Expires a live sale and pins the next randomized cooldown, or rolls a fresh one once
-    /// eligible - never during the tutorial, never on top of an already-active sale. Runs
-    /// from bootstrap/foreground/advance(by:), same as the weekly quest and catering rolls.
-    func checkFlashSaleIfNeeded() {
-        if let sale = state.flashSale, !sale.isActive(at: state.now) {
-            state.flashSale = nil
-            state.nextFlashSaleEligibleAt = state.now.addingTimeInterval(FlashSaleKit.randomCooldown())
-        }
-        guard state.flashSale == nil, state.tutorial.finished,
-              state.now >= state.nextFlashSaleEligibleAt else { return }
-        let sale = FlashSaleKit.roll(now: state.now)
-        state.flashSale = sale
-        pendingFlashSaleAnnouncement = sale
-        save()
     }
 
     // MARK: Weekly challenge

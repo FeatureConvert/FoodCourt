@@ -72,13 +72,8 @@ enum ShopCatalog {
                  reward: .gems(3300), fallbackPrice: "$24.99", badge: "+35%", magnitude: 4),
         ShopItem(id: prefix + "gems.hoard", title: "Hoard", subtitle: "7,500 gems",
                  reward: .gems(7500), fallbackPrice: "$49.99", badge: "+50%", magnitude: 4),
-        ShopItem(id: prefix + "gems.empire", title: "Empire", subtitle: "18,000 gems",
-                 reward: .gems(18000), fallbackPrice: "$99.99", badge: "+80%", magnitude: 4),
-        // The whale tier of the gem ladder. 225 gems/$ keeps the value-per-dollar curve
-        // strictly rising (Empire is 180/$), so no lower pack is ever the smarter buy at
-        // this price point.
-        ShopItem(id: prefix + "gems.dynasty", title: "Dynasty", subtitle: "45,000 gems",
-                 reward: .gems(45000), fallbackPrice: "$199.99", badge: "+125%", magnitude: 4),
+        // Hoard is the ceiling now - Empire ($99.99) and Dynasty ($199.99) cut to trim the
+        // whale end of the gem ladder.
     ]
 
     /// Display order is catalog order - keep this ascending by price (StoreTests pins it).
@@ -100,24 +95,17 @@ enum ShopCatalog {
         ShopItem(id: prefix + "vip.pass", title: "VIP Pass",
                  subtitle: "+25% profit forever · 12h offline earnings · Carnival Pass every season",
                  reward: .vip, fallbackPrice: "$14.99", badge: "BEST VALUE", magnitude: 4),
-        // $14.99, up from $9.99: at the same price as the plain 1,200-gem Chest, this
-        // bundle's 1,500 gems PLUS managers PLUS 72h of double profit made Chest strictly
-        // dominated - no first $9.99 should have two answers where one is always wrong.
-        ShopItem(id: prefix + "pack.grandopening", title: "Grand Opening Bundle",
-                 subtitle: "1,500 gems · a manager for every open station in every venue · ×2 for 72h",
-                 reward: .grandOpeningBundle, fallbackPrice: "$14.99", badge: "ONE TIME", magnitude: 3),
+        // Grand Opening Bundle cut - it overlapped Starter Pack (same free-managers idea,
+        // different scope/price); one clean early bundle instead of two similar ones.
         ShopItem(id: prefix + "pack.accelerator", title: "Franchise Accelerator",
                  subtitle: "2,500 gems · 8 hours of income banked now · ×2 profit for 48h",
                  reward: .accelerator, fallbackPrice: "$19.99", badge: "BUNDLE", magnitude: 4),
-        ShopItem(id: prefix + "pack.timevault", title: "Time Vault",
-                 subtitle: "A full day of income banked now · ×3 profit for 72h",
-                 reward: .timeVault, fallbackPrice: "$39.99", badge: "BUNDLE", magnitude: 4),
+        // Time Vault cut - a more expensive, largely redundant version of Franchise Accelerator.
         ShopItem(id: prefix + "vip.mogul", title: "Mogul Pass",
                  subtitle: "+50% profit forever · +12h offline cap · stacks with VIP",
                  reward: .mogulPass, fallbackPrice: "$49.99", badge: "PERMANENT", magnitude: 4),
-        ShopItem(id: prefix + "pack.founders", title: "Founder's Bundle",
-                 subtitle: "12,000 gems · 2 Legendary managers · ×2 profit for 7 days",
-                 reward: .foundersBundle, fallbackPrice: "$99.99", badge: "ONE TIME", magnitude: 4),
+        // Founder's Bundle cut - a one-time grab-bag at the same price range as Mogul Pass,
+        // redundant with the two clean permanent-boost tiers (VIP, Mogul) already above it.
     ]
 
     static let all: [ShopItem] = offers + gemPacks
@@ -294,16 +282,8 @@ final class StoreService: ObservableObject {
         guard let engine else { return }
         switch item.reward {
         case .gems(let amount):
-            // Same price, more gems for the window - see FlashSale.swift for why the app
-            // can't discount the price itself. Applies to every purchase of the pack while
-            // the sale is live, not just the first (a real flash sale on a repeatable
-            // consumable works the same way).
-            let sale = engine.state.flashSale
-            let boosted = (sale?.packID == item.id && sale?.isActive(at: engine.state.now) == true)
-                ? sale?.bonusGems : nil
-            let granted = boosted ?? amount
-            engine.addGems(granted)
-            if announce { lastGrant = "+\(Format.count(granted)) gems" }
+            engine.addGems(amount)
+            if announce { lastGrant = "+\(Format.count(amount)) gems" }
 
         case .starterPack:
             let firstTime = !engine.state.entitlements.starterPack

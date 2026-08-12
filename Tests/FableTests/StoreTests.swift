@@ -139,12 +139,12 @@ final class StoreTests: XCTestCase {
     }
 
     func testBuyingTheBiggestGemPackCreditsCorrectly() async throws {
-        guard let empire = ShopCatalog.gemPacks.first(where: { $0.id.hasSuffix("gems.empire") }) else {
-            return XCTFail("missing the Empire gem pack")
+        guard let hoard = ShopCatalog.gemPacks.first(where: { $0.id.hasSuffix("gems.hoard") }) else {
+            return XCTFail("missing the Hoard gem pack")
         }
         let before = engine.state.gems
-        await store.purchase(empire)
-        XCTAssertEqual(engine.state.gems, before + 18_000)
+        await store.purchase(hoard)
+        XCTAssertEqual(engine.state.gems, before + 7_500)
     }
 
     func testLegendaryChefCrateGrantsALegendaryManagerAndIsRepeatable() async throws {

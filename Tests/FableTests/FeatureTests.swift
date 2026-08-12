@@ -991,12 +991,6 @@ final class FeatureTests: XCTestCase {
         }
     }
 
-    func testGrandOpeningBundleIsAOneTimeNonConsumable() {
-        let item = ShopCatalog.all.first { $0.reward == .grandOpeningBundle }
-        XCTAssertNotNil(item, "the Grand Opening Bundle must be in the catalog")
-        XCTAssertFalse(item?.isConsumable ?? true, "a one-time anchor purchase must not be repeatable")
-    }
-
     // MARK: Shop sort order
 
     func testGemSinksDisplayCheapestFirst() {

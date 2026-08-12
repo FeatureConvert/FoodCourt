@@ -76,7 +76,6 @@
 		D119FA33321C01028D35F1CE /* PerkChoiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 388AFC1D19065A136570A153 /* PerkChoiceView.swift */; };
 		D4E84DE511EB946EE745296D /* GameEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97F978F2657BFE1A5089482A /* GameEngine.swift */; };
 		D5C4005C6D80D45623A66660 /* VenueScenes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4D8B62A270B89ADC697C071 /* VenueScenes.swift */; };
-		D663D254D9710CF63E1D835C /* FlashSale.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9591A328739A8243D1D2885 /* FlashSale.swift */; };
 		DA7753FD7192F3A0D960C1A5 /* ShopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6110EAE66DAA23544163D60 /* ShopView.swift */; };
 		DAA618AE10CAE02924719006 /* Icons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F8CDD98905FDF24A7F37B5 /* Icons.swift */; };
 		DE1FBDD2A5D54E8B7BB4E062 /* EconomyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6C8B5AE629838FD3011DB86 /* EconomyTests.swift */; };
@@ -167,7 +166,6 @@
 		9AB2CA10EC227D58DEE2D0F1 /* SpriteSeedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpriteSeedTests.swift; sourceTree = "<group>"; };
 		A4D8B62A270B89ADC697C071 /* VenueScenes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueScenes.swift; sourceTree = "<group>"; };
 		A6D9C15F5FAAEE676AFA42E6 /* GemSpend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GemSpend.swift; sourceTree = "<group>"; };
-		A9591A328739A8243D1D2885 /* FlashSale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlashSale.swift; sourceTree = "<group>"; };
 		AAEEE7013E714F39F25B687C /* DepthSystemsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepthSystemsTests.swift; sourceTree = "<group>"; };
 		AB9CDFE41E11F22B7F4BB70F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		ADBF6FA651E23B2CE296686C /* SaveManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveManager.swift; sourceTree = "<group>"; };
@@ -226,7 +224,6 @@
 				64A26993184F7413D36694FC /* Errands.swift */,
 				865DD982FAD587AC44DCEB96 /* Expeditions.swift */,
 				6B5E019C15AA811DEA06C126 /* Festival.swift */,
-				A9591A328739A8243D1D2885 /* FlashSale.swift */,
 				1B320AD114EF8759BA8EA4A0 /* Formatting.swift */,
 				1837A7A9214C46DF66AA3576 /* GameCenterService.swift */,
 				97F978F2657BFE1A5089482A /* GameEngine.swift */,
@@ -522,7 +519,6 @@
 				9717E909A372A86E45FFA318 /* Expeditions.swift in Sources */,
 				877B550408BB856B16FC8443 /* FableApp.swift in Sources */,
 				FC246313F805860C203CB101 /* Festival.swift in Sources */,
-				D663D254D9710CF63E1D835C /* FlashSale.swift in Sources */,
 				75321F06B4C9A848CBD2DC9B /* FoodSprite.swift in Sources */,
 				E018DD2D1670A22E593B6962 /* Formatting.swift in Sources */,
 				9B94CEEE3AEB652BE73FB476 /* GameCenterService.swift in Sources */,

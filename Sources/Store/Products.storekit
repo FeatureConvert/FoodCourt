@@ -1,328 +1,253 @@
 {
- "appPolicies": {
-  "eula": "",
-  "policies": [
-   {
-    "locale": "en_US",
-    "policyText": "",
-    "policyURL": ""
-   }
-  ]
- },
- "identifier": "F00DC0RT",
- "nonRenewingSubscriptions": [],
- "products": [
-  {
-   "displayPrice": "0.99",
-   "familyShareable": false,
-   "internalID": "1000000001",
-   "localizations": [
-    {
-     "description": "A handful of gems to keep the fryers hot.",
-     "displayName": "Handful of Gems",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.gems.handful",
-   "referenceName": "Handful of Gems",
-   "type": "Consumable"
+  "appPolicies": {
+    "eula": "",
+    "policies": [
+      {
+        "locale": "en_US",
+        "policyText": "",
+        "policyURL": ""
+      }
+    ]
   },
-  {
-   "displayPrice": "4.99",
-   "familyShareable": false,
-   "internalID": "1000000002",
-   "localizations": [
+  "identifier": "F00DC0RT",
+  "nonRenewingSubscriptions": [],
+  "products": [
     {
-     "description": "A pouch of gems for the ambitious owner.",
-     "displayName": "Pouch of Gems",
-     "locale": "en_US"
+      "displayPrice": "0.99",
+      "familyShareable": false,
+      "internalID": "1000000001",
+      "localizations": [
+        {
+          "description": "A handful of gems to keep the fryers hot.",
+          "displayName": "Handful of Gems",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.fable.foodcourt.gems.handful",
+      "referenceName": "Handful of Gems",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "1000000002",
+      "localizations": [
+        {
+          "description": "A pouch of gems for the ambitious owner.",
+          "displayName": "Pouch of Gems",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.fable.foodcourt.gems.pouch",
+      "referenceName": "Pouch of Gems",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "9.99",
+      "familyShareable": false,
+      "internalID": "1000000003",
+      "localizations": [
+        {
+          "description": "A chest of gems. Best everyday value.",
+          "displayName": "Chest of Gems",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.fable.foodcourt.gems.chest",
+      "referenceName": "Chest of Gems",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "24.99",
+      "familyShareable": false,
+      "internalID": "1000000004",
+      "localizations": [
+        {
+          "description": "A vault of gems for serious franchise builders.",
+          "displayName": "Vault of Gems",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.fable.foodcourt.gems.vault",
+      "referenceName": "Vault of Gems",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "49.99",
+      "familyShareable": false,
+      "internalID": "1000000008",
+      "localizations": [
+        {
+          "description": "A hoard of gems for players building an empire fast.",
+          "displayName": "Hoard of Gems",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.fable.foodcourt.gems.hoard",
+      "referenceName": "Hoard of Gems",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "9.99",
+      "familyShareable": false,
+      "internalID": "1000000010",
+      "localizations": [
+        {
+          "description": "One guaranteed Legendary-rarity manager, instantly.",
+          "displayName": "Legendary Chef Crate",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.fable.foodcourt.pack.legendary",
+      "referenceName": "Legendary Chef Crate",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "19.99",
+      "familyShareable": false,
+      "internalID": "1000000011",
+      "localizations": [
+        {
+          "description": "2,500 gems, 8 hours of income banked instantly, and double profit for 48 hours.",
+          "displayName": "Franchise Accelerator",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.fable.foodcourt.pack.accelerator",
+      "referenceName": "Franchise Accelerator",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "9.99",
+      "familyShareable": false,
+      "internalID": "1000000013",
+      "localizations": [
+        {
+          "description": "A research windfall scaled to your empire - at least 2,500 stars, and far more the further you've come.",
+          "displayName": "Research Grant",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.fable.foodcourt.pack.research",
+      "referenceName": "Research Grant",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "1000000005",
+      "localizations": [
+        {
+          "description": "500 gems, a manager for every open station, and 24 hours of double profit.",
+          "displayName": "Starter Pack",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.fable.foodcourt.pack.starter",
+      "referenceName": "Starter Pack",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "3.99",
+      "familyShareable": false,
+      "internalID": "1000000007",
+      "localizations": [
+        {
+          "description": "Unlocks the premium reward on all 30 festival tiers for this season.",
+          "displayName": "Carnival Pass",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.fable.foodcourt.pack.festival",
+      "referenceName": "Carnival Pass",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "14.99",
+      "familyShareable": true,
+      "internalID": "1000000006",
+      "localizations": [
+        {
+          "description": "Permanent +25% profit, 12 hour offline earnings, and the Carnival Pass every season.",
+          "displayName": "VIP Pass",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.fable.foodcourt.vip.pass",
+      "referenceName": "VIP Pass",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "49.99",
+      "familyShareable": true,
+      "internalID": "1000000015",
+      "localizations": [
+        {
+          "description": "Permanent +50% profit that stacks with VIP, plus 12 extra hours of offline earnings.",
+          "displayName": "Mogul Pass",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.fable.foodcourt.vip.mogul",
+      "referenceName": "Mogul Pass",
+      "type": "NonConsumable"
     }
-   ],
-   "productID": "com.fable.foodcourt.gems.pouch",
-   "referenceName": "Pouch of Gems",
-   "type": "Consumable"
+  ],
+  "settings": {
+    "_failTransactionsEnabled": false,
+    "_locale": "en_US",
+    "_storefront": "USA",
+    "_storeKitErrors": [
+      {
+        "current": null,
+        "enabled": false,
+        "name": "Load Products"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "Purchase"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "Verification"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "App Store Sync"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "Subscription Status"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "App Transaction"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "Manage Subscriptions Sheet"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "Refund Request Sheet"
+      },
+      {
+        "current": null,
+        "enabled": false,
+        "name": "Offer Code Redeem Sheet"
+      }
+    ]
   },
-  {
-   "displayPrice": "9.99",
-   "familyShareable": false,
-   "internalID": "1000000003",
-   "localizations": [
-    {
-     "description": "A chest of gems. Best everyday value.",
-     "displayName": "Chest of Gems",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.gems.chest",
-   "referenceName": "Chest of Gems",
-   "type": "Consumable"
-  },
-  {
-   "displayPrice": "24.99",
-   "familyShareable": false,
-   "internalID": "1000000004",
-   "localizations": [
-    {
-     "description": "A vault of gems for serious franchise builders.",
-     "displayName": "Vault of Gems",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.gems.vault",
-   "referenceName": "Vault of Gems",
-   "type": "Consumable"
-  },
-  {
-   "displayPrice": "49.99",
-   "familyShareable": false,
-   "internalID": "1000000008",
-   "localizations": [
-    {
-     "description": "A hoard of gems for players building an empire fast.",
-     "displayName": "Hoard of Gems",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.gems.hoard",
-   "referenceName": "Hoard of Gems",
-   "type": "Consumable"
-  },
-  {
-   "displayPrice": "99.99",
-   "familyShareable": false,
-   "internalID": "1000000009",
-   "localizations": [
-    {
-     "description": "The biggest gem pack. For the truly dedicated owner.",
-     "displayName": "Empire of Gems",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.gems.empire",
-   "referenceName": "Empire of Gems",
-   "type": "Consumable"
-  },
-  {
-   "displayPrice": "9.99",
-   "familyShareable": false,
-   "internalID": "1000000010",
-   "localizations": [
-    {
-     "description": "One guaranteed Legendary-rarity manager, instantly.",
-     "displayName": "Legendary Chef Crate",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.pack.legendary",
-   "referenceName": "Legendary Chef Crate",
-   "type": "Consumable"
-  },
-  {
-   "displayPrice": "19.99",
-   "familyShareable": false,
-   "internalID": "1000000011",
-   "localizations": [
-    {
-     "description": "2,500 gems, 8 hours of income banked instantly, and double profit for 48 hours.",
-     "displayName": "Franchise Accelerator",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.pack.accelerator",
-   "referenceName": "Franchise Accelerator",
-   "type": "Consumable"
-  },
-  {
-   "displayPrice": "14.99",
-   "familyShareable": false,
-   "internalID": "1000000012",
-   "localizations": [
-    {
-     "description": "1,500 gems, a manager for every open station in every venue you've unlocked, and double profit for 72 hours.",
-     "displayName": "Grand Opening Bundle",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.pack.grandopening",
-   "referenceName": "Grand Opening Bundle",
-   "type": "NonConsumable"
-  },
-  {
-   "displayPrice": "9.99",
-   "familyShareable": false,
-   "internalID": "1000000013",
-   "localizations": [
-    {
-     "description": "A research windfall scaled to your empire - at least 2,500 stars, and far more the further you've come.",
-     "displayName": "Research Grant",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.pack.research",
-   "referenceName": "Research Grant",
-   "type": "Consumable"
-  },
-  {
-   "displayPrice": "4.99",
-   "familyShareable": false,
-   "internalID": "1000000005",
-   "localizations": [
-    {
-     "description": "500 gems, a manager for every open station, and 24 hours of double profit.",
-     "displayName": "Starter Pack",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.pack.starter",
-   "referenceName": "Starter Pack",
-   "type": "NonConsumable"
-  },
-  {
-   "displayPrice": "3.99",
-   "familyShareable": false,
-   "internalID": "1000000007",
-   "localizations": [
-    {
-     "description": "Unlocks the premium reward on all 30 festival tiers for this season.",
-     "displayName": "Carnival Pass",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.pack.festival",
-   "referenceName": "Carnival Pass",
-   "type": "Consumable"
-  },
-  {
-   "displayPrice": "14.99",
-   "familyShareable": true,
-   "internalID": "1000000006",
-   "localizations": [
-    {
-     "description": "Permanent +25% profit, 12 hour offline earnings, and the Carnival Pass every season.",
-     "displayName": "VIP Pass",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.vip.pass",
-   "referenceName": "VIP Pass",
-   "type": "NonConsumable"
-  },
-  {
-   "displayPrice": "199.99",
-   "familyShareable": false,
-   "internalID": "1000000014",
-   "localizations": [
-    {
-     "description": "The ultimate gem hoard. 45,000 gems for empires beyond counting.",
-     "displayName": "Dynasty of Gems",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.gems.dynasty",
-   "referenceName": "Dynasty of Gems",
-   "type": "Consumable"
-  },
-  {
-   "displayPrice": "49.99",
-   "familyShareable": true,
-   "internalID": "1000000015",
-   "localizations": [
-    {
-     "description": "Permanent +50% profit that stacks with VIP, plus 12 extra hours of offline earnings.",
-     "displayName": "Mogul Pass",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.vip.mogul",
-   "referenceName": "Mogul Pass",
-   "type": "NonConsumable"
-  },
-  {
-   "displayPrice": "39.99",
-   "familyShareable": false,
-   "internalID": "1000000016",
-   "localizations": [
-    {
-     "description": "A full day of income banked instantly, plus triple profit for 72 hours.",
-     "displayName": "Time Vault",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.pack.timevault",
-   "referenceName": "Time Vault",
-   "type": "Consumable"
-  },
-  {
-   "displayPrice": "99.99",
-   "familyShareable": false,
-   "internalID": "1000000017",
-   "localizations": [
-    {
-     "description": "12,000 gems, two guaranteed Legendary managers, and double profit for a week.",
-     "displayName": "Founder's Bundle",
-     "locale": "en_US"
-    }
-   ],
-   "productID": "com.fable.foodcourt.pack.founders",
-   "referenceName": "Founder's Bundle",
-   "type": "NonConsumable"
+  "subscriptionGroups": [],
+  "version": {
+    "major": 4,
+    "minor": 0
   }
- ],
- "settings": {
-  "_failTransactionsEnabled": false,
-  "_locale": "en_US",
-  "_storefront": "USA",
-  "_storeKitErrors": [
-   {
-    "current": null,
-    "enabled": false,
-    "name": "Load Products"
-   },
-   {
-    "current": null,
-    "enabled": false,
-    "name": "Purchase"
-   },
-   {
-    "current": null,
-    "enabled": false,
-    "name": "Verification"
-   },
-   {
-    "current": null,
-    "enabled": false,
-    "name": "App Store Sync"
-   },
-   {
-    "current": null,
-    "enabled": false,
-    "name": "Subscription Status"
-   },
-   {
-    "current": null,
-    "enabled": false,
-    "name": "App Transaction"
-   },
-   {
-    "current": null,
-    "enabled": false,
-    "name": "Manage Subscriptions Sheet"
-   },
-   {
-    "current": null,
-    "enabled": false,
-    "name": "Refund Request Sheet"
-   },
-   {
-    "current": null,
-    "enabled": false,
-    "name": "Offer Code Redeem Sheet"
-   }
-  ]
- },
- "subscriptionGroups": [],
- "version": {
-  "major": 4,
-  "minor": 0
- }
 }

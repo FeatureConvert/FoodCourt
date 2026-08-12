@@ -114,8 +114,7 @@ final class SyncAndSafetyTests: XCTestCase {
     }
 
     /// Every rung of the gem ladder must be a strictly better deal than the one below it,
-    /// or the pricier pack is a trap. This is the invariant the Dynasty tier was added
-    /// under, and the one any future pack must keep.
+    /// or the pricier pack is a trap - the invariant any future pack must keep.
     func testGemLadderValuePerDollarStrictlyRises() {
         var lastRate = 0.0
         for pack in ShopCatalog.gemPacks {
@@ -129,9 +128,9 @@ final class SyncAndSafetyTests: XCTestCase {
         }
     }
 
-    func testCatalogHasSeventeenUniqueProducts() {
-        XCTAssertEqual(ShopCatalog.all.count, 17)
-        XCTAssertEqual(Set(ShopCatalog.productIDs).count, 17, "duplicate product id")
+    func testCatalogHasTwelveUniqueProducts() {
+        XCTAssertEqual(ShopCatalog.all.count, 12)
+        XCTAssertEqual(Set(ShopCatalog.productIDs).count, 12, "duplicate product id")
     }
 
     // MARK: Mogul Pass entitlement effects

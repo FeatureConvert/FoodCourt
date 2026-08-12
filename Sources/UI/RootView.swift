@@ -12,7 +12,6 @@ enum ActiveSheet: Identifiable, Equatable {
     case runRecap
     case contractChoice, legacyPerkChoice
     case toolDrop
-    case flashSale
 
     var id: String {
         switch self {
@@ -37,7 +36,6 @@ enum ActiveSheet: Identifiable, Equatable {
         case .contractChoice: return "contract-choice"
         case .legacyPerkChoice: return "legacy-perk-choice"
         case .toolDrop: return "tool-drop"
-        case .flashSale: return "flash-sale"
         }
     }
 }
@@ -298,12 +296,6 @@ struct RootView: View {
                 engine.pendingToolDrop = nil
             }
         }
-        .onChange(of: engine.pendingFlashSaleAnnouncement) { _, sale in
-            guard sale != nil else { return }
-            sound.play(.reward)
-            Haptics.success()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { present(.flashSale) }
-        }
         .onChange(of: engine.pendingLandmark) { _, landmark in
             guard let landmark else { return }
             sound.play(.bigReward)
@@ -467,17 +459,6 @@ struct RootView: View {
                 ctaTitle: "See Legacy",
                 onCTA: { present(.prestige) }
             )
-        case .flashSale:
-            if let sale = engine.state.flashSale {
-                BigMomentAlertView(
-                    symbol: "bolt.fill",
-                    headline: "Flash Sale!",
-                    detail: "For the next \(Format.duration(sale.expiresAt.timeIntervalSince(engine.state.now))), the Pouch pays out \(Format.count(sale.bonusGems)) gems instead of \(Format.count(FlashSaleKit.baseGems)) - same price, bonus gems. Ends the moment the timer runs out.",
-                    stat: (label: "Bonus gems", value: "+\(Format.count(sale.bonusGems - FlashSaleKit.baseGems))"),
-                    ctaTitle: "See the Deal",
-                    onCTA: { present(.shop) }
-                )
-            }
         }
     }
 
@@ -515,7 +496,6 @@ struct RootView: View {
         if lastPresented == .welcome { engine.markIntroSeen(IntroKey.welcome) }
         if lastPresented == .prestigeIntro { engine.markIntroSeen(IntroKey.prestige) }
         if lastPresented == .legacyIntro { engine.markIntroSeen(IntroKey.legacy) }
-        if lastPresented == .flashSale { engine.pendingFlashSaleAnnouncement = nil }
     }
 
     private var defaultEventsTab: EventsView.Tab {
@@ -690,7 +670,7 @@ private struct BottomBar: View {
                       target: .goalsTab, action: onQuests)
             barButton("Events", "calendar",
                       badge: eventsBadge, action: onEvents)
-            barButton("Shop", "cart.fill", badge: engine.state.flashSale != nil, action: onShop)
+            barButton("Shop", "cart.fill", badge: false, action: onShop)
         }
     }
 
