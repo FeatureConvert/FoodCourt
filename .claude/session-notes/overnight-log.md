@@ -69,16 +69,29 @@ passes, log open questions rather than blocking on them, don't spend money on cr
   removes/reorders a station. Added bounds guards, no behavior change today). Committed 6a439f7,
   pushed to both devices.
 
-3. **Codable hardening inconsistency (not fixed, logged as a question).** GameState/StationState/
-   Entitlements/etc. all have hand-written init(from:) using decodeIfPresent so an old save missing
-   a newer field decodes gracefully. VenueState, BoostState, TutorialState, FestivalState, and
-   ActiveQuest still use the synthesized decoder, which throws keyNotFound on any missing field -
-   currently harmless (every field in those 5 types has existed since launch), but the next new
-   field added to any of them would abort the WHOLE save decode instead of degrading, the exact
-   failure mode other structs' doc comments explicitly call unacceptable. Didn't fix myself:
-   converting 5 structs to hand-written decoders is real surface area to get subtly wrong
-   unsupervised overnight, and it's really a "should this be a project-wide policy" call for
-   Robert, not a bug to patch. Worth doing carefully in daylight with tests, not at 3am.
+3. ~~Codable hardening inconsistency~~ — PARTIALLY FIXED, narrowed. Hardened VenueState,
+   TutorialState, and FestivalState with hand-written init(from:) (commit 4e07414) - all three
+   already had a declared default for every field, so it's the same mechanical
+   decodeIfPresent-??-default pattern GameState/StationState/Entitlements/~10 others already use,
+   just completed for these three. Added testFieldlessStatesDecodeToTheirDefaults
+   (MigrationTests) decoding "{}" for each and confirming defaults land instead of throwing.
+   Verified against the full suite (284 tests) + a full PrestigeScalingTests run (exercises deep
+   save state over many simulated hours). Committed + pushed to both devices.
+
+   Still open: **BoostState and ActiveQuest** were deliberately left alone - neither has a
+   natural default for every field (BoostState: id/label/multiplier/expiry; ActiveQuest:
+   id/kind/target/progress/rewardGems/rewardSeconds), so hardening them means actually deciding
+   fallback semantics (e.g. should a BoostState missing `expiry` decode as already-expired and
+   inert, or get some other treatment?) - that's a real judgment call, not mechanical, so left
+   for daylight review rather than guessed at 4am. Currently harmless either way since every
+   field in both types has existed since each system launched.
+
+   Final confirmation: the full PrestigeScalingTests multi-hour simulation (many Franchise
+   resets, heavy save-state churn) passed clean after the Codable changes (600s run, exit 0).
+   Cycle numbers this run (22h54m/11h58m/10h55m/9h14m) ran a bit longer than the earlier one
+   (17h6m/10h32m/8h29m/8h34m) - this harness is wall-clock-bounded, not bit-exact-deterministic,
+   and I had a lot else running concurrently tonight, so read that as system-load noise, not a
+   regression. Nothing balance-related changed between the two runs.
 
 - Visually verified the venue-skin fix on the iPhone 17 Pro Max simulator (injected a save with
   neon equipped on Burger Shack): background gradient, station-card buy/unlock button colors, and

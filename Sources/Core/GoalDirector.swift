@@ -61,7 +61,7 @@ enum GoalDirector {
         }
         if state.legacy.level == 0 {
             return Goal(id: "first-legacy", title: "Consider your first Legacy",
-                        detail: "Trade your stars and research for a permanent +20% multiplier and start the climb again, bigger. Optional - the Franchise tab has the details.")
+                        detail: "Trade your stars for a permanent +20% multiplier and start the climb again, bigger. Optional - the Franchise tab has the details.")
         }
         if state.legacy.level < 3 {
             return Goal(id: "legacy-3", title: "Reach Legacy \(state.legacy.level + 1)",
