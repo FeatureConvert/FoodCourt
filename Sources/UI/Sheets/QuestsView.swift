@@ -44,7 +44,24 @@ private struct QuestsSection: View {
     @EnvironmentObject private var sound: SoundService
     let onToast: (String) -> Void
 
+    private var cateringReady: Bool {
+        if let order = engine.state.catering, order.expiresAt > engine.state.now, !order.claimed {
+            return order.isComplete
+        }
+        return false
+    }
+
+    private var totalClaimable: Int {
+        engine.claimableQuests + (cateringReady ? 1 : 0)
+    }
+
     var body: some View {
+        // Only worth a dedicated button once there's more than one thing to gather up -
+        // for a single claimable, the row's own Claim button is no extra reach.
+        if totalClaimable > 1 {
+            claimAllButton
+        }
+
         // Paced: the oversized weekly ask waits until the guided opening is done - a
         // tutorial-hour player should meet three small goals, not a 40,000-dish wall.
         if let weekly = engine.state.weeklyQuest, engine.state.tutorial.finished {
@@ -216,6 +233,25 @@ private struct QuestsSection: View {
         .panel(done ? Theme.panelRaised : Theme.panel)
     }
 
+    private var claimAllButton: some View {
+        Button {
+            let claimed = engine.claimAllQuests()
+            guard claimed > 0 else { return }
+            Haptics.success()
+            sound.play(.bigReward)
+            onToast("Claimed \(Format.plural(claimed, "item"))")
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                Text("Claim All (\(totalClaimable))")
+            }
+            .font(Theme.body(13, weight: .black))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
+        .buttonStyle(ChunkyButtonStyle(fill: Theme.positive, shadow: Theme.positive.opacity(0.5), radius: 12))
+    }
+
     private func row(_ quest: ActiveQuest) -> some View {
         let done = quest.isComplete
         return VStack(spacing: 10) {
@@ -298,9 +334,31 @@ private struct AchievementsSection: View {
     }
 
     var body: some View {
+        if engine.claimableAchievements.count > 1 {
+            claimAllButton
+        }
         ForEach(sortedSpecs) { spec in
             row(spec)
         }
+    }
+
+    private var claimAllButton: some View {
+        Button {
+            let claimed = engine.claimAllAchievements()
+            guard claimed > 0 else { return }
+            Haptics.success()
+            sound.play(.bigReward)
+            onToast("Claimed \(Format.plural(claimed, "achievement"))")
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                Text("Claim All (\(engine.claimableAchievements.count))")
+            }
+            .font(Theme.body(13, weight: .black))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
+        .buttonStyle(ChunkyButtonStyle(fill: Theme.positive, shadow: Theme.positive.opacity(0.5), radius: 12))
     }
 
     private func row(_ spec: AchievementSpec) -> some View {

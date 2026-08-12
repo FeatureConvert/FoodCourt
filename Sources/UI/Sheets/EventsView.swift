@@ -76,9 +76,38 @@ private struct FestivalSection: View {
             premiumPitch
         }
 
+        if unclaimedCount > 1 {
+            claimAllButton
+        }
+
         ForEach(Festival.allTiers) { tier in
             tierRow(tier)
         }
+    }
+
+    private var unclaimedCount: Int {
+        Festival.unclaimedCount(festival, premiumActive: engine.festivalPremiumActive)
+    }
+
+    /// A returning player can find several tiers unlocked across both tracks at once - up
+    /// to 60 individual taps otherwise, at 30 tiers x free/premium.
+    private var claimAllButton: some View {
+        Button {
+            let claimed = engine.claimAllFestival()
+            guard claimed > 0 else { return }
+            Haptics.success()
+            sound.play(.bigReward)
+            onToast("Claimed \(Format.plural(claimed, "reward"))")
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                Text("Claim All (\(unclaimedCount))")
+            }
+            .font(Theme.body(13, weight: .black))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
+        .buttonStyle(ChunkyButtonStyle(fill: Theme.positive, shadow: Theme.positive.opacity(0.5), radius: 12))
     }
 
     /// This season's rotating gameplay twist, with the same first-open explainer treatment

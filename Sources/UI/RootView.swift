@@ -56,6 +56,7 @@ struct RootView: View {
 
     @State private var sheet: ActiveSheet?
     @State private var toast: String?
+    @State private var toastQueue: [String] = []
     @State private var toastTask: Task<Void, Never>?
     @State private var hasHandledLaunch = false
     @State private var lastPresented: ActiveSheet?
@@ -623,14 +624,31 @@ struct RootView: View {
     /// landmark crossing or the tutorial graduation line runs 3-4x longer and was gone
     /// before it could be read. Duration now scales with word count instead of every long
     /// message needing its own call site to remember a longer number.
+    ///
+    /// Queued rather than overwritten: a second toast arriving while the first is still on
+    /// screen (a quest completing right as a landmark is crossed, say) used to cut the first
+    /// one off mid-read and restart the timer on the new one - the first message was never
+    /// guaranteed to actually be seen. Now it waits its turn.
     private func showToast(_ message: String) {
-        toastTask?.cancel()
+        guard toast == nil else {
+            toastQueue.append(message)
+            return
+        }
+        presentToast(message)
+    }
+
+    private func presentToast(_ message: String) {
         toast = message
         let wordCount = message.split(separator: " ").count
         let seconds = min(5.0, max(2.2, 1.2 + Double(wordCount) * 0.35))
         toastTask = Task {
             try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-            if !Task.isCancelled { toast = nil }
+            guard !Task.isCancelled else { return }
+            if !toastQueue.isEmpty {
+                presentToast(toastQueue.removeFirst())
+            } else {
+                toast = nil
+            }
         }
     }
 }

@@ -281,6 +281,10 @@ private struct ResearchSection: View {
         .padding(12)
         .panel(Theme.panel)
 
+        if affordableNow > 1 {
+            buyAllButton
+        }
+
         ForEach(ResearchBranch.allCases) { branch in
             VStack(alignment: .leading, spacing: 8) {
                 VStack(alignment: .leading, spacing: 1) {
@@ -298,6 +302,31 @@ private struct ResearchSection: View {
             .padding(12)
             .panel(Theme.panel)
         }
+    }
+
+    private var affordableNow: Int {
+        Research.nodes.filter { engine.canBuyResearch($0) }.count
+    }
+
+    /// A large star surplus after several franchise resets otherwise means tapping every
+    /// affordable node across every branch by hand.
+    private var buyAllButton: some View {
+        Button {
+            let bought = engine.buyAllAffordableResearch()
+            guard bought > 0 else { return }
+            Haptics.success()
+            sound.play(.bigReward)
+            onToast("Bought \(Format.plural(bought, "rank"))")
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "flask.fill")
+                Text("Buy All Affordable (\(affordableNow))")
+            }
+            .font(Theme.body(13, weight: .black))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
+        .buttonStyle(ChunkyButtonStyle(fill: Theme.coin, shadow: Theme.coin.opacity(0.5), radius: 12))
     }
 
     private func purchaseResearchGrant() {

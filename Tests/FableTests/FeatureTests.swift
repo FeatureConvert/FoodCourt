@@ -204,6 +204,23 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(state.unassignedManagers.map(\.id), [manager.id])
     }
 
+    /// The "Auto-assign" button in the Staff sheet - fills every open (owned, unstaffed)
+    /// station with a benched manager, first-open-station to first-available-manager.
+    @MainActor
+    func testAutoAssignBenchedManagersFillsOpenStationsFromTheBench() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 5
+        state.venues[0].stations[1].level = 5
+        state.managers.append(contentsOf: [OwnedManager.make("dex"), OwnedManager.make("sam")])
+        let e = engine(state)
+
+        XCTAssertEqual(e.autoAssignBenchedManagers(), 2)
+        XCTAssertTrue(e.state.venues[0].stations[0].isStaffed)
+        XCTAssertTrue(e.state.venues[0].stations[1].isStaffed)
+        XCTAssertTrue(e.state.unassignedManagers.isEmpty)
+        XCTAssertEqual(e.autoAssignBenchedManagers(), 0, "no open stations or bench left")
+    }
+
     // MARK: 6 - Research
 
     func testResearchRespectsPrerequisites() {
@@ -235,6 +252,24 @@ final class FeatureTests: XCTestCase {
         let e = engine()
         XCTAssertFalse(e.buyResearch(Research.node("prep")!))
         XCTAssertEqual(e.researchRank("prep"), 0)
+    }
+
+    /// The "Buy All Affordable" button - greedy cheapest-first, same walk
+    /// projectedResearchRanks already used for its preview number.
+    @MainActor
+    func testBuyAllAffordableResearchSpendsGreedilyUntilNothingElseFits() {
+        var state = GameState.newGame()
+        state.stars = 0
+        let e = engine(state)
+        XCTAssertEqual(e.buyAllAffordableResearch(), 0, "no stars, nothing to buy")
+
+        state = GameState.newGame()
+        state.stars = 1_000_000
+        let rich = engine(state)
+        let bought = rich.buyAllAffordableResearch()
+        XCTAssertGreaterThan(bought, 0)
+        XCTAssertEqual(Research.nodes.filter { rich.canBuyResearch($0) }.count, 0,
+                       "must keep buying until literally nothing else is affordable")
     }
 
     func testResearchCostsRiseWithRank() {
@@ -300,6 +335,19 @@ final class FeatureTests: XCTestCase {
             quest(.tap, target: 5, progress: 1), quest(.serve, target: 10), quest(.hire, target: 2),
         ]))
         XCTAssertNil(e.claimQuest(id: e.state.quests[0].id))
+    }
+
+    /// The "Claim All" button on the Quests tab - collects every finished quest slot in one
+    /// tap but leaves the incomplete one running.
+    @MainActor
+    func testClaimAllQuestsClaimsOnlyTheCompleteOnes() {
+        let e = engine(stateWithQuests([
+            quest(.tap, target: 5, progress: 5), quest(.serve, target: 10, progress: 10),
+            quest(.hire, target: 2, progress: 0),
+        ]))
+        XCTAssertEqual(e.claimAllQuests(), 2)
+        XCTAssertEqual(e.state.questsClaimed, 2)
+        XCTAssertEqual(e.claimAllQuests(), 0, "the hire quest is still incomplete")
     }
 
     @MainActor
@@ -461,6 +509,20 @@ final class FeatureTests: XCTestCase {
         XCTAssertGreaterThan(e.state.festival.seasonID, season, "the season rolled")
         XCTAssertFalse(e.state.festival.premiumUnlocked, "a bought pass would have lapsed")
         XCTAssertTrue(e.festivalPremiumActive, "VIP still includes it in the new season")
+    }
+
+    /// The "Claim All" button - both tracks, every tier the ticket total has actually
+    /// unlocked, and it must be idempotent (nothing left to claim on a second call).
+    @MainActor
+    func testClaimAllFestivalClaimsBothTracksAcrossUnlockedTiers() {
+        let e = engine()
+        e.setEntitlement(vip: true)
+        e.awardTickets(Festival.ticketsRequired(forTier: 5))
+
+        let claimed = e.claimAllFestival()
+        XCTAssertEqual(claimed, 10, "5 tiers x free+premium")
+        XCTAssertEqual(Festival.unclaimedCount(e.state.festival, premiumActive: true), 0)
+        XCTAssertEqual(e.claimAllFestival(), 0, "nothing left the second time")
     }
 
     @MainActor
@@ -1390,6 +1452,23 @@ final class FeatureTests: XCTestCase {
         XCTAssertFalse(e.claimableAchievements.contains { $0.id == "serve_1" })
     }
 
+    /// The "Claim All" button on the Achievements tab - sweeps every claimable achievement
+    /// in one tap.
+    @MainActor
+    func testClaimAllAchievementsClaimsEveryCompleteOneAtOnce() {
+        var state = GameState.newGame()
+        state.totalServed = 10_000
+        state.totalTaps = 1_000
+        let e = engine(state)
+        XCTAssertEqual(Set(e.claimableAchievements.map(\.id)), ["serve_1", "tap_1"])
+
+        let before = e.state.gems
+        XCTAssertEqual(e.claimAllAchievements(), 2)
+        XCTAssertEqual(e.state.gems, before + 15 + 15)
+        XCTAssertTrue(e.state.claimedAchievements.isSuperset(of: ["serve_1", "tap_1"]))
+        XCTAssertEqual(e.claimAllAchievements(), 0, "nothing left to claim")
+    }
+
     @MainActor
     func testPrestigeCountDrivesThePrestigeAchievements() {
         var state = GameState.newGame()
@@ -1580,6 +1659,29 @@ final class FeatureTests: XCTestCase {
 
         // Collecting the same id again does nothing - it's already gone.
         XCTAssertNil(e.collectErrand(id: id))
+    }
+
+    /// The "Claim All" button on the Errands tab - only collects errands that are actually
+    /// done, leaves the rest running.
+    @MainActor
+    func testClaimAllErrandsCollectsOnlyTheOnesThatFinished() {
+        var state = GameState.newGame()
+        let managers = (0..<2).map { _ in OwnedManager.make("dex") }
+        state.managers.append(contentsOf: managers)
+        let e = engine(state)
+
+        e.startErrand(managerID: managers[0].id, hours: 2)
+        e.startErrand(managerID: managers[1].id, hours: 10) // still running
+
+        e.debugSkip(hours: 2)
+
+        XCTAssertEqual(e.claimAllErrands(), 1)
+        XCTAssertEqual(e.state.errands.count, 1, "the 10h errand must still be running")
+        XCTAssertEqual(e.claimAllErrands(), 0, "nothing else ready yet")
+
+        e.debugSkip(hours: 8)
+        XCTAssertEqual(e.claimAllErrands(), 1, "the long errand is done now")
+        XCTAssertTrue(e.state.errands.isEmpty)
     }
 
     // MARK: 14 - Customer orders

@@ -73,6 +73,10 @@ private struct StaffSection: View {
             synergyBoard
         }
 
+        if autoAssignableCount > 0 {
+            autoAssignButton
+        }
+
         if engine.state.managers.isEmpty {
             emptyState
         } else {
@@ -80,6 +84,43 @@ private struct StaffSection: View {
                 row(manager)
             }
         }
+    }
+
+    /// How many pairings `autoAssignBenchedManagers()` would actually make - capped by
+    /// whichever runs out first, an idle manager or an open station.
+    private var autoAssignableCount: Int {
+        let bench = engine.state.unassignedManagers.count
+        guard bench > 0 else { return 0 }
+        let openStations = Balance.venues
+            .filter { engine.state.venues[$0.id].unlocked }
+            .reduce(0) { total, venue in
+                total + venue.stations.filter { spec in
+                    let station = engine.state.venues[venue.id].stations[spec.id]
+                    return station.isOwned && !station.isStaffed
+                }.count
+            }
+        return min(bench, openStations)
+    }
+
+    /// A player who just opened a new venue, or came back from a while away with several
+    /// managers idle on the bench, otherwise has to drag each one to a station by hand.
+    private var autoAssignButton: some View {
+        Button {
+            let assigned = engine.autoAssignBenchedManagers()
+            guard assigned > 0 else { return }
+            Haptics.success()
+            sound.play(.reward)
+            onToast("Assigned \(Format.plural(assigned, "manager"))")
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "person.fill.checkmark")
+                Text("Auto-Assign Bench (\(autoAssignableCount))")
+            }
+            .font(Theme.body(13, weight: .black))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
+        .buttonStyle(ChunkyButtonStyle(fill: Theme.positive, shadow: Theme.positive.opacity(0.5), radius: 12))
     }
 
     /// Every crew, with its live status in the CURRENT venue - assembled crews glow, the
@@ -524,6 +565,10 @@ private struct ErrandsSection: View {
                     title: "A quick lump sum, at a cost",
                     detail: "Sending a manager on an errand pays out gems and coins when it finishes, but pulls them off their station for the whole duration - best for someone already on the bench, not one currently automating something.")
 
+        if engine.claimableErrands.count > 1 {
+            claimAllButton
+        }
+
         ForEach(0..<Errands.maxSlots, id: \.self) { slot in
             slotView(slot)
         }
@@ -541,6 +586,25 @@ private struct ErrandsSection: View {
             .foregroundStyle(Theme.textDim)
             .multilineTextAlignment(.center)
             .padding(.top, 4)
+    }
+
+    private var claimAllButton: some View {
+        Button {
+            let claimed = engine.claimAllErrands()
+            guard claimed > 0 else { return }
+            Haptics.success()
+            sound.play(.bigReward)
+            onToast("Claimed \(Format.plural(claimed, "errand"))")
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                Text("Claim All (\(engine.claimableErrands.count))")
+            }
+            .font(Theme.body(13, weight: .black))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
+        .buttonStyle(ChunkyButtonStyle(fill: Theme.positive, shadow: Theme.positive.opacity(0.5), radius: 12))
     }
 
     private var activeErrands: [ActiveErrand] { engine.state.errands }

@@ -692,6 +692,30 @@ final class GameEngine: ObservableObject {
         if managerID != nil { advanceQuests(kind: .hire, to: Double(state.assignedManagerCount)) }
     }
 
+    /// Fills every open (owned, unstaffed) station across every unlocked venue with a
+    /// benched manager, first-open-station to first-available-manager - no strategy beyond
+    /// that, since this is a convenience for "I have idle staff and open stations, just put
+    /// them to work," not a placement optimizer. A player who wants a SPECIFIC manager on a
+    /// SPECIFIC station still assigns that one by hand; this only ever touches stations that
+    /// were sitting empty. Returns how many assignments were made.
+    @discardableResult
+    func autoAssignBenchedManagers() -> Int {
+        var bench = state.unassignedManagers
+        guard !bench.isEmpty else { return 0 }
+        var assigned = 0
+        for venue in Balance.venues where state.venues[venue.id].unlocked {
+            for spec in venue.stations {
+                guard !bench.isEmpty else { return assigned }
+                let station = state.venues[venue.id].stations[spec.id]
+                guard station.isOwned, !station.isStaffed else { continue }
+                let manager = bench.removeFirst()
+                assign(managerID: manager.id, venue: venue.id, station: spec.id)
+                assigned += 1
+            }
+        }
+        return assigned
+    }
+
     /// Adds staff from a reward source and reports who turned up. Always premium - these are
     /// rare, one-off grants (festival, league, IAP), never the coin-grind staffing loop.
     @discardableResult
@@ -1243,6 +1267,25 @@ final class GameEngine: ObservableObject {
         return true
     }
 
+    /// Buys the cheapest affordable rank, over and over, until nothing more fits the star
+    /// balance - the same greedy cheapest-first walk `projectedResearchRanks` already uses
+    /// for its preview number, but actually spending. A player with a large star surplus
+    /// after several franchise resets otherwise has to tap every affordable node in every
+    /// branch by hand. Returns how many ranks were bought.
+    @discardableResult
+    func buyAllAffordableResearch() -> Int {
+        var bought = 0
+        while bought < 90 {
+            guard let node = Research.nodes
+                .filter({ canBuyResearch($0) })
+                .min(by: { researchCost($0) < researchCost($1) })
+            else { break }
+            guard buyResearch(node) else { break }
+            bought += 1
+        }
+        return bought
+    }
+
     // MARK: Quests
 
     private func advanceQuests(kind: QuestKind, by amount: Double) {
@@ -1320,6 +1363,32 @@ final class GameEngine: ObservableObject {
         return claimed
     }
 
+    /// Scoped to exactly what the Quests tab shows (regular quests, the weekly challenge,
+    /// today's catering order) - not errands, which live in a different sheet entirely.
+    /// `claimAllReady()` stays the "claim literally everything" version the Daily Plan uses;
+    /// this is what a "Claim All" button placed inside that one sheet should actually do.
+    @discardableResult
+    func claimAllQuests() -> Int {
+        var claimed = 0
+        for quest in state.quests.filter(\.isComplete) {
+            if claimQuest(id: quest.id) != nil { claimed += 1 }
+        }
+        if claimWeeklyQuest() != nil { claimed += 1 }
+        if claimCatering() != nil { claimed += 1 }
+        return claimed
+    }
+
+    /// Scoped to errands alone, for a "Claim All" button in the Staff sheet - same reasoning
+    /// as `claimAllQuests()`.
+    @discardableResult
+    func claimAllErrands() -> Int {
+        var claimed = 0
+        for errand in claimableErrands {
+            if collectErrand(id: errand.id) != nil { claimed += 1 }
+        }
+        return claimed
+    }
+
     @discardableResult
     func claimQuest(id: String) -> ActiveQuest? {
         guard let index = state.quests.firstIndex(where: { $0.id == id }),
@@ -1355,6 +1424,15 @@ final class GameEngine: ObservableObject {
         state.gems += spec.rewardGems
         save()
         return spec
+    }
+
+    @discardableResult
+    func claimAllAchievements() -> Int {
+        var claimed = 0
+        for spec in claimableAchievements {
+            if claimAchievement(id: spec.id) != nil { claimed += 1 }
+        }
+        return claimed
     }
 
     // MARK: Manager errands
@@ -1623,6 +1701,19 @@ final class GameEngine: ObservableObject {
         apply(reward)
         save()
         return reward
+    }
+
+    /// A returning player can find several tiers unlocked at once across both tracks (up to
+    /// 60 individual taps otherwise, at 30 tiers x free/premium) - same "claim all" pattern
+    /// as quests/errands/achievements.
+    @discardableResult
+    func claimAllFestival() -> Int {
+        var claimed = 0
+        for tier in Festival.allTiers.map(\.index) {
+            if claimFestival(tier: tier, premium: false) != nil { claimed += 1 }
+            if festivalPremiumActive, claimFestival(tier: tier, premium: true) != nil { claimed += 1 }
+        }
+        return claimed
     }
 
     private func apply(_ reward: FestivalReward) {
