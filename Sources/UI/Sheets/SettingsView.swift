@@ -175,8 +175,7 @@ struct SettingsView: View {
             }
 
             // App Review Guideline 5.1.1: an app with IAP + iCloud + Game Center must link
-            // a privacy policy. The URL constant below is a placeholder Robert swaps for
-            // the real hosted policy (and pastes into App Store Connect) before submission.
+            // a privacy policy. Same URL is pasted into App Store Connect's App Privacy page.
             Link(destination: Self.privacyPolicyURL) {
                 Text("Privacy Policy")
                     .font(Theme.body(11, weight: .bold))
@@ -195,9 +194,8 @@ struct SettingsView: View {
         }
     }
 
-    /// PLACEHOLDER - replace with the real hosted policy URL before App Store submission,
-    /// and enter the same URL in App Store Connect's App Privacy section.
-    static let privacyPolicyURL = URL(string: "https://example.com/foodcourttycoon/privacy")!
+    static let privacyPolicyURL =
+        URL(string: "https://github.com/FeatureConvert/FoodCourt/blob/master/docs/Privacy-Policy.md")!
 
     private func row(_ title: String, _ value: String) -> some View {
         HStack {
