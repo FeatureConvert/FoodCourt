@@ -136,6 +136,12 @@ enum Format {
     static func cycle(_ seconds: TimeInterval) -> String {
         seconds < 1 ? String(format: "%.2fs", seconds) : String(format: "%.1fs", seconds)
     }
+
+    /// Whole seconds only, for the live in-cycle countdown - the decimal precision `cycle`
+    /// needs to distinguish station speeds is just noise once it's ticking down toward zero.
+    static func wholeSeconds(_ seconds: TimeInterval) -> String {
+        "\(Int(seconds.rounded(.up)))s"
+    }
 }
 
 private extension NumberFormatter {

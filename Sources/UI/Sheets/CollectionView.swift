@@ -302,8 +302,9 @@ private struct StaffSection: View {
             Menu {
                 ForEach(assignableStations, id: \.self) { index in
                     Button(Balance.venue(engine.state.currentVenue).stations[index].name) {
-                        engine.assign(managerID: manager.id,
-                                      venue: engine.state.currentVenue, station: index)
+                        let placed = engine.assign(managerID: manager.id,
+                                                    venue: engine.state.currentVenue, station: index)
+                        guard placed else { return }
                         Haptics.success()
                         sound.play(.reward)
                         onToast("\(manager.name) → \(Balance.venue(engine.state.currentVenue).stations[index].name)")

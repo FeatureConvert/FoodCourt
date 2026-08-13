@@ -505,6 +505,12 @@ struct RootView: View {
     private func handleSheetDismissed() {
         if lastPresented == .offline { engine.pendingOfflineReport = nil }
         if case .perk = lastPresented { engine.pendingPerkStation = nil }
+        // BigMomentAlertView's own CTA already clears this on the happy path, but its
+        // "Later" button and a plain swipe-to-dismiss both skip that closure entirely -
+        // without this, pendingToolDrop is left set and the Gold Spatula moment can never
+        // fire its sheet again for the rest of the session (the tool itself is already
+        // safely owned either way; only the celebration was at risk of going stuck).
+        if lastPresented == .toolDrop { engine.pendingToolDrop = nil }
         // Marked seen on dismiss rather than the moment each sheet is presented, so an app
         // kill mid-alert doesn't burn the one-shot before the player ever actually saw it.
         if lastPresented == .welcome { engine.markIntroSeen(IntroKey.welcome) }

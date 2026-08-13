@@ -14,12 +14,18 @@ struct StationState: Codable, Equatable {
     var managerID: String? = nil
     /// Milestone level -> chosen perk index.
     var perks: [Int: Int] = [:]
+    /// Whether this station has ever carried a manager, hired or reassigned from the bench.
+    /// Gates the one-time staffing charge: a manager moving onto an already-worked station is
+    /// a free reorg, but landing on a station that's never been staffed - most commonly one
+    /// that just unlocked - costs the same as hiring fresh, so a spare bench manager can't
+    /// staff a brand-new station for nothing.
+    var everStaffed: Bool = false
 
     var isOwned: Bool { level > 0 }
     var isStaffed: Bool { managerID != nil }
 
     enum CodingKeys: String, CodingKey {
-        case level, hasManager, elapsed, isRunning, managerID, perks
+        case level, hasManager, elapsed, isRunning, managerID, perks, everStaffed
     }
 
     init() {}
@@ -32,6 +38,11 @@ struct StationState: Codable, Equatable {
         isRunning = try c.decodeIfPresent(Bool.self, forKey: .isRunning) ?? false
         managerID = try c.decodeIfPresent(String.self, forKey: .managerID)
         perks = try c.decodeIfPresent([Int: Int].self, forKey: .perks) ?? [:]
+        // Absent key means a save from before this existed - infer it from whether the
+        // station is staffed right now (or, for a schema-1 save not yet migrated off
+        // `hasManager`, was staffed under the old flag) rather than charging every veteran's
+        // existing roster again the next time they reshuffle staff.
+        everStaffed = try c.decodeIfPresent(Bool.self, forKey: .everStaffed) ?? (managerID != nil || hasManager)
     }
 }
 
@@ -662,9 +673,15 @@ struct GameState: Codable, Equatable {
         expeditionWins = try c.decodeIfPresent(Int.self, forKey: .expeditionWins) ?? 0
         catering = try c.decodeIfPresent(CateringOrder.self, forKey: .catering)
         perkChoicesUsed = try c.decodeIfPresent(Int.self, forKey: .perkChoicesUsed) ?? 0
+        // Decoded early (out of declaration order) so the prestigeCountAtLegacy migration
+        // below can see `legacy.level` - see that field's comment.
+        legacy = try c.decodeIfPresent(LegacyState.self, forKey: .legacy) ?? LegacyState()
         // Old saves with existing Legacy levels approximate: assume the gate's worth of
         // franchises preceded each level, so they aren't instantly re-eligible on update.
-        prestigeCountAtLegacy = try c.decodeIfPresent(Int.self, forKey: .prestigeCountAtLegacy) ?? 0
+        // (A save that never Legacy-reset has `legacy.level == 0`, so this still resolves
+        // to 0 for the common case.)
+        prestigeCountAtLegacy = try c.decodeIfPresent(Int.self, forKey: .prestigeCountAtLegacy)
+            ?? min(prestigeCount, legacy.level * Balance.legacyUnlockPrestigeCount)
         tools = try c.decodeIfPresent(Set<String>.self, forKey: .tools) ?? []
         gauntletEndsAt = try c.decodeIfPresent(Date.self, forKey: .gauntletEndsAt)
         gauntletScore = try c.decodeIfPresent(Double.self, forKey: .gauntletScore) ?? 0
@@ -694,7 +711,7 @@ struct GameState: Codable, Equatable {
         venueSkins = try c.decodeIfPresent([Int: String].self, forKey: .venueSkins) ?? [:]
         unlockedSkins = try c.decodeIfPresent([Int: Set<String>].self, forKey: .unlockedSkins) ?? [:]
 
-        legacy = try c.decodeIfPresent(LegacyState.self, forKey: .legacy) ?? LegacyState()
+        // `legacy` itself is decoded earlier, alongside `prestigeCountAtLegacy` which needs it.
         lastGuestChefPurchaseWeek = try c.decodeIfPresent(Int.self, forKey: .lastGuestChefPurchaseWeek)
         lastGuestChefSpotlightWeek = try c.decodeIfPresent(Int.self, forKey: .lastGuestChefSpotlightWeek)
         // Missing key means a save from before the staleness tax existed - treat its board as

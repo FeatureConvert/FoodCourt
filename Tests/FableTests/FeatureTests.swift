@@ -230,6 +230,10 @@ final class FeatureTests: XCTestCase {
         state.venues[0].stations[0].level = 5
         state.venues[0].stations[1].level = 5
         state.managers.append(contentsOf: [OwnedManager.make("dex"), OwnedManager.make("sam")])
+        // Both stations are being staffed for the first time, which now charges the same
+        // one-time fee a fresh hire would (see GameEngine.assign) - fund it well past
+        // Balance.managerCost(station 0) + Balance.managerCost(station 1) (~25.2K combined).
+        state.coins = 100_000
         let e = engine(state)
 
         XCTAssertEqual(e.autoAssignBenchedManagers(), 2)

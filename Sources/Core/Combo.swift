@@ -9,8 +9,16 @@ enum ActivePlay {
     // hyperactive fresh install banking the Sushi Bar in 8 real minutes, and stacking
     // this at its old x5 (10 steps x 0.4/step) with the free Coffee Break boost and Happy
     // Hour hit up to ~15x automated income, dwarfing the pacing sim's assumptions. 10
-    // steps x 0.1/step caps at a clean x2 instead - still a genuine reward for active
-    // tapping, without letting the combo alone dominate the early economy.
+    // steps x 0.1/step caps at a clean x2 for a fresh install - still a genuine reward for
+    // active tapping, without letting the combo alone dominate the early economy.
+    // That base of 10 is a floor, not the whole story: `comboMaxSteps` (StationMath.swift)
+    // adds Research's Kitchen Rhythm (+16 at max rank), Legacy's Crowd Favorite (+4 at max
+    // stacks), and an active Showtime Franchise Contract (+4), a theoretical ceiling of 34
+    // steps / x4.4. Each of those is itself an earned late-game investment - full Research
+    // spend, two Legacy resets, a specific Contract running - so the higher ceiling is
+    // intentional depth for a min-maxed late game, not a fresh-install exploit. Left
+    // uncapped on purpose; revisit only if a live report shows it distorting pacing the
+    // way the old x5 flat version did.
     // The window itself was 1.5s, then 2.5s, both of which reset the whole combo back to
     // zero for anything short of rapid-fire tapping - punishing enough that a normal tap
     // cadence across multiple stations (not just one under a thumb) kept dying. 5s keeps it

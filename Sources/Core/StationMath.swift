@@ -190,6 +190,7 @@ extension GameState {
         venues[venue].stations[station].managerID = managerID
         if managerID != nil {
             venues[venue].stations[station].isRunning = true
+            venues[venue].stations[station].everStaffed = true
         }
     }
 

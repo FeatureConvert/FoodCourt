@@ -115,6 +115,19 @@ struct StationCardView: View {
         engine.pendingPerkLevel(venue: venueID, station: spec.id)
     }
 
+    /// Seconds left in the batch currently cooking, counting down to 0 right as it lands.
+    /// Idle stations just show the station's flat cycle length, same as before this existed.
+    private var cycleRemaining: TimeInterval {
+        state.isRunning ? max(0, cycle - state.elapsed) : cycle
+    }
+
+    /// 1 at the start of a cycle, shrinking toward a floor (never to nothing - "0s" still
+    /// has to be legible) as the countdown lands. Idle stations stay at full size.
+    private var cycleRemainingScale: Double {
+        guard state.isRunning, cycle > 0 else { return 1 }
+        return 0.6 + 0.4 * min(1, cycleRemaining / cycle)
+    }
+
     /// Whether the live customer-order system (distinct from the tutorial's own highlight) is
     /// currently asking for a serve on this exact station.
     private var isOrderTarget: Bool {
@@ -240,10 +253,11 @@ struct StationCardView: View {
                         .font(Theme.body(13, weight: .black))
                         .foregroundStyle(Theme.coin)
                         .lineLimit(1)
-                    Text(Format.cycle(cycle))
+                    Text(Format.wholeSeconds(cycleRemaining))
                         .font(Theme.body(13, weight: .bold))
                         .foregroundStyle(Theme.textDim)
                         .lineLimit(1)
+                        .scaleEffect(cycleRemainingScale, anchor: .leading)
                 }
                 milestoneBar
                 staffLine

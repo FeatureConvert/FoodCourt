@@ -417,19 +417,27 @@ final class GameEngine: ObservableObject {
     }
 
     private func recordEarnings(_ amount: Double) {
-        let before = state.lifetimeEarnings
         state.lifetimeEarnings += amount
         state.runEarnings += amount
         state.league.score += amount
         if gauntletActive { state.gauntletScore += amount }
         advanceQuests(kind: .earn, by: amount)
-        registerLandmarks(before: before)
+        registerLandmarks()
     }
 
-    private func registerLandmarks(before: Double) {
+    private func registerLandmarks() {
+        // Only checks against the current total, not "did this specific increment cross it" -
+        // a single big jump (a long-offline catch-up, an 8h time warp, a fat quest/catering
+        // payout) can clear more than one landmark at once. The old `before < value` check
+        // only fired for whichever landmark that jump happened to land past FIRST, and since
+        // lifetimeEarnings only ever grows, every other landmark inside that same jump would
+        // find `before` already past it on every future call too - permanently un-celebrated
+        // and permanently missing from landmarksCrossed, not just delayed. This still only
+        // celebrates one per call (`break`), but the next call - even a one-coin serve - now
+        // correctly picks up wherever the celebration left off instead of stranding it.
         for exponent in GameState.landmarkExponents where !state.landmarksCrossed.contains(exponent) {
             let value = pow(10, Double(exponent))
-            if before < value, state.lifetimeEarnings >= value {
+            if state.lifetimeEarnings >= value {
                 state.landmarksCrossed.insert(exponent)
                 pendingLandmark = value
                 break // one celebration at a time; the next crossing re-fires
@@ -661,7 +669,13 @@ final class GameEngine: ObservableObject {
     }
 
     func managerCost(for index: Int) -> Double {
-        Balance.managerCost(spec: Balance.venue(state.currentVenue).stations[index]) * costInflation
+        managerCost(for: index, venue: state.currentVenue)
+    }
+
+    /// Venue-aware variant for call sites that can target a station outside the venue
+    /// currently on screen, like reassigning a bench manager from the Staff sheet.
+    func managerCost(for index: Int, venue: Int) -> Double {
+        Balance.managerCost(spec: Balance.venue(venue).stations[index]) * costInflation
     }
 
     /// Station 0's very first manager is always free - a new save starts with only 25 gems,
@@ -713,9 +727,31 @@ final class GameEngine: ObservableObject {
         return true
     }
 
-    func assign(managerID: String?, venue: Int, station: Int) {
+    /// Moving a manager onto a station charges the same one-time staffing fee as hiring fresh
+    /// UNLESS that station has been staffed before - reshuffling an existing roster between
+    /// stations you already paid to open stays free. Returns whether the assignment happened,
+    /// so a bulk caller like `autoAssignBenchedManagers` can tell a real placement from a
+    /// station the player can't yet afford to staff.
+    @discardableResult
+    func assign(managerID: String?, venue: Int, station: Int) -> Bool {
+        // Every other station-indexed entry point (hireManager, buy, managerCost) validates
+        // its index before touching state; this one didn't, so an out-of-range venue/station
+        // - unlikely from the shipped UI, which only ever offers valid indices, but reachable
+        // from any future caller - would crash on the array subscript below instead of
+        // failing gracefully like its siblings.
+        guard state.venues.indices.contains(venue),
+              state.venues[venue].stations.indices.contains(station) else { return false }
+        if let managerID, !state.venues[venue].stations[station].everStaffed {
+            let cost = managerCost(for: station, venue: venue)
+            guard state.coins >= cost else {
+                toast = "Need \(Format.price(cost)) to staff \(Balance.venue(venue).stations[station].name)"
+                return false
+            }
+            state.coins -= cost
+        }
         state.assign(managerID: managerID, venue: venue, station: station)
         if managerID != nil { advanceQuests(kind: .hire, to: Double(state.assignedManagerCount)) }
+        return true
     }
 
     /// Fills every open (owned, unstaffed) station across every unlocked venue with a
@@ -731,12 +767,16 @@ final class GameEngine: ObservableObject {
         var assigned = 0
         for venue in Balance.venues where state.venues[venue.id].unlocked {
             for spec in venue.stations {
-                guard !bench.isEmpty else { return assigned }
+                guard let manager = bench.first else { return assigned }
                 let station = state.venues[venue.id].stations[spec.id]
                 guard station.isOwned, !station.isStaffed else { continue }
-                let manager = bench.removeFirst()
-                assign(managerID: manager.id, venue: venue.id, station: spec.id)
-                assigned += 1
+                // Only consumes the bench manager on a real placement - one who can't afford
+                // this station's first-time staffing fee stays on the bench and gets tried
+                // against the next open station instead of vanishing.
+                if assign(managerID: manager.id, venue: venue.id, station: spec.id) {
+                    bench.removeFirst()
+                    assigned += 1
+                }
             }
         }
         return assigned
@@ -1221,6 +1261,11 @@ final class GameEngine: ObservableObject {
         state.venues[0].stations[0].level = 1
         state.currentVenue = 0
         state.boardStartedAt = state.now
+        // Legacy also starts a fresh board, same as prestige() - without this, the NEXT
+        // Franchise reset's recap would report every dish served since the last Franchise
+        // (which may be well before this Legacy reset) instead of just this run, since
+        // RunRecap.served is totalServed - servedAtBoardStart.
+        state.servedAtBoardStart = state.totalServed
         lastServe.removeAll()
         pendingBursts.removeAll()
         lastBurstAt.removeAll()
