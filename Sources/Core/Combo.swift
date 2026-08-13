@@ -11,11 +11,12 @@ enum ActivePlay {
     // Hour hit up to ~15x automated income, dwarfing the pacing sim's assumptions. 10
     // steps x 0.1/step caps at a clean x2 instead - still a genuine reward for active
     // tapping, without letting the combo alone dominate the early economy.
-    // The window itself was 1.5s, which reset the whole combo back to zero for anything
-    // short of rapid-fire tapping - punishing enough that a normal tap cadence kept dying.
-    // 2.5s keeps it an active-play mechanic (still requires genuine engagement, not idle
-    // taps minutes apart) without demanding a metronome.
-    static let comboWindow: TimeInterval = 2.5
+    // The window itself was 1.5s, then 2.5s, both of which reset the whole combo back to
+    // zero for anything short of rapid-fire tapping - punishing enough that a normal tap
+    // cadence across multiple stations (not just one under a thumb) kept dying. 5s keeps it
+    // an active-play mechanic (still requires genuine engagement, not idle taps minutes
+    // apart) without demanding a metronome.
+    static let comboWindow: TimeInterval = 5.0
     static let comboBaseSteps = 10
     static let comboPerStep = 0.1
 

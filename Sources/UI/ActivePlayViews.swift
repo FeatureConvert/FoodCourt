@@ -37,15 +37,13 @@ struct ComboMeterView: View {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule().fill(Theme.ink.opacity(0.7))
-                            // Fill shows combo depth, the trailing edge shows time left.
+                            // Depth sets the bar's ceiling, time-left drains it toward zero -
+                            // each tap snaps it back out to that ceiling, then it visibly
+                            // empties again until the next one.
                             Capsule()
                                 .fill(LinearGradient(colors: [Theme.coin, Theme.negative],
                                                      startPoint: .leading, endPoint: .trailing))
-                                .frame(width: geo.size.width * fill)
-                            Capsule()
-                                .fill(Color.white.opacity(0.85))
-                                .frame(width: 3)
-                                .offset(x: max(0, geo.size.width * timeLeft - 3))
+                                .frame(width: geo.size.width * fill * timeLeft)
                         }
                     }
                     .frame(height: 7)
