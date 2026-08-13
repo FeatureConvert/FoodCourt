@@ -183,6 +183,10 @@ struct DailyRewardState: Codable, Equatable {
 
 struct GameState: Codable, Equatable {
     static let currentSchemaVersion = 2
+    /// Lifetime-earnings totals worth a one-time celebration. Every crossing is permanent
+    /// (persisted in `landmarksCrossed` as the exponent), and old saves backfill silently on
+    /// decode so a veteran never gets five confetti storms on update day.
+    static let landmarkExponents: [Int] = [6, 9, 12, 15, 18, 21]
 
     var schemaVersion: Int = GameState.currentSchemaVersion
     var coins: Double = 0
@@ -260,7 +264,7 @@ struct GameState: Codable, Equatable {
     /// live `pendingStars`, so purchase timing can't game the price. Zeroed by a Legacy
     /// reset so post-Legacy early ranks fall back to the cheap static floor.
     var lastPrestigeAward: Int = 0
-    /// Exponents (10^n lifetime earnings) already celebrated - see `GameEngine.landmarkExponents`.
+    /// Exponents (10^n lifetime earnings) already celebrated - see `GameState.landmarkExponents`.
     var landmarksCrossed: Set<Int> = []
     /// Consecutive punctual Rush Hours (started within an hour of cooldown end). Max 3;
     /// each tier past the first adds +25% to the Rush multiplier.
@@ -672,7 +676,7 @@ struct GameState: Codable, Equatable {
         } else {
             // Backfill for saves from before landmarks existed: silently mark everything
             // already passed as celebrated, so a veteran doesn't get a confetti barrage.
-            landmarksCrossed = Set(GameEngine.landmarkExponents.filter {
+            landmarksCrossed = Set(GameState.landmarkExponents.filter {
                 lifetimeEarnings >= pow(10, Double($0))
             })
         }

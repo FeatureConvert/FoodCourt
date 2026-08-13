@@ -416,11 +416,6 @@ final class GameEngine: ObservableObject {
         return Double.random(in: 0..<1, using: &rng) < mods.doubleServeChance ? 2 : 1
     }
 
-    /// Lifetime-earnings totals worth a one-time celebration. Every crossing is permanent
-    /// (persisted in `landmarksCrossed` as the exponent), and old saves backfill silently on
-    /// decode so a veteran never gets five confetti storms on update day.
-    static let landmarkExponents: [Int] = [6, 9, 12, 15, 18, 21]
-
     private func recordEarnings(_ amount: Double) {
         let before = state.lifetimeEarnings
         state.lifetimeEarnings += amount
@@ -432,7 +427,7 @@ final class GameEngine: ObservableObject {
     }
 
     private func registerLandmarks(before: Double) {
-        for exponent in Self.landmarkExponents where !state.landmarksCrossed.contains(exponent) {
+        for exponent in GameState.landmarkExponents where !state.landmarksCrossed.contains(exponent) {
             let value = pow(10, Double(exponent))
             if before < value, state.lifetimeEarnings >= value {
                 state.landmarksCrossed.insert(exponent)
