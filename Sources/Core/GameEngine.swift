@@ -696,7 +696,12 @@ final class GameEngine: ObservableObject {
         guard state.venues[venue].stations.indices.contains(index) else { return false }
         let station = state.venues[venue].stations[index]
         guard station.isOwned, !station.isStaffed else { return false }
-        if eligibleForFreeFirstManager(station: index) {
+        // Gated on `free` itself, not just eligibility: burning the entitlement on any
+        // eligible call regardless of whether it was actually free would let a caller that
+        // forgets the flag charge the player AND silently spend their one free hire in the
+        // same call - now a mis-flagged call just charges normally and leaves the free hire
+        // available for whichever call remembers to ask for it.
+        if free, eligibleForFreeFirstManager(station: index) {
             state.freeFirstManagerClaimed = true
         }
         let cost = managerCost(for: index)
