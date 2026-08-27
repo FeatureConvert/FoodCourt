@@ -29,7 +29,7 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Sources/Fable.entitlements
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_FILE: Sources/Info.plist
-        INFOPLIST_KEY_CFBundleDisplayName: Food Court Tycoon
+        INFOPLIST_KEY_CFBundleDisplayName: Food Court
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleLightContent
         # iPhone's default and floor: portrait-only, unaffected by the iPad landscape work
         # below. iPad's actual orientation list lives in Sources/Info.plist as a literal
@@ -49,7 +49,7 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         MARKETING_VERSION: "1.0"
-        CURRENT_PROJECT_VERSION: "1"
+        CURRENT_PROJECT_VERSION: "3"
 
   FableTests:
     type: bundle.unit-test
