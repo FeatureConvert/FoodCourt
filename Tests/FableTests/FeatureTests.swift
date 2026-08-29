@@ -463,6 +463,16 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(title(.recipes, 1), "Collect 1 recipe card")
     }
 
+    /// An .earn quest's target scales uncapped with the player's current income, so a
+    /// long-running high-income save can roll one past Int.max. `.title` used to compute
+    /// `Int(target)` unconditionally before the kind switch - crashing the instant the
+    /// Goals tab tried to render the row, even though .earn never uses that value.
+    func testEarnQuestTitleSurvivesATargetBeyondIntMax() {
+        let quest = ActiveQuest(id: "t", kind: .earn, target: Double(Int.max) * 4,
+                                 progress: 0, rewardGems: 0, rewardSeconds: 0)
+        XCTAssertTrue(quest.title.hasPrefix("Earn"))
+    }
+
     // MARK: Ad-free model
 
     @MainActor

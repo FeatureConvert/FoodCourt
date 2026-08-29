@@ -39,17 +39,20 @@ struct ActiveQuest: Codable, Equatable, Identifiable {
     var fraction: Double { target > 0 ? min(1, progress / target) : 0 }
 
     var title: String {
-        let n = Int(target)
+        // `n` is only valid for the count-based kinds below - .earn's target scales
+        // uncapped with the player's current income and can exceed Int.max for a
+        // long-running high-income save, so it must stay on the Double `target` path
+        // (via Format.currency) rather than ever going through Int(target).
         switch kind {
-        case .serve:   return "Serve \(Format.plural(n, "dish", "dishes"))"
+        case .serve:   return "Serve \(Format.plural(Int(target), "dish", "dishes"))"
         case .earn:    return "Earn \(Format.currency(target)) this run"
-        case .level:   return "Take a station to Lv \(Format.count(n))"
+        case .level:   return "Take a station to Lv \(Format.count(Int(target)))"
         // Absolute kinds describe the end state rather than the action, because progress
         // starts from whatever the player already has.
-        case .hire:    return "Staff \(Format.plural(n, "station"))"
-        case .tap:     return "Tap \(Format.plural(n, "time"))"
-        case .rush:    return "Complete \(Format.plural(n, "Rush Hour"))"
-        case .recipes: return "Collect \(Format.plural(n, "recipe card"))"
+        case .hire:    return "Staff \(Format.plural(Int(target), "station"))"
+        case .tap:     return "Tap \(Format.plural(Int(target), "time"))"
+        case .rush:    return "Complete \(Format.plural(Int(target), "Rush Hour"))"
+        case .recipes: return "Collect \(Format.plural(Int(target), "recipe card"))"
         }
     }
 
