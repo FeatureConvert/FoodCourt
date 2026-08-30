@@ -748,7 +748,7 @@ final class GameEngine: ObservableObject {
         // failing gracefully like its siblings.
         guard state.venues.indices.contains(venue),
               state.venues[venue].stations.indices.contains(station) else { return false }
-        if let managerID, !state.venues[venue].stations[station].everStaffed {
+        if managerID != nil, !state.venues[venue].stations[station].everStaffed {
             let cost = managerCost(for: station, venue: venue)
             guard state.coins >= cost else {
                 toast = "Need \(Format.price(cost)) to staff \(Balance.venue(venue).stations[station].name)"
