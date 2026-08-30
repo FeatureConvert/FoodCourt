@@ -202,6 +202,54 @@ final class DepthSystemsTests: XCTestCase {
                        "collection-time pricing: a dead board pays a dead contract")
     }
 
+    /// A catering order names a specific venue - if that venue gets relocked by the reset
+    /// (everything but venue 0 does) the order can never complete, and rollCateringIfNeeded
+    /// won't replace a still-unclaimed, unexpired one for up to 24h. Regression for both
+    /// prestige() and legacyReset() failing to clear it, the same way they already clear a
+    /// stray golden customer or station order.
+    @MainActor
+    func testStaleCateringOrderDoesNotSurviveAPrestigeOrLegacyReset() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 500
+        state.lifetimeEarnings = Balance.minimumLifetimeForPrestige
+        state.currentVenue = 3
+        state.catering = CateringOrder(
+            day: 1, venue: 3, requirements: [0: 100],
+            expiresAt: state.now.addingTimeInterval(23 * 3600),
+            rewardGems: 25, rewardIncomeSeconds: 900)
+        let engine = GameEngine(state: state, startTimers: false,
+                                persistence: EphemeralPersistence())
+        engine.debugUnlockAllVenuesAndStations()
+
+        _ = engine.prestige()
+        XCTAssertNil(engine.state.catering, "the old order named a venue this reset relocked")
+    }
+
+    /// A Face-Off crew built from ordinary coin-hired managers gets its members deleted by
+    /// the same prestige that's supposed to only wipe the BOARD - left dangling,
+    /// Expeditions.isWin filters the crew down to whoever survives (here: nobody), so the
+    /// outcome silently stops reflecting the crew the player actually committed instead of
+    /// just disappearing along with them.
+    @MainActor
+    func testExpeditionCrewOfDeletedManagersDoesNotSurviveAPrestige() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 500
+        state.lifetimeEarnings = Balance.minimumLifetimeForPrestige
+        _ = state.recruit(specID: "sam", premium: false)
+        _ = state.recruit(specID: "tina", premium: false)
+        _ = state.recruit(specID: "otto", premium: false)
+        let engine = GameEngine(state: state, startTimers: false,
+                                persistence: EphemeralPersistence())
+        let crew = engine.state.unassignedManagers.map(\.id)
+        XCTAssertTrue(engine.startExpedition(managerIDs: crew, tierID: "friendly"))
+        XCTAssertNotNil(engine.state.expedition)
+
+        engine.debugUnlockAllVenuesAndStations()
+        _ = engine.prestige()
+        XCTAssertNil(engine.state.expedition,
+                     "its whole crew was just deleted for being non-premium hires")
+    }
+
     @MainActor
     func testGauntletRequiresARunningBoard() {
         let engine = GameEngine(state: GameState.newGame(), startTimers: false,

@@ -256,8 +256,10 @@ final class GameEngine: ObservableObject {
     func handleBackground() {
         save()
         // KVS wants infrequent writes, so the cloud push happens on the way out rather than
-        // on every five-second autosave.
-        cloud?.push(state)
+        // on every five-second autosave. pushIfNotBehind (not push) because this is the
+        // unattended path - it must never silently overwrite a save another of the player's
+        // devices already pushed further ahead.
+        cloud?.pushIfNotBehind(state)
     }
 
     /// Set by the app once both objects exist.
@@ -1192,14 +1194,27 @@ final class GameEngine: ObservableObject {
         state.managers.removeAll { !$0.premium }
         let remainingIDs = Set(state.managers.map(\.id))
         state.errands.removeAll { !remainingIDs.contains($0.managerID) }
+        // A Face-Off crew can just as easily be built from managers this same reset is about
+        // to let go - left alone, Expeditions.isWin filters the crew down to whichever
+        // members happen to survive (possibly none), so the outcome silently stops
+        // reflecting the crew the player actually committed. No consolation payout: the
+        // managers themselves are already gone, same as any other in-flight thing this reset
+        // doesn't carry forward.
+        if let expedition = state.expedition, !expedition.managerIDs.allSatisfy(remainingIDs.contains) {
+            state.expedition = nil
+        }
         lastServe.removeAll()
         pendingBursts.removeAll()
         lastBurstAt.removeAll()
         combo.reset()
-        // A golden customer or station order rolled on the old board must not survive
-        // onto the new one - switchTo and adoptCloudSave already clear these.
+        // A golden customer, station order, or catering order rolled on the old board must
+        // not survive onto the new one - switchTo and adoptCloudSave already clear the first
+        // two. Catering's own venue index in particular would otherwise point at a venue this
+        // reset just relocked, permanently unfillable for up to 24h since rollCateringIfNeeded
+        // won't replace a still-unclaimed, unexpired order.
         golden = nil
         activeOrder = nil
+        state.catering = nil
         // The new run owes a Contract pick (nil = picker pending); Seed Capital banks a
         // slice of the OLD run's hourly rate, capped per stack so it jump-starts the
         // early board without skipping it.
@@ -1277,6 +1292,11 @@ final class GameEngine: ObservableObject {
         combo.reset()
         golden = nil
         activeOrder = nil
+        // Same reasoning as prestige(): the venue reset just below relocks everything but
+        // venue 0, so a still-open catering order pointed at any other venue can never be
+        // completed - it would otherwise sit dead for up to 24h since rollCateringIfNeeded
+        // won't replace a still-unclaimed, unexpired order.
+        state.catering = nil
         state.activeContract = Contracts.unchosenID
         save()
         return state.legacy.level

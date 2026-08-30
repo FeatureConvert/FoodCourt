@@ -63,6 +63,30 @@ final class CloudSaveService: ObservableObject {
         return true
     }
 
+    /// The routine autosave path (`GameEngine.handleBackground`) - unlike `push`, this
+    /// re-checks what's actually on iCloud right before writing and refuses to clobber a
+    /// save that's further along than this device's, surfacing it as a conflict instead.
+    ///
+    /// `push` itself has to stay a plain, unconditional write: `CloudConflictView`'s "Keep
+    /// this device" button calls it specifically to overwrite a remote it already knows is
+    /// further along, because the player just said so - guarding `push` itself would silently
+    /// defeat that explicit choice. The bug this exists to close is different: nothing ever
+    /// checked before an *automatic* background push, so if this device merely fell behind
+    /// (another of the player's own devices pushed while this one sat foregrounded and
+    /// unaware - `remoteDidChange` only updates the status label, it doesn't compare), the
+    /// next backgrounding silently overwrote the more-advanced remote save with no prompt,
+    /// contradicting the promise in Settings: "the game always asks before touching this
+    /// one's progress."
+    @discardableResult
+    func pushIfNotBehind(_ state: GameState) -> Bool {
+        guard isAvailable else { return false }
+        if let remote = pull(), Self.isAhead(remote, of: state) {
+            conflict = remote
+            return false
+        }
+        return push(state)
+    }
+
     /// Clears the remote save outright - for a player who deliberately erases their progress.
     /// Without this, `reconcileOnLaunch`'s own "brand new local save adopts the cloud
     /// silently" rule would undo the erase on the very next launch or sync tick, since a
