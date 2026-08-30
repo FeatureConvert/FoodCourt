@@ -127,8 +127,12 @@ enum Quests {
             // Scaled to current throughput like .earn is, rather than a flat count - a fixed
             // 40-190 target completed almost instantly once several stations were staffed
             // and running fast, since it never accounted for how many dishes/second that is.
+            // .earn reads fine at any raw value because Format.currency always abbreviates
+            // it; .serve prints its full digit count below 10K (Format.count), so the raw
+            // throughput-scaled number needs rounding to something legible here instead,
+            // same reasoning as the step rounding .level already does below.
             let base = max(40, state.automatedServeRate * 90)
-            target = (base * Double(1 + rng.next(3))).rounded()
+            target = legibleCount(base * Double(1 + rng.next(3)))
             gems = 3; seconds = 60
         case .earn:
             // Relative to now, not to the run so far - progress counts from zero, so adding
@@ -168,6 +172,16 @@ enum Quests {
         default:       break
         }
         return quest
+    }
+
+    /// Rounds a throughput-scaled count to 2 significant figures (6,753 -> 6,800; 452 -> 450)
+    /// so it reads as a chosen target instead of a decimal spillover from the player's exact
+    /// current rate. Left alone below 100, where a couple of digits of precision doesn't read
+    /// as noise the way a 4-5 digit number does.
+    static func legibleCount(_ value: Double) -> Double {
+        guard value >= 100 else { return value.rounded() }
+        let magnitude = pow(10, floor(log10(value)) - 1)
+        return (value / magnitude).rounded() * magnitude
     }
 
     static func highestStationLevel(_ state: GameState) -> Int {

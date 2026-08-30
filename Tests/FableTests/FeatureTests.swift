@@ -425,6 +425,20 @@ final class FeatureTests: XCTestCase {
         if a.kind == .earn { XCTAssertEqual(a.target, b.target, accuracy: 1e-6) }
     }
 
+    /// A .serve quest's target is scaled straight off the player's current throughput and
+    /// prints its full digit count below 10K (unlike .earn, which is always abbreviated) -
+    /// so a raw rounded value like "Serve 6,753 dishes" read like an arbitrary number instead
+    /// of a chosen goal. legibleCount() is what fixes that; this pins its rounding behavior
+    /// directly rather than fighting automatedServeRate to hit a specific target through roll().
+    func testServeQuestTargetsRoundToALegibleFigure() {
+        XCTAssertEqual(Quests.legibleCount(6_753), 6_800)
+        XCTAssertEqual(Quests.legibleCount(452), 450)
+        XCTAssertEqual(Quests.legibleCount(123_456), 120_000)
+        // Small values keep their precision - a couple of digits doesn't read as noise here.
+        XCTAssertEqual(Quests.legibleCount(40), 40)
+        XCTAssertEqual(Quests.legibleCount(87), 87)
+    }
+
     @MainActor
     func testHireQuestCountsTotalStaffNotJustNewHires() {
         // .hire is an absolute kind: it reads the roster total, so a quest rolled with two
