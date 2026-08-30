@@ -289,6 +289,9 @@ final class EconomyTests: XCTestCase {
         // Past trillions the suffix ladder takes over.
         XCTAssertEqual(Format.currency(1e15), "1.00aa")
         XCTAssertEqual(Format.currency(1e18), "1.00ab")
+        // The Dynasty achievement's threshold - pinned so its displayed "Earn X lifetime"
+        // detail string can't silently go stale if the abbreviation ladder ever changes.
+        XCTAssertEqual(Format.currency(1e24), "1.00ad")
     }
 
     /// The shop renders each IAP section in catalog order, so catalog order IS the display

@@ -44,23 +44,21 @@ enum AchievementCatalog {
         // magnitude before the first prestige was even possible (minimum 1e11), so the
         // whole tier was done pre-prestige. 1e13 lands shortly after the first Franchise.
         //
-        // Dynasty (earn_4, below) was meant to be the six-month-arc capstone tier, matching
-        // prestige_4's 40-Franchise capstone - but tracing it through the CURRENT star/
-        // earnings formula (totalStars = 150*sqrt(earnings/1e12), and lifetimeStars tracks
-        // cumulative lifetimeEarnings 1:1 for a steadily-playing account since prestige()
-        // never resets it) shows 1e18 corresponds to only ~150,000 cumulative stars - about
-        // 10-15x a single FIRST prestige's award (Balance.legacyUnlockPrestigeCount's doc
-        // comment cites ~10-15K for that one award alone). At the documented 3-7 day
-        // cadence that's crossed within the first few weeks, not six months - the same
-        // compounding-feedback drift Research pricing and Legacy's own gate already had to
-        // be moved off of. Left as-is pending a real decision: raise the threshold to
-        // actually match the capstone (~1e24, derived from the ~225M-star six-month
-        // benchmark `Balance.maxSaneLifetimeStars` cites), or keep Dynasty as an earlier,
-        // more attainable achievement and stop claiming parity with prestige_4.
+        // Dynasty (earn_4, below) is the six-month-arc capstone tier, matching prestige_4's
+        // 40-Franchise capstone - raised from an earlier 1e18 (Aug 30 review), which traced
+        // through the star/earnings formula (totalStars = 150*sqrt(earnings/1e12), and
+        // lifetimeStars tracks cumulative lifetimeEarnings 1:1 for a steadily-playing
+        // account since prestige() never resets it) to only ~150,000 cumulative stars -
+        // about 10-15x a single FIRST prestige's award - crossed within the first few
+        // weeks, not six months. 1e24 is derived from the ~200-250M-star six-month
+        // benchmark `Balance.maxSaneLifetimeStars` cites: totalStars(1e24) =
+        // 150*sqrt(1e24/1e12) = 150*1e6 = 150,000,000 - just under that range, so Dynasty
+        // lands right around the six-month mark rather than requiring a hardcore player's
+        // full-arc total to clear it.
         AchievementSpec(id: "earn_3", title: "Tycoon", detail: "Earn \(Format.currency(1e13)) lifetime",
                         metric: .lifetimeEarnings, threshold: 1e13, rewardGems: 120, symbol: "dollarsign.circle.fill"),
-        AchievementSpec(id: "earn_4", title: "Dynasty", detail: "Earn \(Format.currency(1e18)) lifetime",
-                        metric: .lifetimeEarnings, threshold: 1e18, rewardGems: 250, symbol: "dollarsign.circle.fill"),
+        AchievementSpec(id: "earn_4", title: "Dynasty", detail: "Earn \(Format.currency(1e24)) lifetime",
+                        metric: .lifetimeEarnings, threshold: 1e24, rewardGems: 250, symbol: "dollarsign.circle.fill"),
 
         // Customers served
         AchievementSpec(id: "serve_1", title: "Lunch Rush", detail: "Serve 10,000 customers",
@@ -120,8 +118,7 @@ enum AchievementCatalog {
         AchievementSpec(id: "prestige_3", title: "Franchise Master", detail: "Franchise 15 times",
                         metric: .prestiges, threshold: 15, rewardGems: 120, symbol: "arrow.triangle.2.circlepath"),
         // 40 franchises at the intended 3-7 day cadence is roughly the six-month arc's
-        // finish line - the prestige track's capstone. earn_4 above was meant to match this
-        // but currently lands far earlier - see its own doc comment.
+        // finish line - the prestige track's capstone, matching earn_4 above.
         AchievementSpec(id: "prestige_4", title: "Food Court Legend", detail: "Franchise 40 times",
                         metric: .prestiges, threshold: 40, rewardGems: 250, symbol: "arrow.triangle.2.circlepath"),
     ]
