@@ -62,6 +62,11 @@ sync — the exact arrangement that already let Legacy's multiplier silently go 
 from one copy once before. One shared source now; and a harmless unused-binding compiler
 warning silenced.
 
+**Consistency pass**: re-checked every historically-drift-prone numeric claim in
+`HelpView.swift` (combo cap, Rush Hour timing/chain bonus, Coffee Break, recipe set
+bonus, festival tier count, streak milestone max day, perk-choice levels) against the
+actual current constants one by one — all still exactly correct, no copy drift found.
+
 ## Questions for you (numbers, not code — nothing below is implemented)
 
 **Q1 — "Dynasty" achievement (earn 1e18 lifetime) claims to match the 40-Franchise
