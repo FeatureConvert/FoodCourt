@@ -56,18 +56,31 @@ enum Expeditions {
 
     static let crewSize = 3
 
+    // Rewards raised ~4x (Aug 30 review) against the balance pass's own math: even a
+    // best-case, guaranteed-win, maxed-legendary crew was earning roughly 0.7-1.1
+    // gems/manager-hour here, against Errands' guaranteed, riskless 7/manager-hour for
+    // the same rarity - Face-Offs cost 3x the managers and can still lose, so paying
+    // LESS per manager-hour than the safe option had it backwards. At 4x, the same
+    // best-case math comes out to ~2.7-4.4 gems/manager-hour: still below Errands'
+    // guaranteed rate (a Face-Off is meant to be the bigger swing, not strictly better),
+    // but no longer such a wide gap that Errands strictly dominate. The coin side (paid
+    // as hours of FULL income on a win, vs Errands' hours at HALF income) moves the same
+    // way: friendly/district/grand now pay ~0.33/0.5/0.67x an hour of income per
+    // manager-hour committed, up from ~0.08/0.13/0.17x, bracketing Errands' flat 0.5x
+    // instead of sitting well under it at every tier. Loss payouts (1/4 of these) and
+    // Grand's recruit chance are unchanged - only found to be underpriced, not the odds.
     static let tiers: [ExpeditionTier] = [
         ExpeditionTier(id: "friendly", title: "Friendly Face-Off",
                        detail: "Low stakes, guaranteed experience. 4 hours.",
-                       difficulty: 4, hours: 4, rewardGems: 8, rewardIncomeHours: 1,
+                       difficulty: 4, hours: 4, rewardGems: 32, rewardIncomeHours: 4,
                        recruitChance: 0),
         ExpeditionTier(id: "district", title: "District Cook-Off",
                        detail: "A real fight. Bring your good people. 8 hours.",
-                       difficulty: 9, hours: 8, rewardGems: 20, rewardIncomeHours: 3,
+                       difficulty: 9, hours: 8, rewardGems: 80, rewardIncomeHours: 12,
                        recruitChance: 0),
         ExpeditionTier(id: "grand", title: "Grand Face-Off",
                        detail: "The rival's best crew. Winners come home famous. 12 hours.",
-                       difficulty: 15, hours: 12, rewardGems: 40, rewardIncomeHours: 6,
+                       difficulty: 15, hours: 12, rewardGems: 160, rewardIncomeHours: 24,
                        recruitChance: 0.25),
     ]
 
