@@ -73,7 +73,7 @@ private struct StaffSection: View {
             synergyBoard
         }
 
-        if autoAssignableCount > 0 {
+        if engine.autoAssignableCount > 0 {
             IntroBanner(key: IntroKey.autoAssignStaff, symbol: "checkmark.circle.fill",
                         title: "Fill open stations at once",
                         detail: "When a benched manager and an open station both exist, this staffs everything it can in one tap instead of assigning each by hand.")
@@ -89,22 +89,6 @@ private struct StaffSection: View {
         }
     }
 
-    /// How many pairings `autoAssignBenchedManagers()` would actually make - capped by
-    /// whichever runs out first, an idle manager or an open station.
-    private var autoAssignableCount: Int {
-        let bench = engine.state.unassignedManagers.count
-        guard bench > 0 else { return 0 }
-        let openStations = Balance.venues
-            .filter { engine.state.venues[$0.id].unlocked }
-            .reduce(0) { total, venue in
-                total + venue.stations.filter { spec in
-                    let station = engine.state.venues[venue.id].stations[spec.id]
-                    return station.isOwned && !station.isStaffed
-                }.count
-            }
-        return min(bench, openStations)
-    }
-
     /// A player who just opened a new venue, or came back from a while away with several
     /// managers idle on the bench, otherwise has to drag each one to a station by hand.
     private var autoAssignButton: some View {
@@ -117,7 +101,7 @@ private struct StaffSection: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "person.fill.checkmark")
-                Text("Auto-Assign Bench (\(autoAssignableCount))")
+                Text("Auto-Assign Bench (\(engine.autoAssignableCount))")
             }
             .font(Theme.body(13, weight: .black))
             .frame(maxWidth: .infinity)

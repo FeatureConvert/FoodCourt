@@ -761,6 +761,35 @@ final class GameEngine: ObservableObject {
         return true
     }
 
+    /// How many pairings `autoAssignBenchedManagers()` would actually make right now - a dry
+    /// run of the exact same walk, respecting each open station's first-time staffing fee and
+    /// the coins already spent on the ones earlier in the sequence. Naively counting every
+    /// idle manager against every open station overcounts whenever a fee later in the
+    /// sequence isn't affordable with what's left - which used to make the Auto-Assign
+    /// button promise a number it silently couldn't deliver (a player reported the button
+    /// "not working": it walked past every open station, failed the affordability check on
+    /// each one, and only `assign()`'s own "Need $X to staff Y" toast said why - not a crash,
+    /// but a button that overpromised instead of ever just not showing up).
+    var autoAssignableCount: Int {
+        var bench = state.unassignedManagers
+        guard !bench.isEmpty else { return 0 }
+        var assigned = 0
+        var coins = state.coins
+        for venue in Balance.venues where state.venues[venue.id].unlocked {
+            for spec in venue.stations {
+                guard bench.first != nil else { return assigned }
+                let station = state.venues[venue.id].stations[spec.id]
+                guard station.isOwned, !station.isStaffed else { continue }
+                let fee = station.everStaffed ? 0 : managerCost(for: spec.id, venue: venue.id)
+                guard coins >= fee else { continue }
+                coins -= fee
+                bench.removeFirst()
+                assigned += 1
+            }
+        }
+        return assigned
+    }
+
     /// Fills every open (owned, unstaffed) station across every unlocked venue with a
     /// benched manager, first-open-station to first-available-manager - no strategy beyond
     /// that, since this is a convenience for "I have idle staff and open stations, just put

@@ -243,6 +243,31 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(e.autoAssignBenchedManagers(), 0, "no open stations or bench left")
     }
 
+    /// Regression: naively counting every idle manager against every open station overcounts
+    /// whenever a later station's first-time staffing fee isn't affordable once the earlier
+    /// ones' fees are spent in sequence - a player reported the Auto-Assign button "not
+    /// working" because it promised a number (every open station, fee-blind) it silently
+    /// couldn't deliver, walking past the unaffordable ones with nothing but assign()'s own
+    /// "Need $X" toast to explain the gap. `autoAssignableCount` must predict exactly what
+    /// `autoAssignBenchedManagers()` will actually do, not an idealized upper bound.
+    @MainActor
+    func testAutoAssignableCountMatchesWhatAutoAssignActuallyAffordsInSequence() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 5
+        state.venues[0].stations[1].level = 5
+        state.managers.append(contentsOf: [OwnedManager.make("dex"), OwnedManager.make("sam")])
+        let e = engine(state)
+        let feeA = e.managerCost(for: 0, venue: 0)
+        let feeB = e.managerCost(for: 1, venue: 0)
+        XCTAssertLessThan(feeA, feeB, "test assumes station 1 costs more to staff than station 0")
+
+        // Enough for the first station's fee, not enough for both - naive counting (2 idle
+        // managers, 2 open stations) would still claim 2 are assignable.
+        e.addCoins(feeA)
+        XCTAssertEqual(e.autoAssignableCount, 1)
+        XCTAssertEqual(e.autoAssignBenchedManagers(), 1, "must match the predicted count exactly")
+    }
+
     /// The station-row UI reads `cachedModifiers`/`cachedCycleTime`/`cachedBaseRevenue`
     /// instead of recomputing the manager/research/synergy walk on every render - this
     /// checks the cache never disagrees with a fresh, uncached computation, whether or not
