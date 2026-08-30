@@ -189,7 +189,17 @@ final class GameEngine: ObservableObject {
         guard tickTimer == nil else { return }
         lastTickTime = CACurrentMediaTimeCompat()
 
-        let tick = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
+        // 20Hz here used to mean every owned station's `elapsed` write republished the whole
+        // `state` struct (it's @Published) up to 20x/sec, forever, just from the app being
+        // open - full SwiftUI re-render each time. Nothing actually needs that resolution:
+        // the progress rings interpolate from `lastAdvanceAt` via their own TimelineViews
+        // (decoupled from tick rate), serve-burst visuals already throttle to one flush per
+        // 0.25s (`burstMinimumInterval`), and completions use floor(elapsed / cycle) so a
+        // longer tick just batches more completions into one step instead of losing any.
+        // 5Hz keeps ticks arriving faster than that 0.25s burst flush while cutting the
+        // steady-state CPU/battery cost of this loop - and everything it calls per owned
+        // station, including the manager/synergy lookups in `modifiers()` - by 4x.
+        let tick = Timer(timeInterval: 0.2, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.step() }
         }
         RunLoop.main.add(tick, forMode: .common)

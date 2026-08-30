@@ -501,14 +501,17 @@ private struct CookerRing: View {
     private var isFlatOut: Bool { cycle < Self.flatOutBelow }
 
     /// One timeline for both modes. Sampling the engine's `elapsed` directly gave a 0.6s
-    /// cycle only twelve frames (the engine only ticks at 20Hz), which is what made the ring
-    /// look like it was running at a low frame rate - interpolating against wall-clock time
-    /// here fixes that. It doesn't need the DISPLAY's refresh rate to look smooth, though:
+    /// cycle only twelve frames at the engine's old 20Hz tick rate (now 5Hz - see `start()`),
+    /// which is what made the ring look like it was running at a low frame rate -
+    /// interpolating against wall-clock time here fixes that, independent of the engine's
+    /// tick rate. It doesn't need the DISPLAY's refresh rate to look smooth, though:
     /// live-reported heat/battery drain on iPhone traced largely to this view running
     /// uncapped (up to 120Hz on ProMotion) with up to six instances on screen simultaneously,
     /// and the `flatOut` branch below - the common case once a station is leveled up -
     /// recomputing a shadow blur and a gradient every one of those frames. 30fps is still
     /// well above the twelve-frames-per-cycle floor that prompted this comment originally.
+    /// (The shadow blur itself was later found to still be expensive even at 30fps, since
+    /// its radius was animating too - see `flatOut`'s own comment.)
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
             ZStack {
@@ -539,9 +542,19 @@ private struct CookerRing: View {
         let sweep = Angle.degrees((t * 400).truncatingRemainder(dividingBy: 360))
 
         return ZStack {
+            // The glow used to animate the shadow's own radius and color alpha every frame -
+            // a fixed-shape shadow can be cached and reused across frames, but one whose blur
+            // kernel changes size every frame can't be, so this was quietly one of the
+            // costlier things on screen: a from-scratch blur re-render up to 30x/sec for
+            // every leveled-up station visible at once (a live battery/heat report traced to
+            // this view, see the doc comment above - capping the frame rate there wasn't
+            // enough on its own since the shadow itself was still the expensive part of each
+            // of those frames). The pulse now animates the stroke's opacity instead - plain
+            // alpha blending, not a blur - so the "breathing" glow survives on a shadow that
+            // stays cheap to draw.
             Circle()
-                .stroke(accent, lineWidth: 5)
-                .shadow(color: accent.opacity(0.35 + 0.45 * pulse), radius: 4 + 5 * pulse)
+                .stroke(accent.opacity(0.65 + 0.35 * pulse), lineWidth: 5)
+                .shadow(color: accent.opacity(0.55), radius: 6)
             Circle()
                 .trim(from: 0, to: 0.2)
                 .stroke(
