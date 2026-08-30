@@ -82,8 +82,39 @@ final class DepthSystemsTests: XCTestCase {
         engine.debugUnlockAllVenuesAndStations()
         _ = engine.prestige()
         XCTAssertGreaterThan(engine.state.coins, 0, "the new run starts funded")
-        XCTAssertLessThanOrEqual(engine.state.coins, Balance.venues[1].unlockCost,
+        // The cap scales with the player's own star multiplier (see applySeedCapital's doc
+        // comment) - it must be checked against the same inflated price `preRate` itself
+        // already carries, not the raw VenueSpec number, which by this point in a prestige
+        // (lifetimeStars already holds this run's own award) is smaller than the real cap.
+        XCTAssertLessThanOrEqual(engine.state.coins, engine.unlockCost(for: Balance.venues[1]),
                                  "but never past the per-stack cap")
+    }
+
+    /// Regression: Seed Capital's cap used to compare `preRate` (already inflated by the
+    /// player's own starMultiplier, since that's baked into automatedRate) against the RAW,
+    /// uninflated venue price - collapsing the min() to a tiny flat number for any player
+    /// with meaningful lifetimeStars, exactly the post-Legacy-unlock playerbase this perk is
+    /// for. A veteran with a huge pre-reset rate must now bank meaningfully more than that
+    /// old flat ceiling, scaled by their own star power like every other cost in the game.
+    @MainActor
+    func testSeedCapitalScalesWithStarMultiplierForAVeteranLegacyPlayer() {
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 5_000
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        state.lifetimeStars = 200_000 // several prestiges into a Legacy-unlocked run
+        // pendingStars needs lifetimeEarnings entitling MORE stars than already held, or
+        // this prestige awards nothing and never reaches applySeedCapital at all.
+        state.lifetimeEarnings = 3e18
+        state.legacyPerks = ["capital": 1]
+        let engine = GameEngine(state: state, startTimers: false,
+                                persistence: EphemeralPersistence())
+        engine.debugUnlockAllVenuesAndStations()
+        XCTAssertGreaterThan(engine.state.automatedRate, 0, "a real pre-reset rate to bank from")
+
+        _ = engine.prestige()
+        XCTAssertGreaterThan(engine.state.coins, Balance.venues[1].unlockCost * 10,
+                             "a veteran's banked capital must scale with their star bonus, "
+                             + "not sit frozen at the old flat, uninflated cap")
     }
 
     // MARK: Crews

@@ -1225,12 +1225,25 @@ final class GameEngine: ObservableObject {
     }
 
     /// Legacy's Seed Capital perk: each stack banks up to an hour of pre-reset income,
-    /// capped at venue 2's base unlock price per stack - enough to blitz the opening
-    /// minutes, never enough to trivialize the board.
+    /// capped at venue 2's unlock price per stack - enough to blitz the opening minutes,
+    /// never enough to trivialize the board.
+    ///
+    /// The cap must go through `unlockCost(for:)`, not `VenueSpec.unlockCost` directly:
+    /// `preRate` (the OLD board's automated rate) already carries the player's own
+    /// `starMultiplier` - it's baked into `automatedRate` - so comparing it against the raw,
+    /// uninflated venue price silently collapsed the `min()` to that tiny flat number for
+    /// any player with meaningful lifetimeStars, which is exactly the post-Legacy-unlock
+    /// playerbase this perk exists for (Legacy gates at 5 prestiges, and a single first
+    /// prestige alone typically nets 10-15K stars - see `Balance.legacyUnlockPrestigeCount`).
+    /// At that point starMultiplier is already well into double digits, so the cap was
+    /// worth low single-digit percent of "an hour of income," not the promised amount.
+    /// `unlockCost(for:)` runs after this reset already zeroed `boardStartedAt` and the
+    /// active contract, so it correctly reflects just the star-multiplier portion of
+    /// inflation on the new board - the same scaling `preRate` itself already has.
     private func applySeedCapital(preRate: Double) {
         let hours = state.legacyEffects.startingCapitalHours
         guard hours > 0 else { return }
-        let capPerStack = Balance.venues[1].unlockCost
+        let capPerStack = unlockCost(for: Balance.venues[1])
         state.coins += Swift.min(preRate * hours * 3600, capPerStack * hours)
     }
 
