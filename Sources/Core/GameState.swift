@@ -429,16 +429,25 @@ struct GameState: Codable, Equatable {
     var legacyEffects: LegacyTree.Effects { LegacyTree.effects(taken: legacyPerks) }
     var toolEffects: Tools.Effects { Tools.effects(owned: tools) }
 
-    /// Everything that scales payouts globally: boosts, prestige stars, VIP, and research.
-    /// Combo is deliberately excluded - it is transient and lives on the engine.
-    var globalMultiplier: Double {
-        let boost = activeBoosts.reduce(1.0) { $0 * $1.multiplier }
-        return boost
-            * Balance.starMultiplier(stars: lifetimeStars)
+    /// The star/legacy/entitlement/research/tool stack, shared by `globalMultiplier` (which
+    /// adds boosts on top) and StationMath's `automatedRate`/`automatedRate(venueID:)` (which
+    /// deliberately exclude boosts - they tick in real time and aren't paid offline). One
+    /// shared list instead of hand-kept-in-sync copies: legacy's multiplier was once missing
+    /// from automatedRate's copy of this list for a while, quietly underpaying every offline
+    /// report, quest reward, time warp, and errand for anyone past their first Legacy reset.
+    var persistentProfitMultiplier: Double {
+        Balance.starMultiplier(stars: lifetimeStars)
             * Balance.legacyMultiplier(level: legacy.level)
             * entitlements.profitMultiplier
             * researchEffects.profitMultiplier
             * toolEffects.profitMultiplier
+    }
+
+    /// Everything that scales payouts globally: boosts, prestige stars, VIP, and research.
+    /// Combo is deliberately excluded - it is transient and lives on the engine.
+    var globalMultiplier: Double {
+        let boost = activeBoosts.reduce(1.0) { $0 * $1.multiplier }
+        return boost * persistentProfitMultiplier
     }
 
     var offlineCapHours: Double {

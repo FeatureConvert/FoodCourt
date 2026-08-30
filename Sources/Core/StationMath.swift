@@ -93,15 +93,13 @@ extension GameState {
                     / cycleTime(venue: venue.id, station: spec.id)
             }
         }
-        // Keep this list in lockstep with `globalMultiplier` (minus boosts, which tick in
-        // real time and are deliberately not paid offline): legacy was missing here for a
-        // while, which quietly underpaid every offline report, quest reward, time warp,
-        // and errand for anyone past their first Legacy reset.
-        return total * Balance.starMultiplier(stars: lifetimeStars)
-            * Balance.legacyMultiplier(level: legacy.level)
-            * entitlements.profitMultiplier
-            * researchEffects.profitMultiplier
-            * toolEffects.profitMultiplier
+        // Shares `persistentProfitMultiplier` with `globalMultiplier` rather than keeping a
+        // second hand-written copy of this list - see that property's own doc comment for
+        // why (legacy's multiplier was once missing from a copy here, which quietly
+        // underpaid every offline report, quest reward, time warp, and errand for anyone
+        // past their first Legacy reset). Boosts are excluded on purpose: they tick in real
+        // time and aren't paid offline.
+        return total * persistentProfitMultiplier
     }
 
     /// One venue's slice of `automatedRate`, same multipliers - what the Midnight Diner's
@@ -115,11 +113,7 @@ extension GameState {
             total += baseRevenue(venue: venueID, station: spec.id)
                 / cycleTime(venue: venueID, station: spec.id)
         }
-        return total * Balance.starMultiplier(stars: lifetimeStars)
-            * Balance.legacyMultiplier(level: legacy.level)
-            * entitlements.profitMultiplier
-            * researchEffects.profitMultiplier
-            * toolEffects.profitMultiplier
+        return total * persistentProfitMultiplier
     }
 
     /// Dishes per second from staffed stations only - unlike automatedRate this is a pure
