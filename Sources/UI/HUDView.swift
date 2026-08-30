@@ -17,41 +17,22 @@ struct HUDView: View {
     @State private var expandedGoalID: String?
 
     var body: some View {
-        // Every number in this row used to be `.fixedSize()`, which refuses to compress at
-        // any cost. Once a player prestiges, the star pill joins the coin and gem pills and
-        // the three together demand more than the row has - the Spacer collapsed to zero and
-        // the help/settings buttons were pushed clean off the right edge, unreachable. The
-        // numbers now scale down to fit instead, and the two buttons take layout priority so
-        // they are always laid out before the pills compete for what's left.
-        //
-        // minimumScaleFactor is a FRACTION of each Text's own font size, not an absolute
-        // floor - so two Texts sharing a column (and so a proposed width) but starting from
-        // different point sizes hit different absolute minimum widths at the same fraction.
-        // A flat 0.6, then a flat 0.45, both still left the 19pt coin balance truncating
-        // ("60...", then later "87...") while the 11pt income-rate line right under it
-        // rendered in full - the smaller line's fraction bottoms out several points lower in
-        // absolute size, so it can keep shrinking to fit long after the balance line has
-        // already hit ITS floor and given up. Every line below instead targets the same
-        // absolute floor (~8pt), computed per line as 8 / the line's own font size, so under
-        // identical horizontal pressure they all run out of room to shrink at the same time
-        // rather than one line truncating while its neighbor sails through.
+        // Coins, gems, and stars used to be three EQUALLY flexible pills sharing ONE row
+        // with the help/settings buttons - chasing that with scale factors and layout
+        // priorities fixed each individual live report (a 19pt balance truncating next to
+        // its own fully-legible rate line, then the same balance losing out once a third
+        // pill joined) without ever fixing the actual cause: on the narrowest supported
+        // phone (13 mini, 360pt), coins+gems+stars+2 buttons simply do not fit at once - a
+        // live report of `layoutPriority`/`minWidth`-based attempts to force it still
+        // overflowed the settings button clean off the right edge, unreachable, the same
+        // failure a `.fixedSize()` pass hit on this row years earlier (see git history).
+        // No per-Text tuning fixes a genuine space deficit. Splitting into two rows -
+        // coins and gems here, stars and the buttons below - keeps every element at a
+        // width it can actually afford: two pills is comfortable at any supported screen
+        // width, and the row below never has more than three things in it either.
         VStack(spacing: 8) {
             HStack(spacing: 10) {
-                currencyPill {
-                    CoinIcon().frame(width: 22, height: 22)
-                    VStack(alignment: .leading, spacing: -2) {
-                        Text(Format.currency(engine.state.coins))
-                            .font(Theme.numeric(19))
-                            .foregroundStyle(Theme.text)
-                            .lineLimit(1)
-                            .minimumScaleFactor(hudMinScale(for: 19))
-                        Text(Format.rate(engine.incomePerSecond))
-                            .font(Theme.body(11, weight: .bold))
-                            .foregroundStyle(Theme.positive)
-                            .lineLimit(1)
-                            .minimumScaleFactor(hudMinScale(for: 11))
-                    }
-                }
+                coinBar
 
                 currencyPill {
                     // CoinIcon draws a near-edge-to-edge circle (86% of its box); GemIcon's
@@ -65,8 +46,11 @@ struct HUDView: View {
                         .foregroundStyle(Theme.text)
                         .lineLimit(1)
                         .minimumScaleFactor(hudMinScale(for: 17))
+                        .layoutPriority(1)
                 }
+            }
 
+            HStack(spacing: 10) {
                 if engine.state.lifetimeStars > 0 || engine.canPrestige {
                     // Tapping the star pill is the way into Franchise and Research.
                     // Must surface once canPrestige is true, even before the player's
@@ -81,6 +65,7 @@ struct HUDView: View {
                                     .foregroundStyle(Theme.text)
                                     .lineLimit(1)
                                     .minimumScaleFactor(hudMinScale(for: 16))
+                                    .layoutPriority(1)
                                 // The anticipation meter: pending stars accrue live, so
                                 // the payoff visibly builds between franchises - the
                                 // strongest pull the game owns, previously invisible here.
@@ -118,7 +103,6 @@ struct HUDView: View {
                         .background(Circle().fill(Theme.panel.opacity(0.92)))
                 }
                 .buttonStyle(.plain)
-                .layoutPriority(1)
                 .accessibilityLabel("Help")
 
                 Button(action: onSettings) {
@@ -129,49 +113,61 @@ struct HUDView: View {
                         .background(Circle().fill(Theme.panel.opacity(0.92)))
                 }
                 .buttonStyle(.plain)
-                .layoutPriority(1)
                 .accessibilityLabel("Settings")
             }
 
             if !activeBoosts.isEmpty || engine.state.entitlements.vip
                 || engine.state.entitlements.mogul || engine.state.isHappyHour()
                 || activeContractBadge != nil || errandBadge != nil || faceOffBadge != nil {
-                HStack(spacing: 6) {
-                    if let contract = activeContractBadge, let detail = engine.state.contract?.detail {
-                        badge(contract, detail: detail, color: Theme.star)
+                // Every badge used to sit in a plain HStack with no line limit, so once three
+                // or more were active at once on a narrower phone - a live report showed
+                // HAPPY HOUR, a Rush chain, and Coffee Break all at once - the ones that
+                // didn't fit wrapped their OWN text onto a second line instead of just
+                // staying single-line and tight, turning clean uniform capsules into lumpy
+                // two-line blobs of visibly different heights. A horizontal scroll view
+                // keeps every badge exactly as wide as its own text wants and exactly one
+                // line tall regardless of how many are active; if there are more than fit,
+                // the row scrolls instead of deforming. Boost labels ("Rush", "Coffee
+                // Break") were also the one badge source not already upper-cased like every
+                // other badge here (HAPPY HOUR, VIP, ERRANDS READY, ...) - that mismatch is
+                // what actually reads as "not uniform" even before anything wraps.
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        if let contract = activeContractBadge, let detail = engine.state.contract?.detail {
+                            badge(contract, detail: detail, color: Theme.star)
+                        }
+                        // Errands and Face-Offs otherwise only show their status inside the
+                        // Collection sheet - checking on either meant re-opening it repeatedly,
+                        // unlike a boost's countdown which is always visible right here.
+                        if let errandBadge {
+                            badge(errandBadge.text, detail: errandBadge.detail,
+                                  color: errandBadge.ready ? Theme.positive : Theme.coin)
+                        }
+                        if let faceOffBadge {
+                            badge(faceOffBadge.text, detail: faceOffBadge.detail,
+                                  color: faceOffBadge.ready ? Theme.positive : Theme.coin)
+                        }
+                        if engine.state.isHappyHour() {
+                            badge("HAPPY HOUR ×\(Format.trim(ActivePlay.happyHourMultiplier))",
+                                  detail: "A daily 6-8pm window: ×\(Format.trim(ActivePlay.happyHourMultiplier)) on every payout and better odds of a Golden Customer.",
+                                  color: Theme.positive)
+                        }
+                        if engine.state.entitlements.vip {
+                            badge("VIP +\(Int(Balance.vipProfitBonus * 100))%",
+                                  detail: "+\(Int(Balance.vipProfitBonus * 100))% profit forever, \(Int(Balance.offlineCapHoursVIP))h offline earnings, and a Carnival Pass every season.",
+                                  color: Theme.gem)
+                        }
+                        if engine.state.entitlements.mogul {
+                            badge("MOGUL +\(Int(Balance.mogulProfitBonus * 100))%",
+                                  detail: "+\(Int(Balance.mogulProfitBonus * 100))% profit forever and +\(Int(Balance.mogulOfflineCapBonusHours))h offline cap, stacking with VIP.",
+                                  color: Theme.star)
+                        }
+                        ForEach(activeBoosts) { boost in
+                            badge("\(boost.label.uppercased()) · \(Format.duration(boost.remaining(at: engine.state.now)))",
+                                  detail: "\(boost.label) - ends in \(Format.duration(boost.remaining(at: engine.state.now))).",
+                                  color: Theme.coin)
+                        }
                     }
-                    // Errands and Face-Offs otherwise only show their status inside the
-                    // Collection sheet - checking on either meant re-opening it repeatedly,
-                    // unlike a boost's countdown which is always visible right here.
-                    if let errandBadge {
-                        badge(errandBadge.text, detail: errandBadge.detail,
-                              color: errandBadge.ready ? Theme.positive : Theme.coin)
-                    }
-                    if let faceOffBadge {
-                        badge(faceOffBadge.text, detail: faceOffBadge.detail,
-                              color: faceOffBadge.ready ? Theme.positive : Theme.coin)
-                    }
-                    if engine.state.isHappyHour() {
-                        badge("HAPPY HOUR ×\(Format.trim(ActivePlay.happyHourMultiplier))",
-                              detail: "A daily 6-8pm window: ×\(Format.trim(ActivePlay.happyHourMultiplier)) on every payout and better odds of a Golden Customer.",
-                              color: Theme.positive)
-                    }
-                    if engine.state.entitlements.vip {
-                        badge("VIP +\(Int(Balance.vipProfitBonus * 100))%",
-                              detail: "+\(Int(Balance.vipProfitBonus * 100))% profit forever, \(Int(Balance.offlineCapHoursVIP))h offline earnings, and a Carnival Pass every season.",
-                              color: Theme.gem)
-                    }
-                    if engine.state.entitlements.mogul {
-                        badge("MOGUL +\(Int(Balance.mogulProfitBonus * 100))%",
-                              detail: "+\(Int(Balance.mogulProfitBonus * 100))% profit forever and +\(Int(Balance.mogulOfflineCapBonusHours))h offline cap, stacking with VIP.",
-                              color: Theme.star)
-                    }
-                    ForEach(activeBoosts) { boost in
-                        badge("\(boost.label) · \(Format.duration(boost.remaining(at: engine.state.now)))",
-                              detail: "\(boost.label) - ends in \(Format.duration(boost.remaining(at: engine.state.now))).",
-                              color: Theme.coin)
-                    }
-                    Spacer(minLength: 0)
                 }
             }
 
@@ -267,6 +263,44 @@ struct HUDView: View {
                 "Back in \(Format.duration(remaining)) - see it in the Staff sheet.", false)
     }
 
+    /// The only pill in the row that expands (`maxWidth: .infinity`) - see the comment at
+    /// the top of `body` for why that, not a scale factor, is what actually keeps the
+    /// balance legible.
+    ///
+    /// `minWidth` here turned out to be load-bearing, not decorative: `minimumScaleFactor`
+    /// doesn't tell a parent stack anything about how much a Text CAN shrink - it only
+    /// governs what that Text does with whatever width it's ultimately given. Without a
+    /// declared minWidth, a live report on the narrowest supported phone (13 mini, once
+    /// stars joined gems and both buttons in the same row) showed this whole pill collapse
+    /// to just its icon - not truncated, not scaled down, gone - because gem+star+buttons'
+    /// combined natural width left it a proposed width near zero, and Text at a
+    /// near-zero proposed width renders nothing rather than a partial glyph.
+    /// `minWidth: 140` gives it a floor the layout negotiation actually has to honor, the
+    /// same way `layoutPriority` does for the OTHER pills' primary numbers - forcing gems
+    /// and stars to be the ones that compress (which they can: they still carry their own
+    /// minimumScaleFactor from before, now actually reachable because something upstream is
+    /// finally asking them to shrink) rather than coins silently vanishing.
+    private var coinBar: some View {
+        HStack(spacing: 10) {
+            CoinIcon().frame(width: 26, height: 26)
+            Text(Format.currency(engine.state.coins))
+                .font(Theme.numeric(22))
+                .foregroundStyle(Theme.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            Spacer(minLength: 8)
+            Text(Format.rate(engine.incomePerSecond))
+                .font(Theme.body(14, weight: .bold))
+                .foregroundStyle(Theme.positive)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .frame(minWidth: 140, maxWidth: .infinity, alignment: .leading)
+        .panel(Theme.panel.opacity(0.92), radius: 14)
+    }
+
     private func currencyPill<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         HStack(spacing: 7) { content() }
             .padding(.horizontal, 12)
@@ -283,6 +317,8 @@ struct HUDView: View {
             Text(text)
                 .font(Theme.body(11, weight: .bold))
                 .foregroundStyle(Theme.ink)
+                .lineLimit(1)
+                .fixedSize()
                 .padding(.horizontal, 9)
                 .padding(.vertical, 4)
                 .background(Capsule().fill(color))
