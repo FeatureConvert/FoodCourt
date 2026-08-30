@@ -67,30 +67,24 @@ warning silenced.
 bonus, festival tier count, streak milestone max day, perk-choice levels) against the
 actual current constants one by one — all still exactly correct, no copy drift found.
 
-## Questions for you (numbers, not code — nothing below is implemented)
+## Questions — RESOLVED (Robert answered same morning, both implemented)
 
-**Q1 — "Dynasty" achievement (earn 1e18 lifetime) claims to match the 40-Franchise
-capstone. It doesn't.** Traced through the current star formula: 1e18 corresponds to only
-~150,000 cumulative stars, about 10-15x a single first prestige's award — crossed within
-the first few weeks at your documented cadence, not six months. This was a resolved
-decision from a prior session's work order (`docs/work-order.md` item 62), but the number
-picked there doesn't survive being traced through the same formula used to fix two
-sibling systems (Research pricing, Legacy's own gate) that had the identical problem.
-Options: (a) raise the threshold to ~1e24 so it actually lands at six months (derived
-from this repo's own "~225M stars in 6 months" hardcore benchmark), or (b) keep 1e18 as
-an earlier, more attainable achievement and just leave the comment's parity claim
-removed (already done tonight). No strong recommendation either way — it's a genuine
-"how should the achievement ladder feel" call.
+**Q1 — Dynasty achievement threshold.** Robert picked: raise it, don't leave it early.
+Now **1e24** (was 1e18), derived from this repo's own "~200-250M stars in 6 months"
+benchmark (`Balance.maxSaneLifetimeStars`'s doc comment) — `totalStars(1e24) =
+150*sqrt(1e24/1e12) = 150,000,000`, just under that range, so Dynasty now lands around
+the six-month mark instead of within the first few weeks. `prestige_4`'s "matching
+earn_4 above" comment restored — it's true again. Commit `2f52d1e`.
 
-**Q2 — Face-Off (expedition) rewards look underpriced relative to Errands.** Even in the
-best case (maxed legendary crew, guaranteed win), Face-Offs pay roughly 0.7-1.1
-gems/manager-hour; Errands pay 7/manager-hour for the same rarity, guaranteed, no risk.
-That's a 6-10x gap, and Errands were already the system hit hardest in a prior nerf pass
-— so Face-Offs look low even against an already-conservative baseline, for a mechanic
-that additionally risks losing. I didn't find a design note explaining the gap either
-way. Recommend: raise Face-Off gem/coin rewards roughly 3-5x to land closer to Errands'
-per-manager-hour rate, but the exact multiplier is yours to pick — I can implement
-whatever number you choose in a few minutes once decided.
+**Q2 — Face-Off rewards vs. Errands.** Robert picked: raise ~3-5x. Landed on **4x** across
+`rewardGems` and `rewardIncomeHours` for all three tiers (friendly 8→32 gems/1→4h,
+district 20→80/3→12h, grand 40→160/6→24h). Best-case gems/manager-hour goes from
+~0.7-1.1 to ~2.7-4.4 — still below Errands' guaranteed 7 (a Face-Off should be the bigger
+swing, not strictly better) but no longer such a wide gap that the safe option strictly
+dominates. Loss payouts (1/4 of win) and Grand's 25% recruit chance untouched — only the
+reward math was underpriced, not the odds. Commit `c073aa5`.
+
+Both re-tested (286/286 green) and pushed.
 
 ## Test status
 
@@ -106,14 +100,12 @@ station buy/hire, debug menu, and the HUD currency row rendering correctly post-
 - Build number (still 4), App Store Connect, any submission step — per your explicit
   "we won't submit yet."
 - Any real money path, StoreKit config, or IAP pricing.
-- Both DECISION items above — flagged, not guessed.
-- Your wife's phone / device registration — that needs your one-click "Register Device"
+- Your wife's phone / device registration — still needs your one-click "Register Device"
   in Xcode, which I can't do from here; the build itself has been ready since build 4.
+  Asked same morning; you said later.
 
-## For you, when you're up
+## Status
 
-1. Answer Q1/Q2 above whenever convenient — either is a small, fast change once decided.
-2. Everything is pushed to `origin/master` (through commit `20526ad`). Nothing local and
-   uncommitted.
-3. If you want the actual "Register Device" + Run-to-her-phone step, just say so and I'll
-   re-verify the device build first.
+Both questions answered and implemented same morning (commits `2f52d1e`, `c073aa5`),
+286/286 green, everything pushed to `origin/master` through `c073aa5`. Nothing local and
+uncommitted. Wife's phone step still pending whenever you want it.
