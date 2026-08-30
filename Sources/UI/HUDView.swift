@@ -23,6 +23,15 @@ struct HUDView: View {
         // the help/settings buttons were pushed clean off the right edge, unreachable. The
         // numbers now scale down to fit instead, and the two buttons take layout priority so
         // they are always laid out before the pills compete for what's left.
+        //
+        // minimumScaleFactor is a FRACTION of each Text's own font size, not an absolute
+        // floor - so at the same 0.6 the coin balance (19pt) and its income-rate line below
+        // it (11pt) hit genuinely different absolute minimum widths despite sharing a VStack
+        // that proposes them the same space. A live report showed the balance line ("60...")
+        // truncating with an ellipsis while the smaller rate line right under it ("8.36M/s")
+        // rendered in full - reported as "the coins display isn't readable." 0.45 gives the
+        // larger, harder-hit lines enough room to actually reach a fitting scale before
+        // SwiftUI gives up and truncates instead.
         VStack(spacing: 8) {
             HStack(spacing: 10) {
                 currencyPill {
@@ -32,12 +41,12 @@ struct HUDView: View {
                             .font(Theme.numeric(19))
                             .foregroundStyle(Theme.text)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.6)
+                            .minimumScaleFactor(0.45)
                         Text(Format.rate(engine.incomePerSecond))
                             .font(Theme.body(11, weight: .bold))
                             .foregroundStyle(Theme.positive)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.6)
+                            .minimumScaleFactor(0.45)
                     }
                 }
 
@@ -52,7 +61,7 @@ struct HUDView: View {
                         .font(Theme.numeric(17))
                         .foregroundStyle(Theme.text)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.6)
+                        .minimumScaleFactor(0.45)
                 }
 
                 if engine.state.lifetimeStars > 0 || engine.canPrestige {
@@ -68,7 +77,7 @@ struct HUDView: View {
                                     .font(Theme.numeric(16))
                                     .foregroundStyle(Theme.text)
                                     .lineLimit(1)
-                                    .minimumScaleFactor(0.6)
+                                    .minimumScaleFactor(0.45)
                                 // The anticipation meter: pending stars accrue live, so
                                 // the payoff visibly builds between franchises - the
                                 // strongest pull the game owns, previously invisible here.
@@ -77,13 +86,13 @@ struct HUDView: View {
                                         .font(Theme.body(10, weight: .bold))
                                         .foregroundStyle(Theme.positive)
                                         .lineLimit(1)
-                                        .minimumScaleFactor(0.6)
+                                        .minimumScaleFactor(0.45)
                                 } else {
                                     Text(Format.bonus(multiplier: Balance.starMultiplier(stars: engine.state.lifetimeStars)))
                                         .font(Theme.body(10, weight: .bold))
                                         .foregroundStyle(Theme.star)
                                         .lineLimit(1)
-                                        .minimumScaleFactor(0.6)
+                                        .minimumScaleFactor(0.45)
                                 }
                             }
                         }
