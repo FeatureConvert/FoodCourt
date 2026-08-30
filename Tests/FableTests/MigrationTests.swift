@@ -37,6 +37,45 @@ final class MigrationTests: XCTestCase {
         XCTAssertFalse(festival.premiumUnlocked)
     }
 
+    /// LeagueState and LeagueRival were the one place left still using `try c.decode` (hard
+    /// required, no fallback) for their original fields - unlike every sibling type here. A
+    /// save with the "league" key present but missing even one of those fields threw out of
+    /// LeagueState.init, and since GameState decodes it via
+    /// `decodeIfPresent(...) ?? LeagueState()`, that throw propagated through decodeIfPresent
+    /// too (it only swallows an ABSENT key, not a present-but-malformed value) and took the
+    /// WHOLE save down - not just League progress. Confirms both now decode a fieldless object
+    /// into their documented defaults, and that a realistic partial "league" blob no longer
+    /// wipes the rest of a GameState decode.
+    func testLeagueStateAndRivalSurviveMissingFieldsWithoutWipingTheWholeSave() throws {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let empty = "{}".data(using: .utf8)!
+
+        let league = try decoder.decode(LeagueState.self, from: empty)
+        XCTAssertEqual(league.tier, .bronze)
+        XCTAssertEqual(league.score, 0)
+        XCTAssertTrue(league.rivals.isEmpty)
+        XCTAssertEqual(league.seasonsPlayed, 0)
+
+        let rival = try decoder.decode(LeagueRival.self, from: empty)
+        XCTAssertEqual(rival.id, 0)
+        XCTAssertEqual(rival.name, "Rival")
+        XCTAssertEqual(rival.score, 0)
+
+        // The actual failure mode: a whole-save decode with "league" present but incomplete
+        // (score given, everything else - including one rival missing its own score - absent
+        // or malformed) must still succeed rather than throwing and losing everything else in
+        // the save.
+        let state = try decode("""
+        {"coins": 500, "league": {"score": 1200, "rivals": [{"id": 3, "name": "Rossi's"}]}}
+        """)
+        XCTAssertEqual(state.coins, 500, "the rest of the save must survive a malformed league")
+        XCTAssertEqual(state.league.score, 1200)
+        XCTAssertEqual(state.league.tier, .bronze, "missing field falls back to its default")
+        XCTAssertEqual(state.league.rivals.first?.name, "Rossi's")
+        XCTAssertEqual(state.league.rivals.first?.score, 0, "missing rival field falls back too")
+    }
+
     /// BoostState and ActiveQuest don't have a natural default for every field, so their
     /// hardened decoders lean conservative on purpose: a corrupt/incomplete boost decodes as
     /// already-expired (inert), and a corrupt/incomplete quest decodes as permanently

@@ -66,9 +66,15 @@ struct LeagueRival: Codable, Equatable, Identifiable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = try c.decode(Int.self, forKey: .id)
-        name = try c.decode(String.self, forKey: .name)
-        score = try c.decode(Double.self, forKey: .score)
+        // id/name/score used to be hard-required here, unlike every sibling element type in
+        // the save (ActiveQuest, StationState, ...) - one malformed rival would throw out of
+        // this initializer and, since JSONDecoder aborts the whole array on any one element's
+        // failure, take LeagueState's `rivals` decode down with it even though THAT field
+        // already falls back to `?? []`. decodeIfPresent here closes that gap the same way
+        // jitter/isNemesis below already do.
+        id = try c.decodeIfPresent(Int.self, forKey: .id) ?? 0
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? "Rival"
+        score = try c.decodeIfPresent(Double.self, forKey: .score) ?? 0
         // Saves from before rivals tracked the player's pace stored an absolute `rate`
         // instead - there's nothing to convert, so reroll a stable jitter for this rival
         // rather than losing the whole league (and the rest of the save) to a decode failure.
@@ -139,15 +145,30 @@ struct LeagueState: Codable, Equatable {
     // Every save on disk today predates recentEarnRate/scoreAtLastSync - decodeIfPresent
     // so this isn't a decode failure the moment the fix ships (see the migration matrix's
     // whole reason for existing: a wiped veteran save on update day is unforgivable).
+    //
+    // The other seven fields used to be hard-required (`try c.decode`, no fallback) - the
+    // one exception to how every other persisted struct in this save is written. Since
+    // GameState decodes League via `decodeIfPresent(...) ?? LeagueState()`, and
+    // decodeIfPresent only swallows an ABSENT key (not a present-but-malformed value), a
+    // single missing/corrupt field in an otherwise-present "league" blob threw out of here
+    // and took the ENTIRE save down with it, not just League progress - the same class of
+    // fatal-decode bug this team has already had to fix three times elsewhere (Quests.swift,
+    // Balance.swift, GameCenterService.swift), just in decode form instead of Int(Double).
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        tier = try c.decode(LeagueTier.self, forKey: .tier)
-        score = try c.decode(Double.self, forKey: .score)
-        rivals = try c.decode([LeagueRival].self, forKey: .rivals)
-        startedAt = try c.decode(Date.self, forKey: .startedAt)
-        endsAt = try c.decode(Date.self, forKey: .endsAt)
-        lastSettledAt = try c.decode(Date.self, forKey: .lastSettledAt)
-        seasonsPlayed = try c.decode(Int.self, forKey: .seasonsPlayed)
+        tier = try c.decodeIfPresent(LeagueTier.self, forKey: .tier) ?? .bronze
+        score = try c.decodeIfPresent(Double.self, forKey: .score) ?? 0
+        // `try?` (not decodeIfPresent) because a malformed *element* inside an otherwise-
+        // present array throws a decode error, not a missing-key one - decodeIfPresent alone
+        // wouldn't catch that. LeagueRival's own decoder no longer throws for a single bad
+        // rival (see above), but this stays as a second line of defense against the key
+        // holding a value of the wrong shape entirely.
+        rivals = (try? c.decode([LeagueRival].self, forKey: .rivals)) ?? []
+        startedAt = try c.decodeIfPresent(Date.self, forKey: .startedAt) ?? Date()
+        endsAt = try c.decodeIfPresent(Date.self, forKey: .endsAt)
+            ?? Date().addingTimeInterval(League.weekLength)
+        lastSettledAt = try c.decodeIfPresent(Date.self, forKey: .lastSettledAt) ?? Date()
+        seasonsPlayed = try c.decodeIfPresent(Int.self, forKey: .seasonsPlayed) ?? 0
         recentEarnRate = try c.decodeIfPresent(Double.self, forKey: .recentEarnRate) ?? 0
         scoreAtLastSync = try c.decodeIfPresent(Double.self, forKey: .scoreAtLastSync) ?? score
     }
