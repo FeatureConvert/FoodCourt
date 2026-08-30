@@ -307,8 +307,17 @@ private struct ResearchSection: View {
         }
     }
 
+    /// Same bug class Auto-Assign Bench had: checking each node independently against the
+    /// CURRENT star balance overcounts whenever two nodes are each affordable alone but not
+    /// together (buyAllAffordableResearch spends sequentially, cheapest first, so the second
+    /// one's cost has to fit what's left AFTER the first). Reuses the same greedy simulation
+    /// `projectedResearchRanks` already runs for the prestige-confirm preview, just with
+    /// "right now" as the scenario (today's lastPrestigeAward pricing, today's stars) instead
+    /// of a hypothetical future franchise - so the button's own count can never promise more
+    /// ranks than a tap will actually buy.
     private var affordableNow: Int {
-        Research.nodes.filter { engine.canBuyResearch($0) }.count
+        engine.projectedResearchRanks(afterAward: engine.state.lastPrestigeAward,
+                                      spendable: engine.state.stars)
     }
 
     /// A large star surplus after several franchise resets otherwise means tapping every

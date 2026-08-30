@@ -351,6 +351,30 @@ final class FeatureTests: XCTestCase {
                        "must keep buying until literally nothing else is affordable")
     }
 
+    /// Regression: PrestigeView's "Buy All Affordable" button used to count each node
+    /// independently against the CURRENT star balance (`canBuyResearch($0)` per node), which
+    /// overcounts whenever two nodes are each affordable alone but not together -
+    /// buyAllAffordableResearch spends sequentially (cheapest first), so the second one's
+    /// cost has to fit what's left AFTER the first. Same bug class as Auto-Assign Bench's
+    /// count. The button now reuses projectedResearchRanks (already used elsewhere for the
+    /// prestige-confirm preview) so its displayed count can never promise more than a tap
+    /// actually buys.
+    @MainActor
+    func testProjectedResearchRanksMatchesWhatBuyAllActuallyAffordsInSequence() {
+        // The four branch roots are the only nodes unlocked on a fresh save. Fund just
+        // enough for the two cheapest INDIVIDUALLY, not enough for both TOGETHER.
+        let roots = ["prep", "tills", "brand", "keys"].map { Research.node($0)! }
+        let costs = roots.map { $0.cost(forRank: 0, award: 0) }.sorted()
+        var state = GameState.newGame()
+        state.stars = costs[0] + costs[1] - 1
+        let e = engine(state)
+
+        let predicted = e.projectedResearchRanks(afterAward: e.state.lastPrestigeAward,
+                                                  spendable: e.state.stars)
+        XCTAssertEqual(predicted, e.buyAllAffordableResearch(),
+                       "the displayed count must match what a tap actually buys")
+    }
+
     func testResearchCostsRiseWithRank() {
         let node = Research.node("prep")!
         XCTAssertLessThan(node.cost(forRank: 0), node.cost(forRank: 1))
