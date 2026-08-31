@@ -166,11 +166,16 @@ private struct StaffSection: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
+                    // The portrait circle, "THIS WEEK" badge, and hire button are all
+                    // rigid (fixed frame / .fixedSize()) by design - none of them should
+                    // shrink. That means 100% of any width shortfall lands on this name
+                    // alone, so its floor needs real headroom: 0.7 still truncated "Guest
+                    // Chef Remy" on the narrowest supported phone (SE, 375pt).
                     Text(spec.name)
                         .font(Theme.body(13, weight: .black))
                         .foregroundStyle(Theme.text)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .minimumScaleFactor(0.55)
                         .layoutPriority(1)
                     Text("THIS WEEK")
                         .font(Theme.body(9, weight: .black))

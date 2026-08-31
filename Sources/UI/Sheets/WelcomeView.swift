@@ -33,65 +33,77 @@ struct WelcomeView: View {
         ZStack {
             Theme.ink.ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(spacing: 10) {
-                    StarIcon().frame(width: 56, height: 56)
-                    Text("Welcome to Food Court Tycoon")
-                        .font(Theme.title(22))
-                        .foregroundStyle(Theme.text)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.top, 8)
-
-                SectionLabel(text: "The journey")
-
-                VStack(spacing: 10) {
-                    ForEach(journey, id: \.number) { phase in
-                        HStack(alignment: .top, spacing: 10) {
-                            ZStack {
-                                Circle().fill(Theme.coin)
-                                Text(phase.number)
-                                    .font(Theme.numeric(13))
-                                    .foregroundStyle(Theme.ink)
-                            }
-                            .frame(width: 24, height: 24)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(phase.title)
-                                    .font(Theme.body(13, weight: .black))
-                                    .foregroundStyle(Theme.text)
-                                Text(phase.text)
-                                    .font(Theme.body(11, weight: .medium))
-                                    .foregroundStyle(Theme.textDim)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            Spacer(minLength: 0)
-                        }
-                    }
-                }
-                .padding(12)
-                .panel(Theme.panel)
-
-                SectionLabel(text: "To play efficiently")
-
-                VStack(spacing: 8) {
-                    ForEach(tips, id: \.text) { tip in
-                        HStack(alignment: .top, spacing: 10) {
-                            Image(systemName: tip.symbol)
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(Theme.coin)
-                                .frame(width: 20)
-                            Text(tip.text)
-                                .font(Theme.body(12, weight: .medium))
+            VStack(spacing: 16) {
+                // The tip text below used to truncate with an ellipsis on the shortest
+                // supported phone (SE, 667pt tall) - fixed by letting it wrap instead - but
+                // this whole screen has no scroll of its own, so taller wrapped text just
+                // meant the "Let's cook" button got pushed down to the very edge of the
+                // screen instead: still tappable in practice, but only by luck of exactly
+                // how much padding was left, not by any actual guarantee. Scrolling the
+                // content while pinning the button below the scroll view means neither this
+                // fix nor a future one (a longer tip, a fourth journey step) can ever push
+                // the one button this screen absolutely needs tappable off the bottom edge.
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        VStack(spacing: 10) {
+                            StarIcon().frame(width: 56, height: 56)
+                            Text("Welcome to Food Court Tycoon")
+                                .font(Theme.title(22))
                                 .foregroundStyle(Theme.text)
-                            Spacer(minLength: 0)
+                                .multilineTextAlignment(.center)
                         }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 8)
+
+                        SectionLabel(text: "The journey")
+
+                        VStack(spacing: 10) {
+                            ForEach(journey, id: \.number) { phase in
+                                HStack(alignment: .top, spacing: 10) {
+                                    ZStack {
+                                        Circle().fill(Theme.coin)
+                                        Text(phase.number)
+                                            .font(Theme.numeric(13))
+                                            .foregroundStyle(Theme.ink)
+                                    }
+                                    .frame(width: 24, height: 24)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(phase.title)
+                                            .font(Theme.body(13, weight: .black))
+                                            .foregroundStyle(Theme.text)
+                                        Text(phase.text)
+                                            .font(Theme.body(11, weight: .medium))
+                                            .foregroundStyle(Theme.textDim)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                    Spacer(minLength: 0)
+                                }
+                            }
+                        }
+                        .padding(12)
+                        .panel(Theme.panel)
+
+                        SectionLabel(text: "To play efficiently")
+
+                        VStack(spacing: 8) {
+                            ForEach(tips, id: \.text) { tip in
+                                HStack(alignment: .top, spacing: 10) {
+                                    Image(systemName: tip.symbol)
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundStyle(Theme.coin)
+                                        .frame(width: 20)
+                                    Text(tip.text)
+                                        .font(Theme.body(12, weight: .medium))
+                                        .foregroundStyle(Theme.text)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    Spacer(minLength: 0)
+                                }
+                            }
+                        }
+                        .padding(12)
+                        .panel(Theme.panel)
                     }
                 }
-                .padding(12)
-                .panel(Theme.panel)
-
-                Spacer(minLength: 0)
 
                 Button {
                     dismiss()
