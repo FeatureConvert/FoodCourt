@@ -156,7 +156,14 @@ enum Quests {
             gems = 10; seconds = 180
         case .recipes:
             target = Double(totalCards + 1 + rng.next(2))
-            gems = 7; seconds = 90
+            // Was 90s, matched to `Recipes.dropChance` before its 10x cut - a single MAX-buy
+            // tap used to have close to even odds of a card, so "1-2 more within 90s" was a
+            // near-freebie during active play. At the new rate a tap's odds are roughly an
+            // order of magnitude longer, so the window needs to widen by about the same
+            // factor to stay winnable rather than becoming a rarely-completable quest slot;
+            // not a full 10x since a player actively chasing this quest taps faster than an
+            // idle-average pace would suggest.
+            gems = 7; seconds = 300
         }
 
         var quest = ActiveQuest(

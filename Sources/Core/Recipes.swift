@@ -5,7 +5,12 @@ import Foundation
 enum Recipes {
 
     static let maxStars = 3
-    static let dropChance = 0.08
+    /// Was 0.08 - at up to 6 roll attempts per buy (see `roll`), a single MAX-buy tap had
+    /// close to a 40% chance of a card, so a hyperactively-tapping player (dozens of buys an
+    /// hour once managers take over the grind) was maxing out full six-card, 3-star venue
+    /// sets within the first hour or two - trivializing the whole collection meta almost
+    /// immediately instead of it being a longer-run payoff. Cut 10x.
+    static let dropChance = 0.008
     static let starProfitBonus = 0.10   // per star, on that station
     static let setBonus = 0.25          // venue-wide, for a complete set
     static let duplicateGems = 5        // once a card is maxed, extras convert

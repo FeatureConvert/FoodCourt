@@ -391,8 +391,22 @@ enum Balance {
     /// before ever paying this, so it never touches a brand new save.
     static let staleGraceHours: Double = 8
     /// Scales how many "tax days" one real hour past the grace period counts as.
-    static let staleDaysPerHour: Double = 1.0 / 6.0
-    static let stalePower: Double = 3.0
+    ///
+    /// Was 1/6 (6 real hours = 1 tax day) alongside `stalePower` at a full cube - eased both
+    /// together after a real engine simulation of grinding one venue toward Gold Mastery
+    /// (every station at level 250, see `GameEngine.masteryThresholds`) found the board
+    /// froze solid ~9h after the tax activated and stayed frozen through 10 more real days of
+    /// continuous optimal play: income kept climbing but the tax's growth always climbed
+    /// faster, so not one more level was ever affordable, permanently. That's on top of
+    /// `GameEngine.levelCostInflation` now exempting a station's own leveling purchases below
+    /// 250 outright - this second cut slows the curve everywhere else it still applies
+    /// (managers, venue unlocks, any station past its own Gold) so the tax stays a long-run
+    /// nudge instead of a wall reached within a single evening.
+    static let staleDaysPerHour: Double = 1.0 / 16.0
+    /// Was 3.0 (a full cube). At 1.5, a week of stalling lands in the tens-of-x range instead
+    /// of the tens-of-thousands-of-x the old curve reached in the same window - see
+    /// `staleDaysPerHour`'s doc comment for why both were cut together.
+    static let stalePower: Double = 1.5
 
     /// Every purchase on the SAME board (stations, managers, venue unlocks) gets
     /// proportionally pricier the longer that board goes without a Franchise or Legacy reset.
@@ -404,10 +418,11 @@ enum Balance {
     /// checkpoint from a day out to a week, which made "never prestige" the strictly correct
     /// answer instead of prestige being a real decision. This tax targets exactly that: it
     /// only starts after `staleGraceHours` (well past even a slow first Franchise, verified by
-    /// simulation not to change that number), then grows with the cube of days spent stalling
-    /// past that point. By day 3-7 a patient Franchise cadence clearly out-earns refusing to
-    /// reset, while resetting too often is still roughly a wash against not resetting at all -
-    /// there's a real cadence to find, not just an "always" or "never" answer.
+    /// simulation not to change that number), then grows with `stalePower` power of days spent
+    /// stalling past that point, at `staleDaysPerHour` tax-days per real hour - gently enough
+    /// now (see that constant's own doc comment) that a patient Franchise cadence still wins
+    /// out over refusing to reset, just over a timescale of weeks rather than hours, leaving
+    /// room for legitimate same-board investment like a Mastery grind to actually finish.
     /// `graceBonusHours` shifts when the tax begins without touching its curve - Legacy's
     /// Slow Cooker perk adds hours, the High Roller contract subtracts them. The floor
     /// keeps a stacked debuff from ever taxing a literally brand-new board.

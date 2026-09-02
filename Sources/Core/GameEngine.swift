@@ -593,6 +593,30 @@ final class GameEngine: ObservableObject {
                 + state.legacyEffects.staleGraceBonusHours)
     }
 
+    /// The cost multiplier for buying LEVELS on one specific station - `costInflation`
+    /// everywhere except while that station is still short of Gold Mastery (level 250, see
+    /// `masteryThresholds`), where the staleness portion is waived and only the permanent
+    /// star multiplier applies.
+    ///
+    /// Gold Mastery requires every station in a venue to individually reach 250, which means
+    /// grinding levels on the SAME board for as long as it takes - exactly the behavior
+    /// `staleCostInflation` exists to tax. Left unguarded, the two collide head-on: a real
+    /// engine simulation ground one venue for 10 real days after the tax activated and never
+    /// gained a single level, frozen the moment the tax's cubic growth outran what income
+    /// could buy - coins climbed 140x in that window while every station sat dead still,
+    /// since no new levels meant no new income growth to close the gap, and the gap only
+    /// widens from there. That's a permanent lock, not a slow grind - Gold Mastery was
+    /// unreachable on any venue once the tax was live. Scoped to just the purchase of THIS
+    /// station's own levels (not venue unlocks, not managers, not stations that already hit
+    /// 250) - it's a bounded exemption, capped at 250 levels per station, unlike the
+    /// open-ended "never prestige" case `staleCostInflation` is built to close off.
+    func levelCostInflation(index: Int, in venue: Int? = nil) -> Double {
+        let venueID = venue ?? state.currentVenue
+        let level = state.venues[venueID].stations[index].level
+        guard level < (Self.masteryThresholds.last ?? .max) else { return costInflation }
+        return Balance.starMultiplier(stars: state.lifetimeStars)
+    }
+
     func quantity(for index: Int, in venue: Int? = nil) -> Int {
         let venueID = venue ?? state.currentVenue
         let spec = Balance.venue(venueID).stations[index]
@@ -613,17 +637,19 @@ final class GameEngine: ObservableObject {
             guard let next = Balance.nextMilestone(level: level) else { return 1 }
             return Swift.max(1, next.level - level)
         }
-        // Multiplying every cost by `costInflation` is equivalent to dividing spending power
-        // by it when inverting for an affordable quantity - keeps Balance's closed-form cost
-        // curve untouched and correct for any inflation level.
-        return Swift.max(1, Balance.maxAffordable(spec: spec, level: level, coins: state.coins / costInflation))
+        // Multiplying every cost by the inflation multiplier is equivalent to dividing
+        // spending power by it when inverting for an affordable quantity - keeps Balance's
+        // closed-form cost curve untouched and correct for any inflation level.
+        return Swift.max(1, Balance.maxAffordable(
+            spec: spec, level: level, coins: state.coins / levelCostInflation(index: index, in: venueID)))
     }
 
     func price(for index: Int, in venue: Int? = nil) -> Double {
         let venueID = venue ?? state.currentVenue
         let spec = Balance.venue(venueID).stations[index]
         let level = state.venues[venueID].stations[index].level
-        return Balance.cost(spec: spec, level: level, quantity: quantity(for: index, in: venueID)) * costInflation
+        return Balance.cost(spec: spec, level: level, quantity: quantity(for: index, in: venueID))
+            * levelCostInflation(index: index, in: venueID)
     }
 
     func canAfford(index: Int) -> Bool { state.coins >= price(for: index) }
