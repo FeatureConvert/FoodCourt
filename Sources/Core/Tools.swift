@@ -57,7 +57,7 @@ enum Tools {
         ToolItem(id: "whisk", name: "Silver Whisk",
                  detail: "+8% profit and +5% offline rate", symbol: "tornado",
                  rarity: .epic, weight: 8, profitBonus: 0.08, offlineEfficiencyBonus: 0.05),
-        ToolItem(id: "goldspatula", name: "Gold Spatula",
+        ToolItem(id: "goldspatula", name: "Kristin's Golden Spatula",
                  detail: "+25% profit everywhere and +1s combo window",
                  symbol: "star.square.on.square.fill",
                  rarity: .legendary, weight: 1,
