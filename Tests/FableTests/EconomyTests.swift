@@ -237,7 +237,7 @@ final class EconomyTests: XCTestCase {
         var state = GameState.newGame()
         state.lifetimeStars = 500_000_000_000_000   // 5e14, past the 1e14 sane ceiling
         state.stars = 500_000_000_000_000
-        state.lifetimeEarnings = 1e30
+        state.lifetimeEarnings = 1e40   // past the ~4.44e35 ceiling that maps to 1e14 stars
 
         let decoded = try roundTrip(state)
 
@@ -278,8 +278,8 @@ final class EconomyTests: XCTestCase {
         var state = GameState.newGame()
         state.lifetimeStars = 500_000_000_000_000
         state.stars = 500_000_000_000_000
-        state.lifetimeEarnings = 1e30
-        state.runEarnings = 1e30
+        state.lifetimeEarnings = 1e40   // past the ~4.44e35 ceiling, so this actually clamps
+        state.runEarnings = 1e40
 
         let decoded = try roundTrip(state)
 

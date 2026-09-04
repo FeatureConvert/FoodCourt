@@ -17,25 +17,20 @@ struct StationListView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            HStack(spacing: 6) {
-                Text("STATIONS")
-                    .font(Theme.body(12, weight: .black))
-                    .foregroundStyle(Theme.textDim)
-                if engine.staleCostInflation > 1.01 {
-                    // A board that's gone a long time without a franchise reset gets
-                    // proportionally pricier - this is the one place that's visible during
-                    // normal play rather than only inside the Franchise sheet. Staleness
-                    // only, not the full costInflation used for real pricing - that also
-                    // carries the player's permanent star multiplier, which a reset can't
-                    // undo, so it doesn't belong in a badge implying "prestige fixes this".
-                    Text("\(Format.bonus(multiplier: engine.staleCostInflation)) COSTS")
-                        .font(Theme.body(9, weight: .black))
-                        .foregroundStyle(Theme.negative)
-                        .padding(.horizontal, 6).padding(.vertical, 3)
-                        .background(Capsule().fill(Theme.negative.opacity(0.16)))
+            // The staleness badge (below) only ever shows up once a board has sat for a
+            // while, and can push "STATIONS" plus the picker past the width of a phone
+            // screen - ViewThatFits drops to the wrapped layout only when that happens,
+            // so every other player still sees the plain single-row header unchanged.
+            ViewThatFits(in: .horizontal) {
+                header
+                VStack(alignment: .trailing, spacing: 6) {
+                    HStack(spacing: 6) {
+                        stationsLabel
+                        stalenessBadge
+                        Spacer()
+                    }
+                    BuyQuantityPicker()
                 }
-                Spacer()
-                BuyQuantityPicker()
             }
             .padding(.horizontal, 16)
 
@@ -59,6 +54,40 @@ struct StationListView: View {
                 .padding(.horizontal, 14)
             }
             .scrollIndicators(.hidden)
+        }
+    }
+
+    private var header: some View {
+        HStack(spacing: 6) {
+            stationsLabel
+            stalenessBadge
+            Spacer()
+            BuyQuantityPicker()
+        }
+    }
+
+    private var stationsLabel: some View {
+        Text("STATIONS")
+            .font(Theme.body(12, weight: .black))
+            .foregroundStyle(Theme.textDim)
+            .fixedSize()
+    }
+
+    @ViewBuilder
+    private var stalenessBadge: some View {
+        if engine.staleCostInflation > 1.01 {
+            // A board that's gone a long time without a franchise reset gets
+            // proportionally pricier - this is the one place that's visible during
+            // normal play rather than only inside the Franchise sheet. Staleness
+            // only, not the full costInflation used for real pricing - that also
+            // carries the player's permanent star multiplier, which a reset can't
+            // undo, so it doesn't belong in a badge implying "prestige fixes this".
+            Text("\(Format.bonus(multiplier: engine.staleCostInflation)) COSTS")
+                .font(Theme.body(9, weight: .black))
+                .foregroundStyle(Theme.negative)
+                .fixedSize()
+                .padding(.horizontal, 6).padding(.vertical, 3)
+                .background(Capsule().fill(Theme.negative.opacity(0.16)))
         }
     }
 }

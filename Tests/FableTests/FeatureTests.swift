@@ -1385,8 +1385,13 @@ final class FeatureTests: XCTestCase {
                                     level: e.state.venues[0].stations[0].level,
                                     quantity: e.quantity(for: 0))
         XCTAssertGreaterThan(e.costInflation, 1, "a fully built, stale board should cost more")
-        XCTAssertEqual(e.price(for: 0), rawPrice * e.costInflation, accuracy: rawPrice * e.costInflation * 0.01,
-                       "the station price scales with the same inflation factor")
+        // Station 0 is fresh off `debugUnlockAllVenuesAndStations()` (level 1, well below the
+        // Gold Mastery threshold of 250), so its own level purchases are exempt from the
+        // staleness portion - see `levelCostInflation`'s doc comment - and only carry the
+        // player's permanent star multiplier, not the full `costInflation`.
+        let levelInflation = e.levelCostInflation(index: 0)
+        XCTAssertEqual(e.price(for: 0), rawPrice * levelInflation, accuracy: rawPrice * levelInflation * 0.01,
+                       "a station below Gold Mastery scales with its own (staleness-exempt) inflation factor")
         XCTAssertGreaterThan(e.managerCost(for: 0), Balance.managerCost(spec: Balance.venue(0).stations[0]),
                              "manager hire cost is taxed too")
         XCTAssertGreaterThan(e.unlockCost(for: Balance.venue(1)), Balance.venue(1).unlockCost,
