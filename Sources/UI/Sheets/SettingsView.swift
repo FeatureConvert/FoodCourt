@@ -186,7 +186,7 @@ struct SettingsView: View {
             .padding(.top, 8)
             .accessibilityLabel("Privacy Policy")
 
-            Text("Food Court Tycoon · v1.5")
+            Text("Food Court Tycoon · v1.6")
                 .font(Theme.body(10, weight: .medium))
                 .foregroundStyle(Theme.textDim)
                 .frame(maxWidth: .infinity)
