@@ -467,29 +467,38 @@ enum Balance {
 
     // MARK: Prestige
 
-    /// A ceiling no legitimate trajectory could reach. Re-derived in the August review:
-    /// the original 100M figure came from a simulation that predates the final staleness
-    /// constants and modeled no research feedback - re-simulated against the shipped
-    /// formulas, a hardcore player legitimately reaches ~200-250M lifetime stars inside
-    /// six months, which the old ceiling would have CLAMPED. 1e10 sits ~50x above that
-    /// six-month hardcore trajectory (star growth decelerates sharply after, so even years
-    /// of play stay far below it) while remaining nine orders of magnitude under the
-    /// Int64 conversion trap line the ceiling exists to guard.
+    /// A ceiling meant to guard against Int64-trapping corruption, not to bound legitimate
+    /// play. Re-derived a second time after a real support case: a genuine long-lived,
+    /// heavily-compounded save (10.0B lifetime stars, ~4.4e27 lifetime earnings, a x13K+
+    /// permanent bonus) organically crossed the old 1e10/~4.4e27 ceiling from the August
+    /// review, which assumed a hardcore six-month trajectory tops out ~50x below it. The
+    /// decoder's repair path (see `GameState.init(from:)`) then clamped `lifetimeStars`
+    /// down to that ceiling on load, at which point `totalStars(lifetimeEarnings:)` could
+    /// never again exceed `lifetimeStars` - `pendingStars` was permanently stuck at 0 and
+    /// Franchise was permanently disabled, even though the player kept earning normally.
+    /// The six-month estimate undersold how far dedicated/idle play compounds past that
+    /// window, so this raises the ceiling 10,000x to 1e14, comfortably clear of any
+    /// realistic trajectory while staying ~5 orders of magnitude under the Int64
+    /// conversion trap line the ceiling exists to guard.
     ///
-    /// This exists because of a real incident: a since-fixed linear (not sqrt-scaled) star
-    /// bonus let a compounding loop push a live save's lifetime stars into the 1e19 range
-    /// within a single session - large enough that converting the raw `Double` below to `Int`
-    /// would **trap and crash the app outright**, on every launch, the instant any view
-    /// (the HUD included) computed `pendingStars`. That crash happens deep inside a SwiftUI
-    /// computed property and isn't something a decode-error catch block can recover from -
-    /// `Int(aDoubleTooLargeToFit)` is a fatal runtime trap, not a throwable error.
+    /// This mechanism exists because of an earlier, genuinely corrupt incident: a
+    /// since-fixed linear (not sqrt-scaled) star bonus let a compounding loop push a live
+    /// save's lifetime stars into the 1e19 range within a single session - large enough
+    /// that converting the raw `Double` below to `Int` would **trap and crash the app
+    /// outright**, on every launch, the instant any view (the HUD included) computed
+    /// `pendingStars`. That crash happens deep inside a SwiftUI computed property and
+    /// isn't something a decode-error catch block can recover from - `Int(aDoubleTooLargeToFit)`
+    /// is a fatal runtime trap, not a throwable error. 1e14 is still five orders of
+    /// magnitude below that 1e19 corruption case, so the repair path still catches it.
     ///
     /// `totalStars` below refuses to ever compute past this ceiling, and `GameState`'s
     /// decoder clamps any save that already has more back down to it - so a save already
     /// hit by the old bug becomes safe and playable again (with a still-enormous but sane
     /// permanent bonus) instead of crash-looping forever, and the same failure mode can't
-    /// recur even if some future change reopens unbounded growth.
-    static let maxSaneLifetimeStars = 10_000_000_000
+    /// recur even if some future change reopens unbounded growth. A legitimate save can
+    /// still in principle reach this higher ceiling given enough time; if that ever
+    /// happens again, raise it further rather than assuming corruption.
+    static let maxSaneLifetimeStars = 100_000_000_000_000
 
     /// The lifetime-earnings figure that maps to `maxSaneLifetimeStars` under the formula
     /// below - derived, not hardcoded, so it can never drift out of sync with `totalStars`.

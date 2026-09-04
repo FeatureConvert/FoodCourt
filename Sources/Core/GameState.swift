@@ -619,15 +619,26 @@ struct GameState: Codable, Equatable {
         runEarnings = try c.decodeIfPresent(Double.self, forKey: .runEarnings) ?? 0
 
         // One-time repair for a save corrupted by the since-fixed star-multiplier runaway -
-        // see `Balance.maxSaneLifetimeStars`. A legitimate save can never actually cross
-        // that ceiling, so this only ever touches a save that already got hit by the bug;
-        // everyone else decodes through untouched. Without also capping `lifetimeEarnings`
-        // here, the very next prestige would just recompute an equally absurd star award
-        // from the still-corrupted total and undo the repair immediately.
+        // see `Balance.maxSaneLifetimeStars`. This is meant to only ever touch a save that
+        // already got hit by that old bug; everyone else decodes through untouched. But the
+        // ceiling isn't a hard physical limit on legitimate play - a real long-lived save
+        // once crossed an earlier, too-low ceiling this way and got permanently clamped,
+        // which then permanently zeroed its `pendingStars` (see `Balance.totalStars`) since
+        // `lifetimeStars` could never again be exceeded by the now-capped formula output.
+        // If this fires for a save that turns out to be legitimate rather than corrupt,
+        // raise `Balance.maxSaneLifetimeStars` rather than assuming the player is cheating.
+        // Without also capping `lifetimeEarnings` here, the very next prestige would just
+        // recompute an equally absurd star award from the still-corrupted total and undo
+        // the repair immediately.
         if lifetimeStars > Balance.maxSaneLifetimeStars || lifetimeEarnings > Balance.maxSaneLifetimeEarnings {
             lifetimeStars = min(lifetimeStars, Balance.maxSaneLifetimeStars)
             lifetimeEarnings = min(lifetimeEarnings, Balance.maxSaneLifetimeEarnings)
             stars = min(stars, lifetimeStars)
+            // lifetimeEarnings is an all-time total that includes the current run, so it can
+            // never legitimately be less than runEarnings - left uncapped here, a clamped
+            // lifetimeEarnings paired with an untouched runEarnings shows an impossible
+            // "this run" figure bigger than the lifetime total on the Franchise sheet.
+            runEarnings = min(runEarnings, lifetimeEarnings)
         }
 
         venues = try c.decodeIfPresent([VenueState].self, forKey: .venues) ?? []

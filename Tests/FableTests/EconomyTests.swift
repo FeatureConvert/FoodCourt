@@ -235,8 +235,8 @@ final class EconomyTests: XCTestCase {
     /// equally absurd award from the still-corrupted `lifetimeEarnings` and undoes nothing.
     func testDecodingRepairsACorruptedSave() throws {
         var state = GameState.newGame()
-        state.lifetimeStars = 50_000_000_000_000   // 5e13, past the 1e10 sane ceiling
-        state.stars = 50_000_000_000_000
+        state.lifetimeStars = 500_000_000_000_000   // 5e14, past the 1e14 sane ceiling
+        state.stars = 500_000_000_000_000
         state.lifetimeEarnings = 1e30
 
         let decoded = try roundTrip(state)
@@ -244,6 +244,47 @@ final class EconomyTests: XCTestCase {
         XCTAssertEqual(decoded.lifetimeStars, Balance.maxSaneLifetimeStars)
         XCTAssertEqual(decoded.lifetimeEarnings, Balance.maxSaneLifetimeEarnings, accuracy: 1)
         XCTAssertLessThanOrEqual(decoded.stars, decoded.lifetimeStars)
+    }
+
+    /// Real support case: a save whose `lifetimeEarnings` crossed a since-raised sane
+    /// ceiling got its `lifetimeStars` clamped down to exactly `maxSaneLifetimeStars` by an
+    /// earlier version of the repair path. Once `lifetimeStars` sits exactly at the ceiling,
+    /// `totalStars(lifetimeEarnings:)` can never again exceed it, so `pendingStars` -
+    /// and therefore `canPrestige` - was stuck at 0 forever even though the HUD's spendable
+    /// `stars` balance still read in the billions and the player kept earning normally.
+    /// Guards against the ceiling ever again sitting so low that ordinary long-lived saves
+    /// can reach it.
+    func testStarCeilingClampNeverPermanentlyZeroesPendingStars() {
+        let stars = Balance.maxSaneLifetimeStars
+        let earnings = Balance.maxSaneLifetimeEarnings
+        XCTAssertEqual(Balance.pendingStars(lifetimeEarnings: earnings, currentStars: stars), 0,
+                       "right at the ceiling, this run's earnings alone shouldn't grant more")
+
+        // The bug: growing lifetimeEarnings further while pinned at the ceiling never moves
+        // pendingStars off zero, because totalStars is capped at the same value currentStars
+        // already holds. A sane ceiling must sit far enough above any real trajectory that
+        // legitimate saves never reach it in the first place (see the doc comment on
+        // `maxSaneLifetimeStars`), not attempt to keep awarding stars once a save is already
+        // pinned there.
+        XCTAssertEqual(Balance.pendingStars(lifetimeEarnings: earnings * 10, currentStars: stars),
+                       0, "totalStars is a hard ceiling once crossed - this documents that, it isn't a fix")
+    }
+
+    /// `lifetimeEarnings` is an all-time total that includes the current run, so it can never
+    /// legitimately be smaller than `runEarnings`. An earlier version of the repair path
+    /// clamped `lifetimeEarnings` down without touching `runEarnings`, so a repaired save
+    /// could show a "this run" figure bigger than its lifetime total on the Franchise sheet.
+    func testDecodingRepairAlsoClampsRunEarningsToTheNewLifetimeCeiling() throws {
+        var state = GameState.newGame()
+        state.lifetimeStars = 500_000_000_000_000
+        state.stars = 500_000_000_000_000
+        state.lifetimeEarnings = 1e30
+        state.runEarnings = 1e30
+
+        let decoded = try roundTrip(state)
+
+        XCTAssertLessThanOrEqual(decoded.runEarnings, decoded.lifetimeEarnings,
+                                 "this run can never legitimately exceed the lifetime total")
     }
 
     /// The repair check must never touch a save that never crossed the line - it should be
