@@ -28,11 +28,12 @@ final class DepthSystemsTests: XCTestCase {
     }
 
     func testHighRollerGraceShiftActuallyTaxesSooner() {
-        // Base grace is 8h: hour 4 is untaxed normally, taxed under a -6h contract shift.
-        XCTAssertEqual(Balance.stalenessMultiplier(boardAgeHours: 4), 1)
-        XCTAssertGreaterThan(Balance.stalenessMultiplier(boardAgeHours: 4, graceBonusHours: -6), 1)
+        // Base grace is a full week (168h): hour 100 is untaxed normally, taxed once a
+        // large enough contract shift pulls the grace period back below it.
+        XCTAssertEqual(Balance.stalenessMultiplier(boardAgeHours: 100), 1)
+        XCTAssertGreaterThan(Balance.stalenessMultiplier(boardAgeHours: 100, graceBonusHours: -72), 1)
         // And the floor: even a stacked debuff never taxes a 1-hour-old board.
-        XCTAssertEqual(Balance.stalenessMultiplier(boardAgeHours: 1, graceBonusHours: -100), 1)
+        XCTAssertEqual(Balance.stalenessMultiplier(boardAgeHours: 1, graceBonusHours: -1000), 1)
     }
 
     @MainActor

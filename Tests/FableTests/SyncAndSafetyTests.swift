@@ -345,11 +345,12 @@ final class SyncAndSafetyTests: XCTestCase {
         XCTAssertEqual(effects.staleGraceBonusHours, 8)
         XCTAssertEqual(effects.starAwardBonus, 0.10, accuracy: 0.0001)
         XCTAssertEqual(effects.comboCapBonus, 2)
-        // Grace bonus actually moves the tax curve.
-        let base = Balance.stalenessMultiplier(boardAgeHours: 12)
-        let shifted = Balance.stalenessMultiplier(boardAgeHours: 12, graceBonusHours: 8)
+        // Grace bonus actually moves the tax curve. Base grace is a full week (168h); pick a
+        // board age just past it so an 8h bonus can pull it back inside the shifted grace.
+        let base = Balance.stalenessMultiplier(boardAgeHours: 172)
+        let shifted = Balance.stalenessMultiplier(boardAgeHours: 172, graceBonusHours: 8)
         XCTAssertGreaterThan(base, 1)
-        XCTAssertEqual(shifted, 1, "8 bonus hours means hour 12 is still inside grace")
+        XCTAssertEqual(shifted, 1, "8 bonus hours means hour 172 is still inside the shifted grace")
     }
 
     // MARK: New retention systems

@@ -318,6 +318,24 @@ final class EconomyTests: XCTestCase {
         XCTAssertGreaterThan(aWeekPast, aDayPast, "further stalling keeps getting pricier, not flattening out")
     }
 
+    /// The requested rebalance, pinned exactly: no tax for the first wall-clock week a board
+    /// is alive, then a straight linear ramp to +100% (a 2x multiplier) over the following
+    /// wall-clock week - much gentler than the old curve, which reached tens-of-thousands-of-x
+    /// within a week of only an 8-hour grace period.
+    func testStalenessGraceIsAWeekAndReachesDoubleAfterAnotherWeek() {
+        XCTAssertEqual(Balance.staleGraceHours, 24 * 7, "grace period is a full wall-clock week")
+
+        XCTAssertEqual(Balance.stalenessMultiplier(boardAgeHours: 24 * 7 - 1), 1,
+                       "still untaxed one hour before the week is up")
+        XCTAssertEqual(Balance.stalenessMultiplier(boardAgeHours: 24 * 14), 2, accuracy: 1e-9,
+                       "exactly +100% one full wall-clock week after the grace period ends")
+
+        // Midway through that second week, the tax should be midway through the ramp too -
+        // a straight linear climb, not an accelerating curve.
+        let midway = Balance.stalenessMultiplier(boardAgeHours: 24 * 7 + 24 * 3.5)
+        XCTAssertEqual(midway, 1.5, accuracy: 1e-9)
+    }
+
     // MARK: Formatting
 
     func testNumberAbbreviation() {
