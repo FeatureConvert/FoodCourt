@@ -558,18 +558,30 @@ final class GameEngine: ObservableObject {
     var boardAgeHours: Double { state.now.timeIntervalSince(state.boardStartedAt) / 3600 }
 
     /// How much pricier every purchase on this board is right now: the staleness tax (see
-    /// `Balance.stalenessMultiplier`) times the player's own star multiplier - the exact
-    /// same factor `automatedRate` multiplies income by. Before this, a fresh post-prestige
-    /// board charged first-timer prices while paying out at the player's permanent,
-    /// star-boosted rate: a live report showed a second prestige landing minutes after the
-    /// first (100B lifetime earnings to reach it, ~2.56 quintillion for the next, both
-    /// inside the same short session) - the star bonus is meant to make every RUN feel more
-    /// powerful forever, not compound into a same-session runaway by racing ahead of costs
-    /// that never caught up. Matching the two factors cancels out in the pace math (cost*N)
-    /// / (rate*N) = cost/rate unchanged, so run-to-run speed stays roughly what it was
-    /// before a player had any stars, while the numbers themselves keep growing - the
+    /// `Balance.stalenessMultiplier`) times the player's own star AND Legacy multipliers -
+    /// the same two permanent factors `automatedRate` multiplies income by (excluding
+    /// research/tools/entitlements, which are one-time investments rather than currencies a
+    /// player can repeatedly re-earn by resetting, so they don't need matching). Before this,
+    /// a fresh post-prestige board charged first-timer prices while paying out at the
+    /// player's permanent, star-boosted rate: a live report showed a second prestige landing
+    /// minutes after the first (100B lifetime earnings to reach it, ~2.56 quintillion for the
+    /// next, both inside the same short session) - the star bonus is meant to make every RUN
+    /// feel more powerful forever, not compound into a same-session runaway by racing ahead
+    /// of costs that never caught up. Matching the two factors cancels out in the pace math
+    /// (cost*N) / (rate*N) = cost/rate unchanged, so run-to-run speed stays roughly what it
+    /// was before a player had any stars, while the numbers themselves keep growing - the
     /// feeling prestige is supposed to give.
-    var costInflation: Double { staleCostInflation * Balance.starMultiplier(stars: state.lifetimeStars) }
+    ///
+    /// Legacy's +20%/level had the identical gap: it's also earned by repeating the very
+    /// reset loop it gates (Legacy every 5 franchises), so left out of costInflation it
+    /// caused the same class of runaway by a side door - a pacing sim showed franchise cycle
+    /// time shrinking every Legacy level (2.14d -> 1.78d -> 1.53d -> ... at Legacy 0-5)
+    /// instead of holding steady, with no ceiling on how far repeated Legacy resets could
+    /// keep compounding it. Folding legacyMultiplier in here closes it the same way.
+    var costInflation: Double {
+        staleCostInflation * Balance.starMultiplier(stars: state.lifetimeStars)
+            * Balance.legacyMultiplier(level: state.legacy.level)
+    }
 
     /// The staleness portion alone - what the "costs are up, go prestige" UI badges (the
     /// Stations header, the Franchise sheet) should read, not the combined `costInflation`.
@@ -600,7 +612,7 @@ final class GameEngine: ObservableObject {
     /// The cost multiplier for buying LEVELS on one specific station - `costInflation`
     /// everywhere except while that station is still short of Gold Mastery (level 250, see
     /// `masteryThresholds`), where the staleness portion is waived and only the permanent
-    /// star multiplier applies.
+    /// star and Legacy multipliers apply.
     ///
     /// Gold Mastery requires every station in a venue to individually reach 250, which means
     /// grinding levels on the SAME board for as long as it takes - exactly the behavior
@@ -619,6 +631,7 @@ final class GameEngine: ObservableObject {
         let level = state.venues[venueID].stations[index].level
         guard level < (Self.masteryThresholds.last ?? .max) else { return costInflation }
         return Balance.starMultiplier(stars: state.lifetimeStars)
+            * Balance.legacyMultiplier(level: state.legacy.level)
     }
 
     func quantity(for index: Int, in venue: Int? = nil) -> Int {
