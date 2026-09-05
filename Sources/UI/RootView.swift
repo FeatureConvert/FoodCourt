@@ -623,19 +623,12 @@ struct RootView: View {
         }
     }
 
+    /// Sound plays immediately for feedback in the moment; the details live in the
+    /// dismissible banner on the Recipes tab instead of a toast, which was easy to miss
+    /// mid-tap and gone by the time a player glanced over.
     private func announce(_ drop: Recipes.Drop) {
-        switch drop {
-        case .none: return
-        case .newCard(let venue, let station):
-            sound.play(.reward)
-            showToast("Recipe found: \(Balance.venue(venue).stations[station].name)")
-        case .upgraded(let venue, let station, let stars):
-            sound.play(.reward)
-            showToast("\(Balance.venue(venue).stations[station].name) recipe → \(stars)★")
-        case .duplicateGems(let gems):
-            sound.play(.reward)
-            showToast("Duplicate recipe → +\(gems) gems")
-        }
+        guard drop != .none else { return }
+        sound.play(.reward)
         engine.objectWillChange.send()
     }
 
@@ -699,8 +692,8 @@ private struct BottomBar: View {
                       badge: engine.nextLockedVenue.map { engine.canUnlock($0) } == true,
                       action: onVenues)
                 .pulsingHighlight(engine.shouldNudgeSecondVenue, cornerRadius: 14)
-            barButton("Staff", "person.2.fill",
-                      badge: !engine.state.unassignedManagers.isEmpty || !engine.claimableErrands.isEmpty,
+            barButton("Collection", "person.2.fill",
+                      badge: engine.autoAssignableCount > 0 || !engine.claimableErrands.isEmpty,
                       action: onCollection)
             barButton("Goals", "checklist",
                       badge: engine.claimableQuests > 0 || !engine.claimableAchievements.isEmpty,

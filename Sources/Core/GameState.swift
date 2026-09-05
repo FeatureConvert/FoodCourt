@@ -313,6 +313,11 @@ struct GameState: Codable, Equatable {
     var catering: CateringOrder? = nil
     /// Kitchen tools found so far - permanent, no slots, owning them IS the build.
     var tools: Set<String> = []
+    /// Each owned tool's actual rolled rarity, which may exceed its base tier (never
+    /// legendary) on a rare upgrade roll - see `Tools.rollRarity`. A missing entry means
+    /// "at base rarity," so a pre-upgrade save or a tool found before this existed just
+    /// works without a migration.
+    var toolRarities: [String: ToolItem.Rarity] = [:]
     // Weekly Gauntlet - the scored sprint. See `GameEngine.startGauntlet`.
     var gauntletEndsAt: Date? = nil
     var gauntletScore: Double = 0
@@ -427,7 +432,7 @@ struct GameState: Codable, Equatable {
     var researchEffects: ResearchEffects { Research.effects(ranks: research) }
     var contract: FranchiseContract? { Contracts.contract(activeContract) }
     var legacyEffects: LegacyTree.Effects { LegacyTree.effects(taken: legacyPerks) }
-    var toolEffects: Tools.Effects { Tools.effects(owned: tools) }
+    var toolEffects: Tools.Effects { Tools.effects(owned: tools, rarities: toolRarities) }
 
     /// The star/legacy/entitlement/research/tool stack, shared by `globalMultiplier` (which
     /// adds boosts on top) and StationMath's `automatedRate`/`automatedRate(venueID:)` (which
@@ -593,7 +598,7 @@ struct GameState: Codable, Equatable {
         case nemesisSeed, venueMastery, bestFestivalTier, lastBondAccrualAt
         case weeklyQuest, weeklyQuestWeek
         case activeContract, legacyPerks, signatureDish, expedition, expeditionWins, catering
-        case perkChoicesUsed, tools, prestigeCountAtLegacy
+        case perkChoicesUsed, tools, toolRarities, prestigeCountAtLegacy
         case gauntletEndsAt, gauntletScore, gauntletWeekPlayed, gauntletBestEver
         case gauntletBaseline
         case boardStartedAt
@@ -703,6 +708,7 @@ struct GameState: Codable, Equatable {
         prestigeCountAtLegacy = try c.decodeIfPresent(Int.self, forKey: .prestigeCountAtLegacy)
             ?? min(prestigeCount, legacy.level * Balance.legacyUnlockPrestigeCount)
         tools = try c.decodeIfPresent(Set<String>.self, forKey: .tools) ?? []
+        toolRarities = try c.decodeIfPresent([String: ToolItem.Rarity].self, forKey: .toolRarities) ?? [:]
         gauntletEndsAt = try c.decodeIfPresent(Date.self, forKey: .gauntletEndsAt)
         gauntletScore = try c.decodeIfPresent(Double.self, forKey: .gauntletScore) ?? 0
         gauntletWeekPlayed = try c.decodeIfPresent(Int.self, forKey: .gauntletWeekPlayed)

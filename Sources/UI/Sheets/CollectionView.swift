@@ -361,10 +361,75 @@ private struct RecipeSection: View {
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
 
+    /// Stays up until dismissed - unlike a toast, a player who opens this tab a while after
+    /// a drop still gets to see what they found.
+    @ViewBuilder private var recipeDropBanner: some View {
+        if !engine.unseenRecipeDrops.isEmpty {
+            HStack(alignment: .top, spacing: 10) {
+                GlyphIcon("sparkles", tint: Theme.coin)
+                    .frame(width: 20, height: 20)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Theme.ink.opacity(0.5)))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("New find!")
+                        .font(Theme.body(13, weight: .black))
+                        .foregroundStyle(Theme.text)
+                    Text(recipeDropSummary)
+                        .font(Theme.body(11, weight: .medium))
+                        .foregroundStyle(Theme.textDim)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+
+                Button {
+                    withAnimation(.easeOut(duration: 0.2)) { engine.clearUnseenRecipeDrops() }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundStyle(Theme.textDim)
+                        .frame(width: 24, height: 24)
+                        .background(Circle().fill(Theme.ink.opacity(0.5)))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Dismiss")
+            }
+            .padding(12)
+            .panel(Theme.panelRaised)
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Theme.coin.opacity(0.5), lineWidth: 1.5)
+            )
+            .transition(.move(edge: .top).combined(with: .opacity))
+        }
+    }
+
+    private var recipeDropSummary: String {
+        let drops = engine.unseenRecipeDrops
+        guard drops.count > 1 else {
+            return drops.first.map(describe) ?? ""
+        }
+        return "\(drops.count) recipe drops while you were away - new cards joined your album, duplicates turned into gems."
+    }
+
+    private func describe(_ drop: Recipes.Drop) -> String {
+        switch drop {
+        case .none: return ""
+        case .newCard(let venue, let station):
+            return "You picked up the \(Balance.venue(venue).stations[station].name) recipe card."
+        case .upgraded(let venue, let station, let stars):
+            return "\(Balance.venue(venue).stations[station].name) recipe upgraded to \(stars)★."
+        case .duplicateGems(let gems):
+            return "A duplicate card converted into +\(gems) gems."
+        }
+    }
+
     var body: some View {
         IntroBanner(key: IntroKey.recipes, symbol: "star.square.fill",
                     title: "Cards drop as you level up",
                     detail: "Leveling a station has a chance to drop its recipe card. A duplicate upgrades that card's stars for more profit on that one station; a full set for a venue adds a bonus across the whole venue.")
+
+        recipeDropBanner
 
         ForEach(Balance.venues) { venue in
             let unlocked = engine.state.venues[venue.id].unlocked
@@ -433,8 +498,11 @@ private struct RecipeSection: View {
                     .font(Theme.numeric(11))
                     .foregroundStyle(Theme.textDim)
             }
-            ForEach(Tools.all) { tool in
-                let owned = engine.state.tools.contains(tool.id)
+            ForEach(Tools.all) { base in
+                let owned = engine.state.tools.contains(base.id)
+                // A tool that rolled above its base tier displays and pays out at that
+                // higher rarity - see `Tools.rollRarity` and `ToolItem.scaled(to:)`.
+                let tool = engine.state.toolRarities[base.id].map { base.scaled(to: $0) } ?? base
                 HStack(spacing: 10) {
                     GlyphIcon(tool.symbol, tint: owned ? rarityColor(tool.rarity) : Theme.locked)
                         .frame(width: 18, height: 18)
@@ -782,25 +850,11 @@ private struct ErrandsSection: View {
         .panel(done ? Theme.panelRaised : Theme.panel)
     }
 
+    @State private var showPicker = false
+
     private var emptySlotRow: some View {
-        Menu {
-            if engine.state.unassignedManagers.isEmpty {
-                Text("No idle managers on the bench")
-            } else {
-                ForEach(engine.state.unassignedManagers) { manager in
-                    Menu(manager.name) {
-                        ForEach(Errands.options) { option in
-                            Button(option.label) {
-                                if engine.startErrand(managerID: manager.id, hours: option.hours) {
-                                    Haptics.success()
-                                    sound.play(.reward)
-                                    onToast("\(manager.name) is out on an errand")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        Button {
+            showPicker = true
         } label: {
             HStack(spacing: 12) {
                 ZStack {
@@ -825,5 +879,124 @@ private struct ErrandsSection: View {
             .panel(Theme.panel)
         }
         .buttonStyle(.plain)
+        .sheet(isPresented: $showPicker) {
+            ErrandManagerPicker(onToast: onToast)
+        }
+    }
+}
+
+/// Two-step errand picker (manager, then duration) replacing a nested `Menu` that rendered
+/// as a stack of misaligned iOS submenus - especially confusing once two managers on the
+/// bench shared a name, since a plain text row was the only way to tell them apart.
+private struct ErrandManagerPicker: View {
+    @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
+    let onToast: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var selectedManager: OwnedManager?
+
+    var body: some View {
+        SheetScaffold(title: selectedManager == nil ? "Send on Errand" : "Choose Duration",
+                      subtitle: selectedManager?.name) {
+            if let manager = selectedManager {
+                hoursList(for: manager)
+            } else {
+                managerList
+            }
+        }
+    }
+
+    @ViewBuilder private var managerList: some View {
+        if engine.state.unassignedManagers.isEmpty {
+            Text("No idle managers on the bench")
+                .font(Theme.body(12, weight: .medium))
+                .foregroundStyle(Theme.textDim)
+                .padding(.top, 20)
+        } else {
+            ScrollView {
+                VStack(spacing: 8) {
+                    ForEach(engine.state.unassignedManagers) { manager in
+                        Button {
+                            withAnimation(.easeOut(duration: 0.2)) { selectedManager = manager }
+                        } label: {
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    ManagerRarityFrame(rarity: manager.spec.rarity)
+                                    CustomerSprite(seed: manager.spec.portraitSeed)
+                                        .equatable()
+                                        .frame(width: 26, height: 36)
+                                        .offset(y: 3)
+                                }
+                                .frame(width: 46, height: 46)
+                                .clipShape(Circle())
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(manager.name)
+                                        .font(Theme.body(13, weight: .black))
+                                        .foregroundStyle(Theme.text)
+                                    Text(manager.spec.rarity.label)
+                                        .font(Theme.body(9, weight: .black))
+                                        .foregroundStyle(Theme.ink)
+                                        .padding(.horizontal, 6).padding(.vertical, 2)
+                                        .background(Capsule().fill(rarityColor(manager.spec.rarity)))
+                                }
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(Theme.textDim)
+                            }
+                            .padding(12)
+                            .panel(Theme.panel)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private func hoursList(for manager: OwnedManager) -> some View {
+        VStack(spacing: 10) {
+            Button {
+                withAnimation(.easeOut(duration: 0.2)) { selectedManager = nil }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                    Text("Back")
+                }
+                .font(Theme.body(12, weight: .bold))
+                .foregroundStyle(Theme.textDim)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            ForEach(Errands.options) { option in
+                Button {
+                    if engine.startErrand(managerID: manager.id, hours: option.hours) {
+                        Haptics.success()
+                        sound.play(.reward)
+                        onToast("\(manager.name) is out on an errand")
+                        dismiss()
+                    }
+                } label: {
+                    Text(option.label)
+                        .font(Theme.body(14, weight: .black))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                }
+                .buttonStyle(ChunkyButtonStyle(fill: Theme.panelRaised, shadow: Theme.ink, radius: 12))
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func rarityColor(_ rarity: ManagerRarity) -> Color {
+        switch rarity {
+        case .common: return Theme.textDim
+        case .rare: return Theme.gem
+        case .epic: return Color(hex: "#B07BE8")
+        case .legendary: return Theme.star
+        }
     }
 }

@@ -96,6 +96,10 @@ final class GameEngine: ObservableObject {
     /// Transient banners the UI reacts to.
     @Published var pendingPerkStation: Int?
     @Published var lastRecipeDrop: Recipes.Drop?
+    /// Drops the player hasn't opened the Recipes tab to see yet - the toast alone is easy
+    /// to miss mid-tap, so this backs a banner that stays up until dismissed there instead
+    /// of vanishing on a timer.
+    @Published var unseenRecipeDrops: [Recipes.Drop] = []
     @Published var pendingLeagueOutcome: LeagueOutcome?
     @Published var toast: String?
     /// A lifetime-earnings landmark (1M, 1B, 1T...) crossed this session, waiting on its
@@ -946,7 +950,10 @@ final class GameEngine: ObservableObject {
             advanceQuests(kind: .recipes, to: Double(Recipes.totalCollected(state.recipeCards)))
         }
         lastRecipeDrop = drop
+        unseenRecipeDrops.append(drop)
     }
+
+    func clearUnseenRecipeDrops() { unseenRecipeDrops.removeAll() }
 
     // MARK: Signature Dish (recipe fusion)
 
@@ -1755,16 +1762,24 @@ final class GameEngine: ObservableObject {
 
     // MARK: Kitchen tools
 
-    /// Rolls the drop table at one of the game's event moments. New finds celebrate via
-    /// `pendingToolDrop`; duplicates quietly convert to gems with a toast.
+    /// Rolls the drop table at one of the game's event moments, then separately rolls
+    /// whether this drop's rarity climbs above the tool's base tier. New finds and rarity
+    /// upgrades both celebrate via `pendingToolDrop` (scaled to the rolled rarity); anything
+    /// at or below what's already owned quietly converts to gems with a toast instead.
     private func rollToolDrop(_ moment: Tools.DropMoment) {
         guard let tool = Tools.roll(moment: moment,
                                     roll1: Double.random(in: 0..<1, using: &rng),
                                     roll2: Double.random(in: 0..<1, using: &rng)) else { return }
+        let rolledRarity = Tools.rollRarity(base: tool.rarity) { Double.random(in: 0..<1, using: &rng) }
+        let previousRarity = state.toolRarities[tool.id]
         if state.tools.insert(tool.id).inserted {
-            pendingToolDrop = tool
+            state.toolRarities[tool.id] = rolledRarity
+            pendingToolDrop = tool.scaled(to: rolledRarity)
+        } else if let previousRarity, rolledRarity > previousRarity {
+            state.toolRarities[tool.id] = rolledRarity
+            pendingToolDrop = tool.scaled(to: rolledRarity)
         } else {
-            let gems = Tools.duplicateGems(tool.rarity)
+            let gems = Tools.duplicateGems(previousRarity ?? tool.rarity)
             state.gems += gems
             toast = "Duplicate \(tool.name) - traded for \(gems) gems"
         }

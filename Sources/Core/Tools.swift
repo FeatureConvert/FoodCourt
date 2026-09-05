@@ -6,7 +6,7 @@ import Foundation
 /// convert to gems, and the drop table is weighted so the last few finds are genuine
 /// chase items - none more than the Gold Spatula, the rarest and best thing in the game.
 struct ToolItem: Identifiable, Equatable {
-    enum Rarity: Int, Comparable {
+    enum Rarity: Int, Comparable, Codable {
         case common = 0, rare, epic, legendary
         static func < (a: Rarity, b: Rarity) -> Bool { a.rawValue < b.rawValue }
         var label: String {
@@ -34,6 +34,33 @@ struct ToolItem: Identifiable, Equatable {
     var ticketBonus: Double = 0
     var offlineEfficiencyBonus: Double = 0
     var comboWindowBonus: Double = 0
+
+    /// A copy scaled for a rarity roll above this tool's base tier - same `id` (duplicates
+    /// still key off it, and the drop table still weights the base item), but every bonus
+    /// multiplied per tier and the name/detail updated so an upgraded find reads as
+    /// genuinely better, not a reskinned common item wearing a different-colored badge.
+    func scaled(to rolled: Rarity) -> ToolItem {
+        guard rolled != rarity else { return self }
+        let tiers = Double(rolled.rawValue - rarity.rawValue)
+        let multiplier = pow(Tools.rarityUpgradeEffectMultiplier, tiers)
+        let profitBonus = self.profitBonus * multiplier
+        let tapBonus = self.tapBonus * multiplier
+        let goldenChanceBonus = self.goldenChanceBonus * multiplier
+        let ticketBonus = self.ticketBonus * multiplier
+        let offlineEfficiencyBonus = self.offlineEfficiencyBonus * multiplier
+        let comboWindowBonus = self.comboWindowBonus * multiplier
+        return ToolItem(id: id, name: "\(rolled.label.capitalized) \(name)",
+                         detail: Tools.detailText(profitBonus: profitBonus, tapBonus: tapBonus,
+                                                   goldenChanceBonus: goldenChanceBonus,
+                                                   ticketBonus: ticketBonus,
+                                                   offlineEfficiencyBonus: offlineEfficiencyBonus,
+                                                   comboWindowBonus: comboWindowBonus),
+                         symbol: symbol, rarity: rolled, weight: weight,
+                         profitBonus: profitBonus, tapBonus: tapBonus,
+                         goldenChanceBonus: goldenChanceBonus, ticketBonus: ticketBonus,
+                         offlineEfficiencyBonus: offlineEfficiencyBonus,
+                         comboWindowBonus: comboWindowBonus)
+    }
 }
 
 enum Tools {
@@ -96,6 +123,48 @@ enum Tools {
         return all.last
     }
 
+    /// Chance a dropped tool's rarity rolls one tier above where it landed, checked once
+    /// after the base item is already picked. `rarityUpgradeChanceDecay` makes each further
+    /// tier far rarer than the last, so a Common leaping all the way to Epic is a
+    /// one-in-thousands moment - two unlucky-for-the-house rolls in a row, not one.
+    /// Legendary is excluded entirely: the Gold Spatula stays the only legendary item in
+    /// the game, never a lucky roll on something else.
+    static let rarityUpgradeChance: Double = 0.05
+    static let rarityUpgradeChanceDecay: Double = 0.08
+    /// Per-tier bonus multiplier for an upgraded roll - matches roughly how much stronger
+    /// each named rarity's own hand-tuned bonus already is than the tier below it.
+    static let rarityUpgradeEffectMultiplier: Double = 1.6
+
+    /// Rolls whether a drop's rarity climbs above its base tier. `random` is called once
+    /// per tier attempted, gated by the shrinking chance - split out from `roll` so tests
+    /// can drive it with a fixed sequence.
+    static func rollRarity(base: ToolItem.Rarity, random: () -> Double) -> ToolItem.Rarity {
+        var rarity = base
+        var chance = rarityUpgradeChance
+        while rarity < .epic, random() < chance {
+            rarity = ToolItem.Rarity(rawValue: rarity.rawValue + 1) ?? rarity
+            chance *= rarityUpgradeChanceDecay
+        }
+        return rarity
+    }
+
+    /// Builds a tool's effect blurb from whichever bonus fields are non-zero, so a rarity-
+    /// scaled copy (see `ToolItem.scaled(to:)`) shows its real, upgraded numbers instead of
+    /// the flavor text baked into the base catalog entry.
+    static func detailText(profitBonus: Double = 0, tapBonus: Double = 0,
+                            goldenChanceBonus: Double = 0, ticketBonus: Double = 0,
+                            offlineEfficiencyBonus: Double = 0, comboWindowBonus: Double = 0) -> String {
+        func pct(_ v: Double) -> String { "+\(Int((v * 100).rounded()))%" }
+        var parts: [String] = []
+        if profitBonus > 0 { parts.append("\(pct(profitBonus)) profit everywhere") }
+        if tapBonus > 0 { parts.append("\(pct(tapBonus)) tap value") }
+        if goldenChanceBonus > 0 { parts.append("\(pct(goldenChanceBonus)) VIP customer odds") }
+        if ticketBonus > 0 { parts.append("\(pct(ticketBonus)) festival tickets") }
+        if offlineEfficiencyBonus > 0 { parts.append("\(pct(offlineEfficiencyBonus)) offline rate") }
+        if comboWindowBonus > 0 { parts.append("+\(Format.trim(comboWindowBonus))s combo window") }
+        return parts.joined(separator: " and ")
+    }
+
     /// Gems paid when a drop is a duplicate, by rarity.
     static func duplicateGems(_ rarity: ToolItem.Rarity) -> Int {
         switch rarity {
@@ -117,16 +186,20 @@ enum Tools {
         var comboWindowBonus: Double = 0
     }
 
-    static func effects(owned: Set<String>) -> Effects {
+    /// `rarities` gives each owned tool's actual rolled tier, which may exceed its base
+    /// (see `ToolItem.scaled(to:)`) - missing entries mean "at base rarity," so old saves
+    /// from before rarity upgrades existed compute exactly as they always have.
+    static func effects(owned: Set<String>, rarities: [String: ToolItem.Rarity] = [:]) -> Effects {
         var e = Effects()
         for id in owned {
             guard let tool = index[id] else { continue }
-            e.profitMultiplier *= 1 + tool.profitBonus
-            e.tapMultiplier *= 1 + tool.tapBonus
-            e.goldenChanceMultiplier *= 1 + tool.goldenChanceBonus
-            e.ticketMultiplier *= 1 + tool.ticketBonus
-            e.offlineEfficiencyBonus += tool.offlineEfficiencyBonus
-            e.comboWindowBonus += tool.comboWindowBonus
+            let effective = rarities[id].map { tool.scaled(to: $0) } ?? tool
+            e.profitMultiplier *= 1 + effective.profitBonus
+            e.tapMultiplier *= 1 + effective.tapBonus
+            e.goldenChanceMultiplier *= 1 + effective.goldenChanceBonus
+            e.ticketMultiplier *= 1 + effective.ticketBonus
+            e.offlineEfficiencyBonus += effective.offlineEfficiencyBonus
+            e.comboWindowBonus += effective.comboWindowBonus
         }
         return e
     }
