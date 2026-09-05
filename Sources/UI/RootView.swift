@@ -152,7 +152,8 @@ struct RootView: View {
                     onSettings: { present(.settings) },
                     onStars: { present(.prestige) },
                     onHelp: { present(.help) },
-                    onBadgeInfo: showToast)
+                    onBadgeInfo: showToast,
+                    onGoalNavigate: present)
                 .padding(.horizontal, 14)
 
             if engine.rushActive {
@@ -218,7 +219,8 @@ struct RootView: View {
                         onSettings: { present(.settings) },
                         onStars: { present(.prestige) },
                         onHelp: { present(.help) },
-                        onBadgeInfo: showToast)
+                        onBadgeInfo: showToast,
+                        onGoalNavigate: present)
 
                 if engine.rushActive {
                     RushBannerView()

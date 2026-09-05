@@ -70,7 +70,8 @@ struct HelpView: View {
             text: """
             Tap a station to cook a batch. Each batch serves a customer and pays coins. \
             Spend those coins on levels — a higher level pays more per batch. Hire a manager \
-            and the station runs on its own, including while the app is closed.
+            and the station runs on its own, including while the app is closed. Not sure \
+            what the long game is? The Roadmap entry further down maps the whole journey.
             """),
         GuideSection(
             symbol: "flame.fill", title: "Combo and Rush Hour",

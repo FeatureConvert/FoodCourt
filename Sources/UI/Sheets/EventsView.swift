@@ -244,6 +244,9 @@ private struct FestivalSection: View {
                 }
             }
             .frame(height: 7)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Progress to Tier \(progress.current + 1)")
+            .accessibilityValue("\(Int((progress.fraction * 100).rounded())) percent")
 
             Text("Earn tickets by serving, finishing goals, claiming dailies, and running Rush Hours.")
                 .font(Theme.body(10, weight: .medium))
@@ -435,6 +438,11 @@ private struct LeagueSection: View {
                         .foregroundStyle(rank <= League.promoteCount ? Theme.positive : Theme.textDim)
                     Text("Ends in \(Format.duration(League.timeRemaining(league, now: engine.state.now)))")
                         .font(Theme.body(10, weight: .medium))
+                        .foregroundStyle(Theme.textDim)
+                    // Long-term identity: a veteran can see how long they've played and how
+                    // far they've climbed, the same way the festival section already does.
+                    Text("Season \(league.seasonsPlayed + 1) · Best: \(engine.state.bestLeagueTierReached.name)")
+                        .font(Theme.body(9, weight: .medium))
                         .foregroundStyle(Theme.textDim)
                 }
                 Spacer()

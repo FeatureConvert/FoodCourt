@@ -11,6 +11,10 @@ struct HUDView: View {
     /// "Investor Showcase" actually does without already knowing. Tapping one now surfaces
     /// its real effect through this same callback RootView already wires to showToast.
     let onBadgeInfo: (String) -> Void
+    /// Deep-links the Next Goal chip's expanded "Go" button straight to the sheet that goal
+    /// is about - a goal with no natural sheet (e.g. "take a station to Lv 100", which is
+    /// already right there on the board) just gets no button.
+    let onGoalNavigate: (ActiveSheet) -> Void
 
     /// Which goal's explainer is unfolded - keyed by id so advancing to the next goal
     /// collapses the chip again on its own.
@@ -204,6 +208,21 @@ struct HUDView: View {
                                 .foregroundStyle(Theme.textDim)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .multilineTextAlignment(.leading)
+                            if let destination = goalDestination(goal.id) {
+                                Button {
+                                    onGoalNavigate(destination)
+                                } label: {
+                                    HStack(spacing: 3) {
+                                        Text("Go")
+                                        Image(systemName: "arrow.right")
+                                            .font(.system(size: 9, weight: .black))
+                                    }
+                                    .font(Theme.body(11, weight: .black))
+                                    .foregroundStyle(Theme.coin)
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.top, 1)
+                            }
                         }
                     }
                     .padding(.horizontal, 12)
@@ -232,6 +251,18 @@ struct HUDView: View {
     }
 
     private var activeBoosts: [BoostState] { engine.state.activeBoosts }
+
+    /// Maps a `GoalDirector` goal id to the sheet that actually advances it. `GoalDirector`
+    /// itself stays UI-agnostic (pure state -> text), so this mapping lives here instead.
+    private func goalDestination(_ id: String) -> ActiveSheet? {
+        switch id {
+        case "first-manager", "staff-5": return .collection
+        case "venue-2", "all-venues": return .venues
+        case "first-franchise", "first-research", "franchise-5", "first-legacy", "legacy-3":
+            return .prestige
+        default: return nil // "level-100" is already right there on the board.
+        }
+    }
 
     /// The run's contract, badged so its modifiers are never invisible - the vanilla
     /// "straight" pick shows nothing, matching how no badge meant no modifiers before.

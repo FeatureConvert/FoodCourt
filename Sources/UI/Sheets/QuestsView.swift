@@ -219,6 +219,9 @@ private struct QuestsSection: View {
                 }
             }
             .frame(height: 6)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Weekly Challenge progress")
+            .accessibilityValue(quest.progressLabel)
             if done {
                 Button {
                     if engine.claimWeeklyQuest() != nil {
@@ -297,6 +300,9 @@ private struct QuestsSection: View {
                 }
             }
             .frame(height: 6)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Quest progress")
+            .accessibilityValue(quest.progressLabel)
 
             if done {
                 Button {
@@ -417,6 +423,9 @@ private struct AchievementsSection: View {
                     }
                 }
                 .frame(height: 6)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Achievement progress")
+                .accessibilityValue("\(Int((fraction * 100).rounded())) percent")
 
                 if done {
                     Button {

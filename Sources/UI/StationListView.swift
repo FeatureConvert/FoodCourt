@@ -310,6 +310,16 @@ struct StationCardView: View {
                     .font(Theme.body(10, weight: .bold))
                     .foregroundStyle(Theme.positive)
                     .lineLimit(1)
+                // Bond level, compact - the Staff tab shows the full "+N% profit" detail;
+                // here there's only room for the badge that something's building.
+                if manager.bondLevel > 0 {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundStyle(Theme.gem)
+                    Text("\(manager.bondLevel)")
+                        .font(Theme.body(9, weight: .black))
+                        .foregroundStyle(Theme.gem)
+                }
             }
         }
     }
@@ -329,6 +339,9 @@ struct StationCardView: View {
                     }
                 }
                 .frame(height: 5)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Progress to Lv \(next.level)")
+                .accessibilityValue("\(done) of \(span)")
                 Text("Lv \(next.level): \(next.label)")
                     .font(Theme.body(10, weight: .bold))
                     .foregroundStyle(Theme.textDim)

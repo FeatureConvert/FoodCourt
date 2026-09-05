@@ -170,6 +170,7 @@ struct ShopView: View {
                             .foregroundStyle(Theme.positive)
                     } else if busy {
                         ProgressView().tint(Theme.text)
+                            .accessibilityLabel("Purchasing")
                     } else {
                         Text(store.displayPrice(for: item))
                             .font(Theme.numeric(14))

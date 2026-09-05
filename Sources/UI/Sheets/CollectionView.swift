@@ -283,11 +283,26 @@ private struct StaffSection: View {
                 Text(spec.trait.detail)
                     .font(Theme.body(11, weight: .bold))
                     .foregroundStyle(Theme.positive)
-                Text(spec.rarity.label)
-                    .font(Theme.body(9, weight: .black))
-                    .foregroundStyle(Theme.ink)
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(Capsule().fill(rarity))
+                HStack(spacing: 6) {
+                    Text(spec.rarity.label)
+                        .font(Theme.body(9, weight: .black))
+                        .foregroundStyle(Theme.ink)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Capsule().fill(rarity))
+                    // Long service pays: +2% station profit per bond level, crossed at
+                    // 1/3/7/14/30 days of continuous assignment - see `OwnedManager.bondLevel`.
+                    // Only shown once it's actually earning something, same as every other
+                    // conditional badge here.
+                    if manager.bondLevel > 0 {
+                        HStack(spacing: 3) {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 7, weight: .bold))
+                            Text("Bond \(manager.bondLevel) · +\(Int((manager.bondProfitMultiplier - 1) * 100))%")
+                        }
+                        .font(Theme.body(9, weight: .black))
+                        .foregroundStyle(Theme.gem)
+                    }
+                }
             }
             Spacer(minLength: 0)
 
@@ -358,8 +373,6 @@ private struct StaffSection: View {
 private struct RecipeSection: View {
     @EnvironmentObject private var engine: GameEngine
     @EnvironmentObject private var sound: SoundService
-
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
 
     /// Stays up until dismissed - unlike a toast, a player who opens this tab a while after
     /// a drop still gets to see what they found.
@@ -432,40 +445,7 @@ private struct RecipeSection: View {
         recipeDropBanner
 
         ForEach(Balance.venues) { venue in
-            let unlocked = engine.state.venues[venue.id].unlocked
-            let complete = Recipes.isSetComplete(engine.state.recipeCards, venue: venue.id)
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(venue.name)
-                        .font(Theme.body(13, weight: .black))
-                        .foregroundStyle(Theme.text)
-                    Spacer()
-                    if complete {
-                        Text("SET +\(Int(Recipes.setBonus * 100))%")
-                            .font(Theme.body(10, weight: .black))
-                            .foregroundStyle(Theme.ink)
-                            .padding(.horizontal, 7).padding(.vertical, 3)
-                            .background(Capsule().fill(Theme.positive))
-                    } else {
-                        Text("\(Recipes.collected(engine.state.recipeCards, venue: venue.id))/6")
-                            .font(Theme.body(11, weight: .bold))
-                            .foregroundStyle(Theme.textDim)
-                    }
-                }
-
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(venue.stations) { spec in
-                        card(venue: venue, spec: spec)
-                    }
-                }
-
-                if engine.canCrownSignature(venue: venue.id) {
-                    signaturePicker(venue: venue)
-                }
-            }
-            .padding(12)
-            .panel(unlocked ? Theme.panel : Theme.panel.opacity(0.55))
+            RecipeSetCard(venue: venue)
         }
 
         Text("Cards drop when you level a station up. Duplicates add a star; a full venue set pays +\(Int(Recipes.setBonus * 100))% on that venue.")
@@ -545,10 +525,82 @@ private struct RecipeSection: View {
             : "Drops from Rush Hours, VIPs, Face-Offs, and catering."
     }
 
+}
+
+/// One venue's recipe set, in its own view so the completion celebration below can react to
+/// a genuine incomplete -> complete transition without `RecipeSection` having to hand-track
+/// six venues' worth of "did I already celebrate this" state.
+private struct RecipeSetCard: View {
+    @EnvironmentObject private var engine: GameEngine
+    @EnvironmentObject private var sound: SoundService
+    let venue: VenueSpec
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
+
+    @State private var showCelebration = false
+
+    private var unlocked: Bool { engine.state.venues[venue.id].unlocked }
+    private var collected: Int { Recipes.collected(engine.state.recipeCards, venue: venue.id) }
+    private var complete: Bool { Recipes.isSetComplete(engine.state.recipeCards, venue: venue.id) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(venue.name)
+                    .font(Theme.body(13, weight: .black))
+                    .foregroundStyle(Theme.text)
+                Spacer()
+                if complete {
+                    Text("SET +\(Int(Recipes.setBonus * 100))%")
+                        .font(Theme.body(10, weight: .black))
+                        .foregroundStyle(Theme.ink)
+                        .padding(.horizontal, 7).padding(.vertical, 3)
+                        .background(Capsule().fill(Theme.positive))
+                } else if unlocked && collected == 5 {
+                    // Completion pressure: one card away is worth calling out, not just
+                    // another number in a plain "N/6" the player has to do the subtraction on.
+                    Text("1 CARD LEFT!")
+                        .font(Theme.body(10, weight: .black))
+                        .foregroundStyle(Theme.ink)
+                        .padding(.horizontal, 7).padding(.vertical, 3)
+                        .background(Capsule().fill(Theme.coin))
+                } else {
+                    Text("\(collected)/6")
+                        .font(Theme.body(11, weight: .bold))
+                        .foregroundStyle(Theme.textDim)
+                }
+            }
+
+            LazyVGrid(columns: columns, spacing: 8) {
+                ForEach(venue.stations) { spec in
+                    card(spec: spec)
+                }
+            }
+
+            if engine.canCrownSignature(venue: venue.id) {
+                signaturePicker
+            }
+        }
+        .padding(12)
+        .panel(unlocked ? Theme.panel : Theme.panel.opacity(0.55))
+        .overlay {
+            if showCelebration { ConfettiBurstView() }
+        }
+        // The set-completion celebration: a burst plus a distinct reward sound the moment
+        // this venue's set genuinely completes, not just on every re-render while complete.
+        .onChange(of: complete) { wasComplete, isComplete in
+            guard isComplete, !wasComplete else { return }
+            Haptics.success()
+            sound.play(.bigReward)
+            showCelebration = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { showCelebration = false }
+        }
+    }
+
     /// The fusion endgame: a fully 3-starred set lets the player crown one station as the
     /// venue's Signature Dish. Same first-open explainer treatment as every other system.
     @ViewBuilder
-    private func signaturePicker(venue: VenueSpec) -> some View {
+    private var signaturePicker: some View {
         IntroBanner(key: IntroKey.signature, symbol: "crown.fill",
                     title: "Signature Dish unlocked",
                     detail: "This venue's whole set is 3-starred - crown one station its Signature Dish for ×1.5 profit there. You can re-crown a different station anytime, free.")
@@ -590,7 +642,7 @@ private struct RecipeSection: View {
         }
     }
 
-    private func card(venue: VenueSpec, spec: StationSpec) -> some View {
+    private func card(spec: StationSpec) -> some View {
         let stars = Recipes.stars(engine.state.recipeCards, venue: venue.id, station: spec.id)
         let owned = stars > 0
 
@@ -622,6 +674,9 @@ private struct RecipeSection: View {
                         .foregroundStyle(index < stars ? Theme.star : Theme.stroke)
                 }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(owned ? "\(spec.name) recipe" : "\(spec.name) recipe, not found")
+            .accessibilityValue(owned ? "\(stars) of \(Recipes.maxStars) stars" : "")
         }
     }
 }

@@ -453,5 +453,8 @@ private struct ResearchSection: View {
                     .frame(width: 9, height: 4)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Research rank")
+        .accessibilityValue("\(rank) of \(max)")
     }
 }

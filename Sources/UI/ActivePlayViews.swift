@@ -47,6 +47,9 @@ struct ComboMeterView: View {
                         }
                     }
                     .frame(height: 7)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Combo window remaining")
+                    .accessibilityValue("\(Int((timeLeft * 100).rounded())) percent")
                 }
             }
             .padding(.horizontal, 14)

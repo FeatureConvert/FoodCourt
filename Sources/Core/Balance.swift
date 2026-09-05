@@ -537,6 +537,10 @@ enum Balance {
     /// around week 3-5 of the intended 3-7 day cadence.
     static let legacyUnlockPrestigeCount = 5
 
+    /// Cosmetic-only bronze/silver/gold trim on the venue sign in the Venues sheet -
+    /// a visible mark of how many times this save has franchised, purely for status.
+    static let prestigeFrameThresholds = [5, 15, 40]
+
     /// +20% per level. Raised from +5% in the same pass that made `legacyReset()` zero
     /// `lifetimeEarnings`: now that a Legacy genuinely restarts the star climb (instead of
     /// one quick re-prestige restoring the whole multiplier), the permanent bonus has to

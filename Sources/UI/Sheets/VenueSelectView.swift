@@ -56,6 +56,15 @@ struct VenueSelectView: View {
                         .opacity(unlocked ? 1 : 0.5)
                 }
                 .frame(width: 64, height: 64)
+                .overlay {
+                    // Cosmetic-only trim marking how many times this save has franchised -
+                    // see `Balance.prestigeFrameThresholds`. Purely a status mark, same spirit
+                    // as venue mastery below, just measuring the meta-progress instead.
+                    if let frameColor = prestigeFrameColor {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(frameColor, lineWidth: 3)
+                    }
+                }
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
@@ -128,5 +137,14 @@ struct VenueSelectView: View {
 
     private func staffedCount(_ venue: VenueSpec) -> Int {
         engine.state.venues[venue.id].stations.filter { $0.isStaffed }.count
+    }
+
+    /// Bronze at 5 franchises, silver at 15, gold at 40 - nil below the first threshold, same
+    /// tier-counting shape as `GameEngine.checkVenueMastery`.
+    private var prestigeFrameColor: Color? {
+        let tier = Balance.prestigeFrameThresholds.filter { engine.state.prestigeCount >= $0 }.count
+        guard tier > 0 else { return nil }
+        let colors = [Color(hex: "#C88A4A"), Color(hex: "#C7CBD1"), Theme.coin]
+        return colors[tier - 1]
     }
 }
