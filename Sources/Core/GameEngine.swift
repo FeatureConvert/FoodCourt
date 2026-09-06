@@ -601,8 +601,18 @@ final class GameEngine: ObservableObject {
     /// board and re-requires full completion on every cycle, not just the first, so this
     /// exemption applies every cycle's rebuild - not only before the player's first-ever
     /// prestige.
+    ///
+    /// Past `Balance.staleForcedFloorHours` though, the exemption ends regardless of
+    /// completion - otherwise a player could leave a single cheap station unbought forever,
+    /// keeping the whole board tax-free indefinitely at the cost of never being able to
+    /// prestige (see `canPrestige`, which shares the same `allVenuesAndStationsUnlocked` gate).
+    /// That forced floor is well past any legitimate buildout time, so it only ever bites the
+    /// deliberate-stall case.
     var staleCostInflation: Double {
-        guard allVenuesAndStationsUnlocked else { return 1 }
+        guard allVenuesAndStationsUnlocked else {
+            guard boardAgeHours > Balance.staleForcedFloorHours else { return 1 }
+            return Balance.stalenessMultiplier(boardAgeHours: boardAgeHours)
+        }
         return Balance.stalenessMultiplier(
             boardAgeHours: boardAgeHours,
             graceBonusHours: (state.contract?.staleGraceDeltaHours ?? 0)

@@ -408,6 +408,17 @@ enum Balance {
     /// just no longer accelerates.
     static let stalePower: Double = 1.0
 
+    /// A player who permanently refuses to buy one cheap station anywhere on the board keeps
+    /// `GameEngine.allVenuesAndStationsUnlocked` false forever, which otherwise holds
+    /// `staleCostInflation` at a flat 1x indefinitely - trading "never eligible to prestige"
+    /// for "immune to the staleness tax forever," on every purchase on the board, not just
+    /// that one station. This is the outer bound on that exemption: past 3x the normal grace
+    /// period (three wall-clock weeks - comfortably longer than any legitimate full-board
+    /// buildout takes), the tax starts applying anyway even though the board isn't finished,
+    /// so parking one station forever stops being a free pass. It uses `graceBonusHours: 0`
+    /// (no Legacy/contract shifts) since it's a hard backstop, not the normal curve.
+    static let staleForcedFloorHours: Double = staleGraceHours * 3
+
     /// Every purchase on the SAME board (stations, managers, venue unlocks) gets
     /// proportionally pricier the longer that board goes without a Franchise or Legacy reset.
     ///
