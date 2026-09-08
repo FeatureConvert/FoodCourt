@@ -413,7 +413,19 @@ struct RootView: View {
         case .venues: VenueSelectView(onToast: showToast)
         case .prestige: PrestigeView(onToast: showToast)
         case .settings: SettingsView(onToast: showToast, onHelp: { present(.help) })
-        case .debug: DebugMenuView(onToast: showToast)
+        case .debug:
+            // Reachable today only via the long-press in HUDView, which is itself wrapped in
+            // `#if DEBUG` - this is a second, independent guard on the same door. Everything
+            // this sheet's buttons call (unlimited coins/gems, force prestige, instant league
+            // settlement, free legendary staff) is a normal, always-compiled GameEngine method
+            // with no gate of its own; the entire cheat surface currently relies on that one
+            // HUDView guard never being bypassed or duplicated without this one coming along
+            // for the ride. A Release build gets an inert fallback instead of the menu.
+            #if DEBUG
+            DebugMenuView(onToast: showToast)
+            #else
+            EmptyView().onAppear { sheet = nil }
+            #endif
         case .collection: CollectionView(onToast: showToast)
         case .quests(let tab): QuestsView(initialTab: tab, onToast: showToast)
         case .help: HelpView(onToast: showToast)
