@@ -42,7 +42,13 @@ struct SheetScaffold<Content: View>: View {
                 .padding(.bottom, 12)
 
                 ScrollView {
-                    VStack(spacing: 12) { content() }
+                    // Lazy so a long list (a big Staff roster, a full achievement catalog)
+                    // only builds and lays out the rows actually on or near screen, instead
+                    // of every row up front on every scroll frame - that eager cost is what
+                    // made scrolling choppy on older/smaller devices once a list grew past a
+                    // couple dozen rows, each one carrying its own procedurally-drawn Canvas
+                    // portrait.
+                    LazyVStack(spacing: 12) { content() }
                         .padding(.horizontal, 18)
                         .padding(.bottom, 28)
                 }
