@@ -36,6 +36,10 @@ struct CosmeticsView: View {
             }
             .overlay(Circle().stroke(Theme.stroke, lineWidth: 1))
             .padding(.trailing, 6)
+            // Decorative preview only - the skin name text right after already names the
+            // row, so without this VoiceOver reads three unlabeled circles before it gets
+            // there.
+            .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(skin.capitalized)

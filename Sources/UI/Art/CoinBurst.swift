@@ -145,6 +145,11 @@ struct ConfettiBurstView: View {
             let scale = min(geo.size.width, geo.size.height)
             ZStack {
                 ForEach(Array(pieces.enumerated()), id: \.offset) { _, piece in
+                    // Same head-start as CoinBurstView's `spread`, and the same reason: eleven
+                    // pieces launching from the exact center with only color and size
+                    // differing renders as a stacked smudge, not an explosion, for whatever
+                    // frame shows before the animation has actually moved anything.
+                    let spread = max(progress, 0.15)
                     Group {
                         if piece.isRect {
                             RoundedRectangle(cornerRadius: piece.size * scale * 0.3)
@@ -156,7 +161,7 @@ struct ConfettiBurstView: View {
                                 .frame(width: piece.size * scale, height: piece.size * scale)
                         }
                     }
-                    .offset(x: piece.dx * scale * progress, y: piece.dy * scale * progress)
+                    .offset(x: piece.dx * scale * spread, y: piece.dy * scale * spread)
                     .opacity(Double(1 - progress))
                     .scaleEffect(0.5 + 0.5 * progress)
                 }

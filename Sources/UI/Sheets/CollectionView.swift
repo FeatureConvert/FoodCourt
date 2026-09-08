@@ -1010,43 +1010,47 @@ private struct ErrandManagerPicker: View {
                 .foregroundStyle(Theme.textDim)
                 .padding(.top, 20)
         } else {
-            ScrollView {
-                VStack(spacing: 8) {
-                    ForEach(engine.state.unassignedManagers) { manager in
-                        Button {
-                            withAnimation(.easeOut(duration: 0.2)) { selectedManager = manager }
-                        } label: {
-                            HStack(spacing: 12) {
-                                ZStack {
-                                    ManagerRarityFrame(rarity: manager.spec.rarity)
-                                    CustomerSprite(seed: manager.spec.portraitSeed)
-                                        .equatable()
-                                        .frame(width: 26, height: 36)
-                                        .offset(y: 3)
-                                }
-                                .frame(width: 46, height: 46)
-                                .clipShape(Circle())
-
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(manager.name)
-                                        .font(Theme.body(13, weight: .black))
-                                        .foregroundStyle(Theme.text)
-                                    Text(manager.spec.rarity.label)
-                                        .font(Theme.body(9, weight: .black))
-                                        .foregroundStyle(Theme.ink)
-                                        .padding(.horizontal, 6).padding(.vertical, 2)
-                                        .background(Capsule().fill(rarityColor(manager.spec.rarity)))
-                                }
-                                Spacer(minLength: 0)
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundStyle(Theme.textDim)
+            // No separate ScrollView here - this whole view is already one child of
+            // SheetScaffold's own scrolling LazyVStack, matching the sibling `hoursList`
+            // below. A nested ScrollView would fight the outer one for scroll gestures, and
+            // an eager VStack here defeats the outer LazyVStack's laziness anyway, since a
+            // roster that's grown into dozens of idle managers would still build every row
+            // in this inner list up front regardless of what's on screen.
+            LazyVStack(spacing: 8) {
+                ForEach(engine.state.unassignedManagers) { manager in
+                    Button {
+                        withAnimation(.easeOut(duration: 0.2)) { selectedManager = manager }
+                    } label: {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                ManagerRarityFrame(rarity: manager.spec.rarity)
+                                CustomerSprite(seed: manager.spec.portraitSeed)
+                                    .equatable()
+                                    .frame(width: 26, height: 36)
+                                    .offset(y: 3)
                             }
-                            .padding(12)
-                            .panel(Theme.panel)
+                            .frame(width: 46, height: 46)
+                            .clipShape(Circle())
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(manager.name)
+                                    .font(Theme.body(13, weight: .black))
+                                    .foregroundStyle(Theme.text)
+                                Text(manager.spec.rarity.label)
+                                    .font(Theme.body(9, weight: .black))
+                                    .foregroundStyle(Theme.ink)
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .background(Capsule().fill(rarityColor(manager.spec.rarity)))
+                            }
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(Theme.textDim)
                         }
-                        .buttonStyle(.plain)
+                        .padding(12)
+                        .panel(Theme.panel)
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
