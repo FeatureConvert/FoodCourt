@@ -5,11 +5,25 @@ import StoreKitTest
 /// Exercises the real StoreKit 2 code path against the local configuration file, so the
 /// purchase, grant, finish, and restore flow is verified without App Store Connect.
 ///
-/// These only run when a StoreKit test environment is actually active. Xcode applies the
-/// scheme's StoreKit configuration when it runs the tests; `xcodebuild test` from the
-/// command line does not, and there is no flag that makes it, so on CLI runs the products
-/// come back empty and every test here skips rather than reporting a false failure.
-/// Run them from Xcode (Product > Test) to exercise purchases for real.
+/// These only run when a StoreKit test environment is actually active, which the `XCTSkipIf`
+/// in `setUp` checks for by seeing whether any products loaded.
+///
+/// **That skip no longer fires on the command line, and these tests are currently flaky there.**
+/// This comment used to say `xcodebuild test` never applies the scheme's StoreKit configuration,
+/// so CLI runs always skipped. That stopped being true once `Fable.xctestplan` gained a
+/// `storeKitConfigurationFileReference` and `Scripts/generate.sh` began patching the same
+/// reference into the scheme's Test action - both deliberate, and between them the products now
+/// load fine from the CLI. So the tests run, and `SKTestSession` turns out to be unreliable
+/// under `xcodebuild test`: a *different* case fails on each run, individual cases take 2-3
+/// minutes, and the log fills with `SKInternalErrorDomain Code=3` ("Error deleting all
+/// transactions", "Error clearing overrides") and occasionally "Simulator device failed to
+/// launch". When it fails this way no transaction is vended at all - the observed failure is
+/// gems staying at their starting 25 rather than landing on a wrong number - so it presents as
+/// a harness fault, not a grant-path bug. Verified to reproduce identically on a clean checkout
+/// of `84a0169` with no local changes, so it is not a regression.
+///
+/// Running them from Xcode (Product > Test) remains the reliable path. Until the CLI story is
+/// sorted, `xcodebuild test -skip-testing:FableTests/StoreTests` is green; the full suite is not.
 @MainActor
 final class StoreTests: XCTestCase {
 
