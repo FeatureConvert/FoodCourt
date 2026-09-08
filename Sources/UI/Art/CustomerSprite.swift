@@ -6,7 +6,7 @@ import SwiftUI
 /// engine already distinguishes them (`GoldenCustomer.isCritic`, a x10 jackpot) but until now
 /// they rendered identically, so the player only learned which one they'd caught from the
 /// toast *after* tapping. See `GoldenCustomerView`.
-enum SpriteVariant: Equatable {
+enum SpriteVariant: Hashable {
     case customer
     case staff
     case golden
@@ -547,6 +547,176 @@ private struct Look {
             hat = 0
             accessory = 0
             prop = .clipboard
+        }
+    }
+}
+
+// MARK: - Blink
+
+/// The handful of rig numbers `BlinkOverlay` needs to land an eyelid exactly on top of an eye.
+///
+/// These are duplicated from the drawing code above rather than shared as constants because
+/// the rig there is written as literals inline in one long `Canvas` closure, deliberately, so
+/// that every number can be read straight off the art spec. Pulling them out would obscure the
+/// figure to serve the eyelid. The trade is that these four numbers have to move together with
+/// their originals - `SpriteFaceRigTests` fails if they ever drift apart.
+enum SpriteFaceRig {
+    /// Design's authoring frame; `CustomerSprite` maps onto this same 100 x 150 space.
+    static let frameW: CGFloat = 100
+    static let frameH: CGFloat = 150
+    /// Head centre (`headCY`), and the eye offsets measured from it.
+    static let headCY: CGFloat = 34
+    static let eyeDX: CGFloat = 7
+    static let eyeCY: CGFloat = headCY + 0.5
+    static let eyeR: CGFloat = 2.3
+}
+
+/// Whether a seed's face can blink at all, and the skin tone its eyelid has to match.
+///
+/// `face == 2` draws its eyes as upward arcs - a smiling squint that is already closed. There
+/// is no pupil to cover and a lid over it reads as a glitch, so those seeds sit the blink out.
+struct SpriteBlinkLook: Equatable {
+    let skin: String
+    let canBlink: Bool
+
+    init(seed: Int, variant: SpriteVariant) {
+        let look = Look(seed: seed, variant: variant)
+        skin = look.skin
+        canBlink = look.face != 2
+    }
+}
+
+/// Per-seed blink schedule.
+///
+/// Blinking is the cheapest possible signal that a figure is alive, and the one this rig was
+/// most obviously missing - the queue already bobs, but every face in it stared. A blink is
+/// rare and short, so quantising it to three states costs almost nothing: `BlinkOverlay` is
+/// `Equatable` on that state, so a customer redraws its eyelid layer roughly six times per
+/// blink cycle rather than 30 times a second.
+enum SpriteBlink {
+    /// 0 open, 1 mid-blink, 2 shut.
+    static func phase(seed: Int, at t: TimeInterval) -> Int {
+        // 3.6-7.0s between blinks, and a start offset, both keyed off the seed - so a queue
+        // never blinks in unison, which would read as a rendering tic rather than as people.
+        let period = 3.6 + Double(seed % 17) * 0.2125
+        let offset = Double(seed % 23) / 23 * period
+        let u = (t + offset).truncatingRemainder(dividingBy: period)
+
+        // 200ms total: 60ms closing, 80ms shut, 60ms opening. Faster than this and a 30fps
+        // clock drops the whole blink between frames on some cycles.
+        switch u {
+        case ..<0.06: return 1
+        case ..<0.14: return 2
+        case ..<0.20: return 1
+        default: return 0
+        }
+    }
+}
+
+/// The eyelid layer, drawn over an otherwise unchanged `CustomerSprite`.
+///
+/// Kept as a separate overlay rather than a parameter on the sprite on purpose. The figure is
+/// ~40 filled and stroked paths; the lids are four. Folding a blink into `CustomerSprite`
+/// would invalidate its `.equatable()` and redraw the whole rig every time an eye moved. This
+/// follows the same principle the idle bob already established - animate a small layer over a
+/// cached figure, never redraw the figure.
+struct BlinkOverlay: View, Equatable {
+    let look: SpriteBlinkLook
+    /// From `SpriteBlink.phase`.
+    let phase: Int
+
+    var body: some View {
+        Canvas { context, size in
+            guard phase > 0, look.canBlink else { return }
+            let rect = CGRect(origin: .zero, size: size)
+            let R = SpriteFaceRig.self
+
+            func dp(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+                CGPoint(x: rect.minX + x / R.frameW * rect.width,
+                        y: rect.minY + y / R.frameH * rect.height)
+            }
+            func dw(_ w: CGFloat) -> CGFloat { w / R.frameW * rect.width }
+
+            // How far down the lid has travelled. The mid state sits past halfway because a
+            // real lid spends most of a blink near-shut, not near-open.
+            let closed = phase == 2 ? 1.0 : 0.62
+            let skin = Color(hex: look.skin)
+
+            for side in [CGFloat(-1), CGFloat(1)] {
+                let cx = 50 + side * R.eyeDX
+
+                // Clipped to the eye itself, so the lid can never touch the glasses ring
+                // (r 4.8) or the critic's monocle (r 5) that some seeds draw around it. A
+                // plain rectangle here would clip the corners off those frames.
+                let socket = Path(ellipseIn: CGRect(
+                    x: dp(cx - R.eyeR - 0.4, R.eyeCY - R.eyeR - 0.4).x,
+                    y: dp(cx - R.eyeR - 0.4, R.eyeCY - R.eyeR - 0.4).y,
+                    width: dp(cx + R.eyeR + 0.4, 0).x - dp(cx - R.eyeR - 0.4, 0).x,
+                    height: dp(0, R.eyeCY + R.eyeR + 0.4).y - dp(0, R.eyeCY - R.eyeR - 0.4).y))
+
+                var lid = context
+                lid.clip(to: socket)
+
+                // The lid sweeps down from above the eye. What is left uncovered below it is
+                // the bottom slice of the pupil - which is exactly what a half-blink looks
+                // like, without needing a second eye drawing.
+                let top = R.eyeCY - R.eyeR - 0.6
+                let travel = (R.eyeR * 2 + 1.2) * closed
+                lid.fill(Path(CGRect(x: dp(cx - R.eyeR - 1, top).x,
+                                     y: dp(0, top).y,
+                                     width: dw(R.eyeR * 2 + 2),
+                                     height: dp(0, top + travel).y - dp(0, top).y)),
+                         with: .color(skin))
+
+                // Shut eyes get the lash line that the open eye's pupil was carrying. Drawn
+                // outside the clip so its round caps stay crisp instead of being shaved by
+                // the socket edge.
+                if phase == 2 {
+                    var lash = Path()
+                    lash.move(to: dp(cx - R.eyeR, R.eyeCY + 0.3))
+                    lash.addQuadCurve(to: dp(cx + R.eyeR, R.eyeCY + 0.3),
+                                      control: dp(cx, R.eyeCY + 1.4))
+                    context.stroke(lash, with: .color(Color(hex: CustomerSprite.eyeInk)),
+                                   style: StrokeStyle(lineWidth: dw(1.7), lineCap: .round))
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+/// A sprite that owns its own blink clock.
+///
+/// The queue does not use this - `BobbingSprite` already runs a timeline for the idle bob and
+/// drives the blink off that same clock, because six queued figures each starting a second one
+/// would be six redundant 30fps subscriptions. This is for the lone, short-lived figures that
+/// have no clock of their own to borrow.
+///
+/// Deliberately not applied to manager portraits: those sit in scrolling lists, and a row that
+/// redraws 30 times a second to blink once every five is the trade `ManagerRarityFrame` already
+/// declined for its rarity ring.
+struct BlinkingSprite: View {
+    let seed: Int
+    var variant: SpriteVariant = .customer
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var blinkLook: SpriteBlinkLook { SpriteBlinkLook(seed: seed, variant: variant) }
+
+    var body: some View {
+        if reduceMotion {
+            CustomerSprite(seed: seed, variant: variant).equatable()
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+                CustomerSprite(seed: seed, variant: variant).equatable()
+                    .overlay(BlinkOverlay(
+                        look: blinkLook,
+                        phase: SpriteBlink.phase(
+                            seed: seed,
+                            at: timeline.date.timeIntervalSinceReferenceDate))
+                        .equatable())
+            }
         }
     }
 }

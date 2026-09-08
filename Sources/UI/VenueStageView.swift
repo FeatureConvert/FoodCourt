@@ -71,6 +71,12 @@ struct VenueStageView: View {
                     VenueSceneView(theme: venue.theme, palette: palette, layer: .floor)
                 }
 
+                // Atmosphere: steam off the line, motes hanging in the overhead light. Placed
+                // above the room but below the vignette, so the same edge falloff that grounds
+                // the walls also dims a wisp drifting toward the corner - and below the sign
+                // and the queue, so nothing the player has to read is ever crossed by it.
+                StageAtmosphere(accent: palette.accent)
+
                 // Soft edge vignette so the stage reads as a lit interior, not a flat card.
                 RoundedRectangle(cornerRadius: 0)
                     .fill(RadialGradient(
@@ -232,6 +238,10 @@ private struct BobbingSprite: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    /// Rolled once per figure rather than per frame - the wardrobe draw behind it walks a
+    /// seeded RNG through a dozen steps, which is not work to repeat 30 times a second.
+    private var blinkLook: SpriteBlinkLook { SpriteBlinkLook(seed: seed, variant: .customer) }
+
     var body: some View {
         if reduceMotion {
             CustomerSprite(seed: seed).equatable()
@@ -243,6 +253,12 @@ private struct BobbingSprite: View {
                 let t = timeline.date.timeIntervalSinceReferenceDate
                 let bob = sin((t + phase) / 2.9 * 2 * .pi) * (2.6 / 150.0) * 62
                 CustomerSprite(seed: seed).equatable()
+                    // Both animated layers ride the one clock this view already pays for.
+                    // The sprite underneath stays equatable and cached; only the eyelid
+                    // layer redraws, and only on the few frames a blink actually spans.
+                    .overlay(BlinkOverlay(look: blinkLook,
+                                          phase: SpriteBlink.phase(seed: seed, at: t))
+                        .equatable())
                     .offset(y: bob)
             }
         }

@@ -127,8 +127,10 @@ struct GoldenCustomerView: View {
                         .frame(width: 68, height: 68)
                 }
 
-                CustomerSprite(seed: seed, variant: isCritic ? .critic : .golden)
-                    .equatable()
+                // The one figure on the stage the player is asked to look at and tap, so it
+                // gets the blink even though it has to start a clock to do it - it is a
+                // single sprite alive for five seconds, not a queue of six standing all game.
+                BlinkingSprite(seed: seed, variant: isCritic ? .critic : .golden)
                     .frame(width: 46, height: 64)
             }
         }

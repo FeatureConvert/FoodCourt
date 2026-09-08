@@ -12,6 +12,7 @@
 		05A2D5D1350AFA036A6949EC /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F55F8C9B507D9D7F52A49C4 /* SplashView.swift */; };
 		05EEB93DDF115946F54958A0 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DF4CC93619FDCCE0C747802 /* WelcomeView.swift */; };
 		07E54AC7BC9D690A54AE1F02 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB9CDFE41E11F22B7F4BB70F /* Assets.xcassets */; };
+		080D0788A80A9C54148DAD0E /* StageAtmospherePerfTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 310E5B7EFC07EE9D237DF9B2 /* StageAtmospherePerfTests.swift */; };
 		09DD0F44E7CF84B4EB5DF209 /* SoundService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C98DAA3BB768AFFC8E2F1073 /* SoundService.swift */; };
 		0FC02FF81C9838F43E3749AE /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 90ADE33E20D3F2B41202C2A1 /* Products.storekit */; };
 		16693AD597B563A3618CC9E0 /* BigMomentAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1BF9EE7260A69239205CF05 /* BigMomentAlertView.swift */; };
@@ -55,6 +56,7 @@
 		9359848A89A660E279F3DEAC /* SaveManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADBF6FA651E23B2CE296686C /* SaveManager.swift */; };
 		94CD309B4984B1BAC6011F7B /* HUDView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 240578676C0B706FC34950F7 /* HUDView.swift */; };
 		9717E909A372A86E45FFA318 /* Expeditions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 865DD982FAD587AC44DCEB96 /* Expeditions.swift */; };
+		99F48E3C831A3E118EFCE19D /* StageAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6503ABDA6A16375B9CA3BA1E /* StageAtmosphere.swift */; };
 		9B94CEEE3AEB652BE73FB476 /* GameCenterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1837A7A9214C46DF66AA3576 /* GameCenterService.swift */; };
 		9DF42692F52099B94D787E87 /* StationMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40A09664AFA96F68507B8608 /* StationMath.swift */; };
 		9DFC77637C324CDD1AC8A9AD /* GemSpend.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6D9C15F5FAAEE676AFA42E6 /* GemSpend.swift */; };
@@ -87,6 +89,7 @@
 		EB6CA288EED7AAEE9C372B77 /* DailyRewards.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF0F3E61981543C34C90567C /* DailyRewards.swift */; };
 		ECC05541EDFB311DC4CD681E /* TutorialOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 043F653C507C5D4BF440FA54 /* TutorialOverlay.swift */; };
 		EDC2E9F49F724833352C78C3 /* StoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E9FBAB04997C010D88507E /* StoreTests.swift */; };
+		EDCAD0F85D75F30D2127B628 /* SpriteBlinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31A5387EB7E873CA622EDEB2 /* SpriteBlinkTests.swift */; };
 		F3A571D29B7FC1381E1054FD /* VenueSelectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DC9C30BAAF4753AAF01055 /* VenueSelectView.swift */; };
 		F4F5E2480A8519A92F0C8507 /* AdFreeBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0586BCCDEDBDE702E5A8337E /* AdFreeBadge.swift */; };
 		F601DF3AB1A2626663D36178 /* Errands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64A26993184F7413D36694FC /* Errands.swift */; };
@@ -124,6 +127,8 @@
 		2532F7EDEF7C37C11C81E08C /* VenueStageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueStageView.swift; sourceTree = "<group>"; };
 		28BB845D19A7F52C212C6646 /* SyncAndSafetyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncAndSafetyTests.swift; sourceTree = "<group>"; };
 		2BE8419271E21B36DE2B62E6 /* Tools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tools.swift; sourceTree = "<group>"; };
+		310E5B7EFC07EE9D237DF9B2 /* StageAtmospherePerfTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageAtmospherePerfTests.swift; sourceTree = "<group>"; };
+		31A5387EB7E873CA622EDEB2 /* SpriteBlinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpriteBlinkTests.swift; sourceTree = "<group>"; };
 		31DC9C30BAAF4753AAF01055 /* VenueSelectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueSelectView.swift; sourceTree = "<group>"; };
 		37515A3266C48B43461F8FFF /* EventsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsView.swift; sourceTree = "<group>"; };
 		388AFC1D19065A136570A153 /* PerkChoiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerkChoiceView.swift; sourceTree = "<group>"; };
@@ -144,6 +149,7 @@
 		5CA66CE43888B7C621F4130C /* Combo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Combo.swift; sourceTree = "<group>"; };
 		612D8D80D7AD1A3688FC317E /* FableTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FableTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		64A26993184F7413D36694FC /* Errands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Errands.swift; sourceTree = "<group>"; };
+		6503ABDA6A16375B9CA3BA1E /* StageAtmosphere.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StageAtmosphere.swift; sourceTree = "<group>"; };
 		69FFAD265ADEF5481F857016 /* DebugMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugMenuView.swift; sourceTree = "<group>"; };
 		6B5E019C15AA811DEA06C126 /* Festival.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Festival.swift; sourceTree = "<group>"; };
 		6DBBB5C3A2C9718D9BDEEE14 /* GameCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameCenterView.swift; sourceTree = "<group>"; };
@@ -205,6 +211,7 @@
 				B56026DD041F82FCAAF814D9 /* CustomerSprite.swift */,
 				3A2EE81608776E2BF273BBBD /* FoodSprite.swift */,
 				52F8CDD98905FDF24A7F37B5 /* Icons.swift */,
+				6503ABDA6A16375B9CA3BA1E /* StageAtmosphere.swift */,
 				C10AE32D35CB2E6365F4E23C /* VenueProps.swift */,
 				A4D8B62A270B89ADC697C071 /* VenueScenes.swift */,
 			);
@@ -366,7 +373,9 @@
 				98832890EF948F62445F2C19 /* PrestigeScalingTests.swift */,
 				ED78409947694A96FF745DF8 /* ProgressionTests.swift */,
 				0CD20B6F5A66BCC6AC360C61 /* SoundServiceTests.swift */,
+				31A5387EB7E873CA622EDEB2 /* SpriteBlinkTests.swift */,
 				9AB2CA10EC227D58DEE2D0F1 /* SpriteSeedTests.swift */,
+				310E5B7EFC07EE9D237DF9B2 /* StageAtmospherePerfTests.swift */,
 				14E9FBAB04997C010D88507E /* StoreTests.swift */,
 				28BB845D19A7F52C212C6646 /* SyncAndSafetyTests.swift */,
 			);
@@ -486,7 +495,9 @@
 				B72891DDF5E5C05C5CE15B2A /* PrestigeScalingTests.swift in Sources */,
 				1AF5363324B986459614ECC8 /* ProgressionTests.swift in Sources */,
 				659855CFDE9511A6C6B9AE2E /* SoundServiceTests.swift in Sources */,
+				EDCAD0F85D75F30D2127B628 /* SpriteBlinkTests.swift in Sources */,
 				C79EE37AF0F5CD7AAEF2A540 /* SpriteSeedTests.swift in Sources */,
+				080D0788A80A9C54148DAD0E /* StageAtmospherePerfTests.swift in Sources */,
 				EDC2E9F49F724833352C78C3 /* StoreTests.swift in Sources */,
 				74E97FC72D2BEEAC5AEF9B87 /* SyncAndSafetyTests.swift in Sources */,
 			);
@@ -555,6 +566,7 @@
 				DA7753FD7192F3A0D960C1A5 /* ShopView.swift in Sources */,
 				09DD0F44E7CF84B4EB5DF209 /* SoundService.swift in Sources */,
 				05A2D5D1350AFA036A6949EC /* SplashView.swift in Sources */,
+				99F48E3C831A3E118EFCE19D /* StageAtmosphere.swift in Sources */,
 				FA6AF9C9902DFF8F201F57B1 /* StationListView.swift in Sources */,
 				9DF42692F52099B94D787E87 /* StationMath.swift in Sources */,
 				BD63725F9DAA622F590E4F60 /* StoreService.swift in Sources */,
@@ -655,7 +667,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Sources/Fable.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 5;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Food Court";
@@ -667,7 +679,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.fable.foodcourt;
 				PRODUCT_NAME = Fable;
 				SDKROOT = iphoneos;
@@ -699,7 +711,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Sources/Fable.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 5;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Food Court";
@@ -711,7 +723,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.fable.foodcourt;
 				PRODUCT_NAME = Fable;
 				SDKROOT = iphoneos;
