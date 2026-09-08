@@ -128,6 +128,47 @@ struct PaintFixtureArt: View {
             }
             context.stroke(shape9, with: .color(Color(hex: "#800000")),
                            style: StrokeStyle(lineWidth: w(6), lineCap: .butt, lineJoin: .miter))
+
+            // 11. rect
+            let shape10 = shape {
+                $0.move(to: p(10, 105))
+                $0.addLine(to: p(24, 105))
+                $0.addLine(to: p(24, 113))
+                $0.addLine(to: p(10, 113))
+                $0.closeSubpath()
+            }
+            context.fill(shape10, with: .color(Color(hex: "#FF8000").opacity(0.5)))
+
+            // 12. rect
+            let shape11 = shape {
+                $0.move(to: p(28, 105))
+                $0.addLine(to: p(42, 105))
+                $0.addLine(to: p(42, 113))
+                $0.addLine(to: p(28, 113))
+                $0.closeSubpath()
+            }
+            context.fill(shape11, with: .color(Color(hex: "#112233").opacity(0.267)))
+
+            // 13. rect
+            let shape12 = shape {
+                $0.move(to: p(46, 105))
+                $0.addLine(to: p(60, 105))
+                $0.addLine(to: p(60, 113))
+                $0.addLine(to: p(46, 113))
+                $0.closeSubpath()
+            }
+            context.fill(shape12, with: .color(Color(hex: "#000000").opacity(0.4)))
+
+            // 14. rect
+            let shape13 = shape {
+                $0.move(to: p(64, 105))
+                $0.addLine(to: p(78, 105))
+                $0.addLine(to: p(78, 113))
+                $0.addLine(to: p(64, 113))
+                $0.closeSubpath()
+            }
+            context.stroke(shape13, with: .color(Color(hex: "#008000").opacity(0.4)),
+                           style: StrokeStyle(lineWidth: w(2), lineCap: .butt, lineJoin: .miter))
         }
         .accessibilityHidden(true)
     }

@@ -39,7 +39,7 @@ with no matrix arithmetic left at runtime.
 | Elements | `path`, `circle`, `ellipse`, `rect` (incl. `rx`/`ry`), `line`, `polygon`, `polyline`, `g` |
 | Path data | `M m L l H h V v C c S s Q q T t A a Z z`, including elliptical arcs |
 | Transforms | `translate`, `scale`, `rotate` (incl. about a point), `skewX`, `skewY`, `matrix` |
-| Paint | `fill`, `stroke`, `stroke-width`, `opacity`, `fill-opacity`, `stroke-opacity`, `stroke-linecap`, `stroke-linejoin`, `fill-rule`/`clip-rule`, `#rgb`/`#rrggbb`/`#rrggbbaa`, `rgb()`/`rgba()`, and ~25 named colours (anything else warns and falls back to black) |
+| Paint | `fill`, `stroke`, `stroke-width`, `opacity`, `fill-opacity`, `stroke-opacity`, `stroke-linecap`, `stroke-linejoin`, `fill-rule`/`clip-rule`, `#rgb`/`#rrggbb`/`#rrggbbaa`, `rgb()`/`rgba()` (colour-carried alpha composes with the opacity attributes rather than being dropped), and ~25 named colours (anything else warns and falls back to black) |
 | Cascade | presentation attributes, inline `style="..."` (which wins), inherited through `<g>` |
 
 ### What it does not handle

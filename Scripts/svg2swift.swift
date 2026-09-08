@@ -24,7 +24,9 @@
 //   transforms  translate, scale, rotate (incl. about a point), skewX, skewY, matrix
 //   paint       fill, stroke, stroke-width, opacity, fill-opacity, stroke-opacity,
 //               stroke-linecap, stroke-linejoin, fill-rule / clip-rule (evenodd),
-//               #rgb / #rrggbb / #rrggbbaa, rgb() and rgba(), and the ~25 CSS named colours
+//               #rgb / #rrggbb / #rrggbbaa, rgb() and rgba() - alpha carried by the colour
+//               itself is multiplied into the emitted opacity, not dropped, and composes with
+//               fill-opacity/stroke-opacity/opacity - plus the ~25 CSS named colours
 //               in `namedColors` - anything else warns and falls back to black rather than
 //               guessing, so an unexpected name is loud instead of silently wrong,
 //               presentation attributes and inline `style="..."`, inherited through <g>
@@ -93,6 +95,12 @@ struct Paint {
     var opacity = 1.0
     var fillOpacity = 1.0
     var strokeOpacity = 1.0
+    /// Alpha carried by the colour value itself - `rgba(...)`'s fourth channel or the last byte
+    /// of `#rrggbbaa`. Kept separate from `fill-opacity` because SVG multiplies the two rather
+    /// than letting one win, and because a child that re-declares `fill` must reset this while
+    /// inheriting the parent's `fill-opacity`.
+    var fillColorAlpha = 1.0
+    var strokeColorAlpha = 1.0
     var evenOdd = false
     /// SVG's initial values are `butt` and `miter`. This codebase's own art is round-capped
     /// throughout, but honouring the file rather than imposing the house style keeps the
@@ -103,8 +111,8 @@ struct Paint {
     /// stroke width has to be too, or a scaled group's outline comes out the wrong weight.
     var strokeScale = 1.0
 
-    var effectiveFillOpacity: Double { opacity * fillOpacity }
-    var effectiveStrokeOpacity: Double { opacity * strokeOpacity }
+    var effectiveFillOpacity: Double { opacity * fillOpacity * fillColorAlpha }
+    var effectiveStrokeOpacity: Double { opacity * strokeOpacity * strokeColorAlpha }
 }
 
 /// The subset of SVG named colours worth carrying; anything else falls through with a warning.
@@ -118,24 +126,32 @@ let namedColors: [String: String] = [
     "tan": "#D2B48C", "transparent": "none",
 ]
 
-/// Normalises an SVG paint value to `#RRGGBB`, or nil for "no paint".
-func normalizeColor(_ raw: String) -> String? {
+/// Normalises an SVG paint value to `#RRGGBB` plus the alpha the value carried, or nil for
+/// "no paint".
+///
+/// The alpha is returned rather than discarded: dropping it silently turns a designer's
+/// `rgba(0,0,0,0.3)` drop shadow into an opaque black slab, with nothing on stderr to say so -
+/// the one failure mode this script is otherwise careful to avoid.
+func normalizeColor(_ raw: String) -> (hex: String, alpha: Double)? {
     let value = raw.trimmingCharacters(in: .whitespaces).lowercased()
     if value.isEmpty || value == "none" { return nil }
     if value.hasPrefix("url(") {
         warn("gradient or pattern paint '\(raw)' is not supported - flatten it in the design tool; painting it flat black instead")
-        return "#000000"
+        return ("#000000", 1)
     }
-    if value == "currentcolor" { return "#000000" }
-    if let named = namedColors[value] { return named == "none" ? nil : named }
+    if value == "currentcolor" { return ("#000000", 1) }
+    if let named = namedColors[value] { return named == "none" ? nil : (named, 1) }
 
     if value.hasPrefix("#") {
         let hex = String(value.dropFirst())
         if hex.count == 3 {
-            return "#" + hex.map { "\($0)\($0)" }.joined().uppercased()
+            return ("#" + hex.map { "\($0)\($0)" }.joined().uppercased(), 1)
         }
-        if hex.count == 6 { return "#" + hex.uppercased() }
-        if hex.count == 8 { return "#" + hex.prefix(6).uppercased() }   // drop alpha suffix
+        if hex.count == 6 { return ("#" + hex.uppercased(), 1) }
+        if hex.count == 8 {
+            let alpha = Double(UInt8(hex.suffix(2), radix: 16) ?? 255) / 255
+            return ("#" + hex.prefix(6).uppercased(), alpha)
+        }
     }
 
     // rgb(...) / rgba(...)
@@ -144,13 +160,17 @@ func normalizeColor(_ raw: String) -> String? {
             .split(whereSeparator: { $0 == "," || $0 == " " || $0 == "/" })
             .compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
         if parts.count >= 3 {
-            let channels = parts.prefix(3).map { Int(($0 <= 1 && $0 > 0 && parts.allSatisfy { $0 <= 1 }) ? $0 * 255 : $0) }
-            return "#" + channels.map { String(format: "%02X", max(0, min(255, $0))) }.joined()
+            let rgb = Array(parts.prefix(3))
+            // `rgb(0 0 0)` and `rgb(0, 0, 0)` are 0-255; a fourth channel is 0-1.
+            let channels = rgb.map { Int($0) }
+            let hex = "#" + channels.map { String(format: "%02X", max(0, min(255, $0))) }.joined()
+            let alpha = parts.count >= 4 ? max(0, min(1, parts[3])) : 1
+            return (hex, alpha)
         }
     }
 
     warn("unrecognised colour '\(raw)' - painting it flat black")
-    return "#000000"
+    return ("#000000", 1)
 }
 
 // MARK: - Path data
@@ -555,8 +575,16 @@ final class SVGParser: NSObject, XMLParserDelegate {
             }
         }
 
-        if let value = declarations["fill"] { paint.fill = normalizeColor(value) }
-        if let value = declarations["stroke"] { paint.stroke = normalizeColor(value) }
+        if let value = declarations["fill"] {
+            let resolved = normalizeColor(value)
+            paint.fill = resolved?.hex
+            paint.fillColorAlpha = resolved?.alpha ?? 1
+        }
+        if let value = declarations["stroke"] {
+            let resolved = normalizeColor(value)
+            paint.stroke = resolved?.hex
+            paint.strokeColorAlpha = resolved?.alpha ?? 1
+        }
         if let value = length(declarations["stroke-width"]) { paint.strokeWidth = value }
         if let value = Double(declarations["opacity"] ?? "") { paint.opacity = value }
         if let value = Double(declarations["fill-opacity"] ?? "") { paint.fillOpacity = value }
