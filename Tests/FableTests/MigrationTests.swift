@@ -76,6 +76,33 @@ final class MigrationTests: XCTestCase {
         XCTAssertEqual(state.league.rivals.first?.score, 0, "missing rival field falls back too")
     }
 
+    /// OwnedManager had the same hard-required-fields gap as LeagueState/LeagueRival above,
+    /// for `id` and `specID` - the one place left in the roster still using `try c.decode`
+    /// with no fallback. Since GameState decodes the roster via
+    /// `(try? c.decode([OwnedManager].self, ...)) ?? []`, a single malformed manager threw
+    /// out of OwnedManager.init, `try?` swallowed that, and the ENTIRE roster - not just that
+    /// one manager - came back empty. Confirms a fieldless manager decodes to sane defaults,
+    /// and that a realistic partial roster (one good manager, one missing its specID)
+    /// survives without the whole array vanishing.
+    func testOwnedManagerSurvivesMissingFieldsWithoutWipingTheWholeRoster() throws {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let empty = "{}".data(using: .utf8)!
+
+        let manager = try decoder.decode(OwnedManager.self, from: empty)
+        XCTAssertFalse(manager.id.isEmpty, "a missing id should get a fresh one, not throw")
+        XCTAssertEqual(manager.specID, ManagerCatalog.traineeID)
+        XCTAssertFalse(manager.premium)
+
+        let state = try decode("""
+        {"coins": 500, "managers": [{"id": "m1", "specID": "august", "premium": true}, {"premium": true}]}
+        """)
+        XCTAssertEqual(state.coins, 500, "the rest of the save must survive a malformed manager")
+        XCTAssertEqual(state.managers.count, 2, "both entries decode, the malformed one just falls back")
+        XCTAssertEqual(state.managers.first?.specID, "august")
+        XCTAssertEqual(state.managers.last?.specID, ManagerCatalog.traineeID, "missing specID falls back to Trainee")
+    }
+
     /// BoostState and ActiveQuest don't have a natural default for every field, so their
     /// hardened decoders lean conservative on purpose: a corrupt/incomplete boost decodes as
     /// already-expired (inert), and a corrupt/incomplete quest decodes as permanently

@@ -94,8 +94,20 @@ struct OwnedManager: Codable, Equatable, Identifiable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = try c.decode(String.self, forKey: .id)
-        specID = try c.decode(String.self, forKey: .specID)
+        // `id` and `specID` used to be hard-required (`try c.decode`, no fallback) - the one
+        // exception to how every other persisted struct in this save is written, the same
+        // class of fatal-decode bug already fixed in Quests.swift, Balance.swift,
+        // GameCenterService.swift, and LeagueState (see its own init(from:) for the fullest
+        // writeup). GameState decodes the roster via `(try? c.decode([OwnedManager].self, ...))
+        // ?? []`, which protects the rest of the save from a malformed element, but a manager
+        // missing either field still lost the ENTIRE roster instead of just that one entry. A
+        // fresh UUID for a missing id costs nothing - nothing coherent could already reference
+        // an id that was never there - and an unknown specID already resolves safely to the
+        // Trainee spec via `ManagerCatalog.spec`'s own `?? all[0]` fallback, so defaulting the
+        // raw string to `traineeID` here just makes the decode-time value match what `.spec`
+        // would already return.
+        id = try c.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        specID = try c.decodeIfPresent(String.self, forKey: .specID) ?? ManagerCatalog.traineeID
         // Saves from before this field existed have no record of how a manager was acquired.
         // Defaulting to false (coin-tier) is the conservative read: it means those managers
         // are swept on the player's very next prestige, same as this fix intends for anyone

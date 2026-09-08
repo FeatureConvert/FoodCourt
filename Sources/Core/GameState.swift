@@ -657,7 +657,13 @@ struct GameState: Codable, Equatable {
         timeOffset = try c.decodeIfPresent(TimeInterval.self, forKey: .timeOffset) ?? 0
 
         research = try c.decodeIfPresent([String: Int].self, forKey: .research) ?? [:]
-        managers = try c.decodeIfPresent([OwnedManager].self, forKey: .managers) ?? []
+        // `try?`, not decodeIfPresent: a malformed *element* inside an otherwise-present
+        // array throws a decode error, not a missing-key one, so decodeIfPresent alone
+        // wouldn't catch it. OwnedManager's own decoder no longer throws for a missing id or
+        // specID (see its init(from:)), but this stays as a second line of defense against
+        // the key holding a value of the wrong shape entirely - same reasoning as
+        // LeagueState.rivals.
+        managers = (try? c.decode([OwnedManager].self, forKey: .managers)) ?? []
         recipeCards = try c.decodeIfPresent([String: Int].self, forKey: .recipeCards) ?? [:]
         quests = try c.decodeIfPresent([ActiveQuest].self, forKey: .quests) ?? []
         questsClaimed = try c.decodeIfPresent(Int.self, forKey: .questsClaimed) ?? 0
