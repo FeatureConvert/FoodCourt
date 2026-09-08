@@ -39,7 +39,7 @@ with no matrix arithmetic left at runtime.
 | Elements | `path`, `circle`, `ellipse`, `rect` (incl. `rx`/`ry`), `line`, `polygon`, `polyline`, `g` |
 | Path data | `M m L l H h V v C c S s Q q T t A a Z z`, including elliptical arcs |
 | Transforms | `translate`, `scale`, `rotate` (incl. about a point), `skewX`, `skewY`, `matrix` |
-| Paint | `fill`, `stroke`, `stroke-width`, `opacity`, `fill-opacity`, `stroke-opacity`, `stroke-linecap`, `stroke-linejoin`, `fill-rule`/`clip-rule`, named + `#rgb` + `#rrggbb` + `rgb()` colours |
+| Paint | `fill`, `stroke`, `stroke-width`, `opacity`, `fill-opacity`, `stroke-opacity`, `stroke-linecap`, `stroke-linejoin`, `fill-rule`/`clip-rule`, `#rgb`/`#rrggbb`/`#rrggbbaa`, `rgb()`/`rgba()`, and ~25 named colours (anything else warns and falls back to black) |
 | Cascade | presentation attributes, inline `style="..."` (which wins), inherited through `<g>` |
 
 ### What it does not handle
@@ -114,12 +114,13 @@ Two supporting conventions:
 particle "respawns" because its progress wraps past 1.
 
 **It is a `Canvas`, not SpriteKit, and that was a reversal.** The first version used
-`SKEmitterNode`. Two things killed it: `SpriteView`'s backing stays opaque whatever you do to it
-(`.allowsTransparency` in its options, `isOpaque` and `backgroundColor` on the `SKView`,
-`backgroundColor` on the `SKScene`), so it painted a grey card over the room; and the budget
-never justified an engine anyway — this stage is ~374×168pt carrying about two dozen particles,
-while one queued customer already redraws ~40 paths. If a future effect genuinely needs
-thousands of particles, revisit it, but expect to solve the transparency problem first.
+`SKEmitterNode` and hit two problems. It would not composite — it painted an opaque grey card
+over the room, and none of `.allowsTransparency`, `SKView.isOpaque`, `SKView.backgroundColor` or
+`SKScene.backgroundColor` shifted it. (That is what was observed in this configuration, not proof
+transparent `SpriteView` can't work; assume it's findable if you return to it.) The second
+problem is the decisive one: the budget never justified an engine. Measured, this layer costs
+0.069ms/frame against 0.346ms for the six customers in front of it. If some future effect really
+does need thousands of particles, revisit — but two dozen soft circles is not that.
 
 ## Testing art
 
@@ -138,15 +139,29 @@ techniques, both already established:
 
 ## Sourcing art from outside
 
-If you ever do bring in external art, two findings from a survey of the Unity Asset Store and the
-CC0 ecosystem are worth recording:
+> **This is research, not legal advice, and it was not verified by a lawyer.** It came out of a
+> survey of the Unity Asset Store and the CC0 ecosystem done in one sitting. Treat it as a
+> starting point that tells you which questions to ask, not as clearance to ship anything. The
+> per-pack licence that ships *inside* the download always governs, and it can be stricter than
+> the storefront implies.
 
-- The **Unity Asset Store EULA is not engine-restricted** — §2.2.1(a) grants incorporation into
-  "an electronic application or digital media", and Unity's own support article confirms assets
-  are usable outside Unity. But the **Unity Companion License is**, and it covers most
-  Unity-published free sample content (Dragon Crashers, Happy Harvest, the official Particle
-  Pack). UCL content cannot ship in this app.
-- For unambiguous licences prefer **Kenney.nl** (CC0, ships SVG) and **game-icons.net** (CC BY
-  3.0, ~4,000 SVGs, strong prepared-food coverage — which is the one real gap in SF Symbols).
-  Anything CC BY needs an in-app acknowledgements screen naming creator, source, licence, and
-  the fact that it was modified.
+- **The Unity Asset Store EULA appears not to be engine-restricted.** §2.2.1(a) grants
+  incorporation into "an electronic application or digital media" — wording that does not
+  mention Unity — and Unity's own support article states assets are usable with other engines.
+  Both were read directly rather than taken second-hand. That said, "appears" is doing real work
+  here: it is a reading of contract text, not a ruling.
+- **The Unity Companion License is engine-restricted**, and this is the trap worth remembering,
+  because it disproportionately covers the *best* free content — Unity's own published samples.
+  UCL grants use only in connection with software built under a Unity engine licence, so it
+  cannot ship in a SwiftUI app. Check for it before getting attached to a pack.
+- **Prefer unambiguous licences for anything load-bearing.** Kenney.nl is CC0 and ships SVG;
+  game-icons.net is CC BY 3.0 with roughly 4,000 SVGs and good prepared-food coverage, which is
+  the one real gap in SF Symbols. CC0 asks nothing of you; CC BY needs an in-app
+  acknowledgements screen naming creator, source, licence, and that the work was modified.
+- **Screenshot the licence at download time**, and keep a `CREDITS.md` mapping each asset to
+  source, licence, URL and date. Free packs get delisted and terms get edited; the cheapest
+  insurance is evidence of what it said on the day.
+
+Worth weighing against all of the above: every attempt to find external art for this game
+concluded that the code-drawn system already in `Sources/UI/Art` was the better answer. Adopting
+outside art buys a licensing surface this project currently does not have at all.

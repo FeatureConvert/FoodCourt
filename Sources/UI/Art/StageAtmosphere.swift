@@ -3,13 +3,22 @@ import SwiftUI
 /// Atmosphere for the venue stage: steam off the line, and motes hanging in the overhead light.
 ///
 /// **Why this is a `Canvas` and not SpriteKit.** The obvious tool for particles is
-/// `SKEmitterNode`, and the first version of this file used one. It was the wrong call twice
-/// over. `SpriteView`'s backing stays opaque whatever you do to it - `.allowsTransparency` in
-/// its options, `isOpaque` and `backgroundColor` on the `SKView`, `backgroundColor` on the
-/// `SKScene` - so it painted a grey card over the room it was supposed to be floating in.
-/// And the budget never justified an engine anyway: this stage is ~374x168pt carrying about
-/// two dozen particles, while a single queued customer already redraws roughly forty filled
-/// and stroked paths. Next to the figures standing in front of it, this layer is rounding error.
+/// `SKEmitterNode`, and the first version of this file used one. Two things sank it.
+///
+/// It would not composite. Over the stage it painted an opaque grey card across the room it was
+/// meant to float in, and none of the usual remedies moved it: `.allowsTransparency` in
+/// `SpriteView`'s options, `isOpaque` and `backgroundColor` on the `SKView`, `backgroundColor`
+/// on the `SKScene`. Setting the scene background to red did not turn the card red either, so
+/// whatever was being drawn was not the scene. That is an observation about this configuration,
+/// not proof that transparent `SpriteView` is impossible - plenty of people use it - so if you
+/// come back to this, assume there is something findable rather than that it cannot work.
+///
+/// The second reason is the one that actually settles it: the budget never justified an engine.
+/// This stage is ~374x168pt carrying about two dozen particles, while a single queued customer
+/// already redraws roughly forty filled and stroked paths. Measured against an empty `Canvas` of
+/// the same size, this whole layer costs 0.069ms a frame against 0.346ms for the six customers
+/// standing in front of it (`StageAtmospherePerfTests`). Reaching for a render engine to draw
+/// two dozen soft circles would be the wrong trade even if transparency had worked first try.
 ///
 /// **No state, no allocation.** Every particle is a pure function of `(index, time)` - the same
 /// trick the idle bob uses. There is no array to mutate, nothing to spawn or reap, and no
