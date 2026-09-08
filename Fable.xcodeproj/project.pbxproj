@@ -29,6 +29,7 @@
 		30CFDD3FD5F954C521D0E0A2 /* OfflineEarnings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7222D4A6ECABE2F13FE32FAE /* OfflineEarnings.swift */; };
 		30F8A8CF61FE595A0EE1187A /* Quests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B34835D7F5A7622BB272E93 /* Quests.swift */; };
 		312921B8E3AE9A57B3E6EBF4 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E8833189801270C6E78D286 /* RootView.swift */; };
+		4316A9235C201DB1F03272C1 /* VenueSceneCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE67CDCE2C37B1E47F4F177 /* VenueSceneCoverageTests.swift */; };
 		46EF0E95E698953D1B5F9277 /* CustomerSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = B56026DD041F82FCAAF814D9 /* CustomerSprite.swift */; };
 		47C8E48D0CF365D21C3AF103 /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 90ADE33E20D3F2B41202C2A1 /* Products.storekit */; };
 		4B8908E4848CB4A490472FC5 /* IntroBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E521CF8AD39B5FE5F0B87D /* IntroBanner.swift */; };
@@ -166,6 +167,7 @@
 		89F2E53AB8B4FAF1BD409A44 /* CollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionView.swift; sourceTree = "<group>"; };
 		8A26A43CF2C4D9BBECE52A00 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		8B0191022A667BB5281A2549 /* CosmeticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CosmeticsView.swift; sourceTree = "<group>"; };
+		8BE67CDCE2C37B1E47F4F177 /* VenueSceneCoverageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueSceneCoverageTests.swift; sourceTree = "<group>"; };
 		90ADE33E20D3F2B41202C2A1 /* Products.storekit */ = {isa = PBXFileReference; path = Products.storekit; sourceTree = "<group>"; };
 		91FAA9E9B4F61C58F14C0EF5 /* GuestChef.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestChef.swift; sourceTree = "<group>"; };
 		97F978F2657BFE1A5089482A /* GameEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngine.swift; sourceTree = "<group>"; };
@@ -381,6 +383,7 @@
 				310E5B7EFC07EE9D237DF9B2 /* StageAtmospherePerfTests.swift */,
 				14E9FBAB04997C010D88507E /* StoreTests.swift */,
 				28BB845D19A7F52C212C6646 /* SyncAndSafetyTests.swift */,
+				8BE67CDCE2C37B1E47F4F177 /* VenueSceneCoverageTests.swift */,
 			);
 			path = FableTests;
 			sourceTree = "<group>";
@@ -504,6 +507,7 @@
 				080D0788A80A9C54148DAD0E /* StageAtmospherePerfTests.swift in Sources */,
 				EDC2E9F49F724833352C78C3 /* StoreTests.swift in Sources */,
 				74E97FC72D2BEEAC5AEF9B87 /* SyncAndSafetyTests.swift in Sources */,
+				4316A9235C201DB1F03272C1 /* VenueSceneCoverageTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

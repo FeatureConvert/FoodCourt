@@ -8,8 +8,12 @@ import SwiftUI
 /// be inserted at different depths in `VenueStageView` and still line up: they share one
 /// coordinate space, not one canvas.
 ///
-/// Rooms move onto this path one at a time (see `rebuilt`); anything not listed still draws
-/// through the original `VenuePropsView`, so a half-finished sweep never ships a blank room.
+/// **That sweep is finished** - all seven themes are in `rebuilt`, so every room draws here and
+/// the `VenuePropsView` fallback in `VenueStageView` is currently unreachable. It is kept rather
+/// than deleted because the dispatch below is `switch (theme, layer)` with a `default: break`,
+/// not an exhaustive switch: an eighth `VenueTheme` would compile silently and ship an empty
+/// room. The fallback is what turns that into "looks like the old art" instead of "looks
+/// broken", and `VenueSceneCoverageTests` is what makes it loud at build time.
 ///
 /// Motion is being reintroduced one loop and one room at a time now that the rest of the
 /// motion pass (queue bob, rarity rings, Golden sparkles) has shipped and held up on device -
