@@ -55,6 +55,24 @@ wrong geometry — flatten or expand these in the design tool before exporting.
   round in the tool rather than expecting the house style to be imposed.
 - **Outline colour.** Everything drawn here strokes itself with `#2B1D14` (`Theme.outline`).
 
+### Keeping the converter honest
+
+```bash
+./Scripts/test-svg2swift.sh
+```
+
+Golden-file test over two fixtures in `Scripts/svg2swift-fixtures/`, which between them exercise
+every feature the script's header claims — arcs, skew and matrix transforms, a viewBox with a
+non-zero origin, `rgb()`, even-odd fill, explicit caps and joins, and a stroke width that has to
+be scaled by its group's transform. Each was checked once by hand against an independent
+computation before being frozen.
+
+This exists because geometry breaks quietly: an arc that bulges the wrong way still produces
+valid Swift that compiles and renders. Nothing else covers the script — it's a dev tool, outside
+the app target, so the XCTest suite never touches it. Run it after any change to the converter;
+a diff means the geometry the game draws changed. `--update` accepts new output as the goldens,
+but read the diff first.
+
 ### After generating
 
 The generated file is a starting point, not a finished asset. Two edits are usually worth making

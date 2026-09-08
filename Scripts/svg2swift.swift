@@ -23,7 +23,10 @@
 //   path data   M m L l H h V v C c S s Q q T t A a Z z, including elliptical arcs
 //   transforms  translate, scale, rotate (incl. about a point), skewX, skewY, matrix
 //   paint       fill, stroke, stroke-width, opacity, fill-opacity, stroke-opacity,
-//               fill-rule / clip-rule (evenodd), named + #rgb + #rrggbb colours,
+//               stroke-linecap, stroke-linejoin, fill-rule / clip-rule (evenodd),
+//               #rgb / #rrggbb / #rrggbbaa, rgb() and rgba(), and the ~25 CSS named colours
+//               in `namedColors` - anything else warns and falls back to black rather than
+//               guessing, so an unexpected name is loud instead of silently wrong,
 //               presentation attributes and inline `style="..."`, inherited through <g>
 //
 // Transforms are baked into the emitted coordinates rather than reproduced as Swift, so the
