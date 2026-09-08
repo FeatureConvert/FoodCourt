@@ -36,9 +36,24 @@ final class ShopGrantTests: XCTestCase {
 
     // MARK: helpers
 
+    /// A product currently on sale.
     private func item(_ reward: ShopReward) throws -> ShopItem {
         try XCTUnwrap(ShopCatalog.all.first { $0.reward == reward },
                       "no catalog item rewards \(reward) - the catalog and ShopReward have drifted")
+    }
+
+    /// A product that has been withdrawn from sale but whose grant is still live.
+    ///
+    /// The Grand Opening Bundle and the Founder's Bundle were cut when the catalog was trimmed
+    /// from 17 products to 12, so `ShopCatalog` no longer lists them - but `grant` still handles
+    /// both, and it has to: `refreshEntitlements()` re-delivers non-consumables on every launch,
+    /// so anyone who bought one *before* it was withdrawn still has that transaction replayed at
+    /// them for the life of the install. Their `firstTime` guards are therefore still load-bearing
+    /// for real players, and are exactly the code least likely to be exercised by hand again.
+    /// Built here rather than looked up, since there is no catalog entry left to find.
+    private func retiredItem(_ reward: ShopReward, id: String) -> ShopItem {
+        ShopItem(id: id, title: "retired", subtitle: "", reward: reward,
+                 fallbackPrice: "", badge: nil, magnitude: 0)
     }
 
     private func boosts(id: String) -> Int {
@@ -89,7 +104,7 @@ final class ShopGrantTests: XCTestCase {
     /// Same guard, and the one whose comment in `grant` spells out the failure: 1,500 gems and a
     /// fresh 72h boost on every relaunch forever.
     func testGrandOpeningBundleContentsLandExactlyOnceAcrossRedelivery() throws {
-        let bundle = try item(.grandOpeningBundle)
+        let bundle = retiredItem(.grandOpeningBundle, id: "com.fable.foodcourt.grandopening")
         let gemsBefore = engine.state.gems
 
         store.grantForTesting(bundle)
@@ -109,7 +124,7 @@ final class ShopGrantTests: XCTestCase {
     /// The most expensive one to get wrong: 12,000 gems, two legendary managers and a week-long
     /// x2, every launch.
     func testFoundersBundleContentsLandExactlyOnceAcrossRedelivery() throws {
-        let founders = try item(.foundersBundle)
+        let founders = retiredItem(.foundersBundle, id: "com.fable.foodcourt.founders")
         let gemsBefore = engine.state.gems
         let rosterBefore = engine.state.managers.count
 
