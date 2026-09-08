@@ -6,24 +6,30 @@ import StoreKitTest
 /// purchase, grant, finish, and restore flow is verified without App Store Connect.
 ///
 /// These only run when a StoreKit test environment is actually active, which the `XCTSkipIf`
-/// in `setUp` checks for by seeing whether any products loaded.
+/// in `setUp` checks for by seeing whether any products loaded. **Run them from Xcode
+/// (Product > Test) to exercise purchases for real.**
 ///
-/// **That skip no longer fires on the command line, and these tests are currently flaky there.**
-/// This comment used to say `xcodebuild test` never applies the scheme's StoreKit configuration,
-/// so CLI runs always skipped. That stopped being true once `Fable.xctestplan` gained a
-/// `storeKitConfigurationFileReference` and `Scripts/generate.sh` began patching the same
-/// reference into the scheme's Test action - both deliberate, and between them the products now
-/// load fine from the CLI. So the tests run, and `SKTestSession` turns out to be unreliable
-/// under `xcodebuild test`: a *different* case fails on each run, individual cases take 2-3
-/// minutes, and the log fills with `SKInternalErrorDomain Code=3` ("Error deleting all
-/// transactions", "Error clearing overrides") and occasionally "Simulator device failed to
-/// launch". When it fails this way no transaction is vended at all - the observed failure is
-/// gems staying at their starting 25 rather than landing on a wrong number - so it presents as
-/// a harness fault, not a grant-path bug. Verified to reproduce identically on a clean checkout
-/// of `84a0169` with no local changes, so it is not a regression.
+/// On a freshly booted simulator, `xcodebuild test` does not apply the StoreKit configuration:
+/// the products come back empty and all twelve tests skip rather than reporting a false failure.
+/// That is the intended behaviour, and it means a CLI run gives you no IAP coverage at all -
+/// a green `xcodebuild test` says nothing about the purchase path. Note this holds *despite*
+/// `Fable.xctestplan` carrying a `storeKitConfigurationFileReference` and
+/// `Scripts/generate.sh` patching the same reference into the scheme's Test action; neither is
+/// sufficient on its own, so don't assume from the build config that these are running.
 ///
-/// Running them from Xcode (Product > Test) remains the reliable path. Until the CLI story is
-/// sorted, `xcodebuild test -skip-testing:FableTests/StoreTests` is green; the full suite is not.
+/// **The failure mode worth knowing about is the in-between state.** If the simulator's StoreKit
+/// daemon has been primed by earlier activity in the same boot - repeated installs, launches and
+/// test runs will do it - then products *do* resolve, the skip does not fire, and these tests run
+/// against a half-configured session. In that state `SKTestSession` is unreliable: a *different*
+/// case fails on each run, cases take two to three minutes, and the log fills with
+/// `SKInternalErrorDomain Code=3` ("Error deleting all transactions", "Error clearing
+/// overrides"). It is a harness fault rather than a grant-path bug - no transaction is vended at
+/// all, so the observed failure is gems sitting at their starting 25 rather than landing on a
+/// wrong number. Reproduced identically on a clean checkout of `84a0169`, so it is not a
+/// regression in the app. Shutting the simulator down and booting it again restores the clean
+/// skip behaviour.
+///
+/// So: a red StoreTests on CLI means the simulator needs restarting, not that the store broke.
 @MainActor
 final class StoreTests: XCTestCase {
 
