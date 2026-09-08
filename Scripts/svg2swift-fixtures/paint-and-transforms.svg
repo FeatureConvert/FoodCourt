@@ -21,4 +21,10 @@
   <rect x="28" y="105" width="14" height="8" fill="#11223344"/>
   <rect x="46" y="105" width="14" height="8" fill="rgba(0,0,0,0.8)" fill-opacity="0.5"/>
   <rect x="64" y="105" width="14" height="8" fill="none" stroke="rgba(0,128,0,0.4)" stroke-width="2"/>
+  <!-- hidden layers must not draw; dashes must survive as a dash pattern -->
+  <rect x="10" y="118" width="12" height="6" fill="red" display="none"/>
+  <rect x="26" y="118" width="12" height="6" fill="red" visibility="hidden"/>
+  <g display="none"><rect x="42" y="118" width="12" height="6" fill="red"/></g>
+  <line x1="58" y1="121" x2="100" y2="121" stroke="navy" stroke-width="2"
+        stroke-dasharray="5 3" stroke-dashoffset="1"/>
 </svg>

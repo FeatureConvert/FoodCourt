@@ -22,7 +22,11 @@
 //   elements    path, circle, ellipse, rect (incl. rx/ry), line, polygon, polyline, g
 //   path data   M m L l H h V v C c S s Q q T t A a Z z, including elliptical arcs
 //   transforms  translate, scale, rotate (incl. about a point), skewX, skewY, matrix
-//   paint       fill, stroke, stroke-width, opacity, fill-opacity, stroke-opacity,
+//   visibility  display="none" and visibility="hidden" skip the element and its subtree -
+//               design tools emit these for switched-off layers, so drawing them anyway is how
+//               a designer's hidden scaffolding ends up shipping
+//   paint       fill, stroke, stroke-width, stroke-dasharray, stroke-dashoffset,
+//               opacity, fill-opacity, stroke-opacity,
 //               stroke-linecap, stroke-linejoin, fill-rule / clip-rule (evenodd),
 //               #rgb / #rrggbb / #rrggbbaa, rgb() and rgba() - alpha carried by the colour
 //               itself is multiplied into the emitted opacity, not dropped, and composes with
@@ -35,7 +39,8 @@
 // output is a flat list of paths with no matrix arithmetic left at runtime.
 //
 // WHAT IT DOES NOT SUPPORT - it warns on stderr and skips, rather than emitting silently wrong
-// geometry: gradients and patterns (`fill="url(#...)"`), clipPath, mask, filter, text, and
+// geometry: gradients and patterns (`fill="url(#...)"`), clipPath and the clip-path
+// attribute, mask, filter, text, and
 // <use>/<defs> instancing. Flatten or expand those in the design tool before exporting.
 //
 import Foundation
@@ -107,6 +112,9 @@ struct Paint {
     /// output faithful - set round caps in the design tool and they come through.
     var lineCap = "butt"
     var lineJoin = "miter"
+    /// `stroke-dasharray` in user units, and `stroke-dashoffset`. Empty means a solid stroke.
+    var dash: [Double] = []
+    var dashOffset = 0.0
     /// The transform scale in force where the element was declared. Geometry is baked, so the
     /// stroke width has to be too, or a scaled group's outline comes out the wrong weight.
     var strokeScale = 1.0
@@ -595,6 +603,16 @@ final class SVGParser: NSObject, XMLParserDelegate {
         if let value = declarations["stroke-linejoin"] {
             paint.lineJoin = value.trimmingCharacters(in: .whitespaces)
         }
+        if let value = declarations["stroke-dasharray"] {
+            let trimmed = value.trimmingCharacters(in: .whitespaces)
+            paint.dash = trimmed == "none" ? [] :
+                trimmed.split(whereSeparator: { $0 == "," || $0 == " " }).compactMap { Double($0) }
+        }
+        if let value = length(declarations["stroke-dashoffset"]) { paint.dashOffset = value }
+        if declarations["clip-path"] != nil {
+            warn("clip-path is not supported - that shape will draw unclipped; "
+                 + "flatten the clip in the design tool")
+        }
         if let rule = declarations["fill-rule"] ?? declarations["clip-rule"] {
             paint.evenOdd = rule.trimmingCharacters(in: .whitespaces) == "evenodd"
         }
@@ -606,6 +624,21 @@ final class SVGParser: NSObject, XMLParserDelegate {
                 attributes attrs: [String: String] = [:]) {
 
         if skipDepth > 0 { skipDepth += 1; return }
+
+        // Hidden in the design tool. Figma and Illustrator emit `display="none"` for every
+        // switched-off layer, so without this a designer's hidden scaffolding ships in the game
+        // - silently, since the geometry is perfectly valid. Skipping the whole subtree is exact
+        // for `display`; for `visibility` it is very slightly over-broad, because a descendant
+        // could set `visibility="visible"` to reappear. That is rare enough to be worth the
+        // simpler rule, and erring toward not drawing a thing the designer hid is the safer side.
+        let style = attrs["style"]?.lowercased() ?? ""
+        let hidden = attrs["display"]?.trimmingCharacters(in: .whitespaces) == "none"
+            || attrs["visibility"]?.trimmingCharacters(in: .whitespaces) == "hidden"
+            || style.contains("display:none") || style.contains("visibility:hidden")
+        if hidden {
+            skipDepth = 1
+            return
+        }
 
         let unsupportedContainers = ["defs", "clippath", "mask", "filter", "text", "pattern",
                                      "lineargradient", "radialgradient", "symbol"]
@@ -855,7 +888,18 @@ for (index, shape) in delegate.shapes.enumerated() {
         let cap = ["butt": "butt", "round": "round", "square": "square"][shape.paint.lineCap] ?? "butt"
         let join = ["miter": "miter", "round": "round", "bevel": "bevel"][shape.paint.lineJoin] ?? "miter"
         out.append("            context.stroke(shape\(index), with: .color(\(color)),")
-        out.append("                           style: StrokeStyle(lineWidth: w(\(number(width))), lineCap: .\(cap), lineJoin: .\(join)))")
+        if shape.paint.dash.isEmpty {
+            out.append("                           style: StrokeStyle(lineWidth: w(\(number(width))), lineCap: .\(cap), lineJoin: .\(join)))")
+        } else {
+            // Dash lengths are geometry, so they scale with the frame exactly like coordinates
+            // do - emitted through `w()` rather than frozen at the authored size.
+            let pattern = shape.paint.dash
+                .map { "w(\(number($0 * shape.paint.strokeScale)))" }
+                .joined(separator: ", ")
+            let phase = shape.paint.dashOffset * shape.paint.strokeScale
+            out.append("                           style: StrokeStyle(lineWidth: w(\(number(width))), lineCap: .\(cap), lineJoin: .\(join),")
+            out.append("                                              dash: [\(pattern)], dashPhase: w(\(number(phase)))))")
+        }
     }
 }
 

@@ -169,6 +169,15 @@ struct PaintFixtureArt: View {
             }
             context.stroke(shape13, with: .color(Color(hex: "#008000").opacity(0.4)),
                            style: StrokeStyle(lineWidth: w(2), lineCap: .butt, lineJoin: .miter))
+
+            // 15. line
+            let shape14 = shape {
+                $0.move(to: p(58, 121))
+                $0.addLine(to: p(100, 121))
+            }
+            context.stroke(shape14, with: .color(Color(hex: "#000080")),
+                           style: StrokeStyle(lineWidth: w(2), lineCap: .butt, lineJoin: .miter,
+                                              dash: [w(5), w(3)], dashPhase: w(1)))
         }
         .accessibilityHidden(true)
     }

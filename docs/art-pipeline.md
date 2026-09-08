@@ -41,6 +41,8 @@ with no matrix arithmetic left at runtime.
 | Transforms | `translate`, `scale`, `rotate` (incl. about a point), `skewX`, `skewY`, `matrix` |
 | Paint | `fill`, `stroke`, `stroke-width`, `opacity`, `fill-opacity`, `stroke-opacity`, `stroke-linecap`, `stroke-linejoin`, `fill-rule`/`clip-rule`, `#rgb`/`#rrggbb`/`#rrggbbaa`, `rgb()`/`rgba()` (colour-carried alpha composes with the opacity attributes rather than being dropped), and ~25 named colours (anything else warns and falls back to black) |
 | Cascade | presentation attributes, inline `style="..."` (which wins), inherited through `<g>` |
+| Visibility | `display="none"` / `visibility="hidden"` skip the element and its subtree — design tools emit these for switched-off layers |
+| Dashes | `stroke-dasharray` / `stroke-dashoffset`, scaled with the frame like any other geometry |
 
 ### What it does not handle
 
