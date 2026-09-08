@@ -774,7 +774,21 @@ final class GameEngine: ObservableObject {
             guard state.coins >= cost else { return false }
             state.coins -= cost
         }
-        state.hire(specID: ManagerCatalog.traineeID, venue: venue, station: index, premium: premium)
+        // The fee above pays to open the station, not to manufacture a person - so an
+        // ordinary hire reuses an idle Trainee already on the bench before minting a new
+        // one. Without this, every "Hire" tap created a fresh Trainee even while others sat
+        // idle, and across a full 7-venue roster that grows into dozens of interchangeable
+        // commons with no way back out (see `dismissIdleTrainees`, the cleanup for whatever
+        // had already piled up before this existed). A premium hire (gem-rushed) always gets
+        // a genuinely new one instead: reusing an existing non-premium Trainee and just
+        // flipping it to premium would upgrade it to prestige-proof for free.
+        if !premium, let reused = state.unassignedManagers.first(where: {
+            !$0.premium && $0.specID == ManagerCatalog.traineeID
+        }) {
+            state.assign(managerID: reused.id, venue: venue, station: index)
+        } else {
+            state.hire(specID: ManagerCatalog.traineeID, venue: venue, station: index, premium: premium)
+        }
         advanceQuests(kind: .hire, to: Double(state.assignedManagerCount))
         // The free first-manager hire (see eligibleForFreeFirstManager) has no prerequisite -
         // a player can claim it before ever tapping or buying a level. When they do, the
@@ -880,6 +894,54 @@ final class GameEngine: ObservableObject {
         }
         return assigned
     }
+
+    /// How many managers `dismissIdleTrainees()` would let go right now - a benched, coin-hired
+    /// Trainee. `premium` is false only for that ordinary coin hire (`hireManager`); every named
+    /// or reward-granted manager passes `premium: true` at creation, so this can never catch
+    /// anyone the player would recognize by name.
+    var idleTraineeCount: Int {
+        state.unassignedManagers.filter { !$0.premium }.count
+    }
+
+    /// Lets go of one benched, non-premium manager, freeing the roster slot for good. Only
+    /// offered while benched, so a currently-earning manager can't be fired by mistake, and
+    /// this is the same survivor rule `prestige()` already applies to the whole roster
+    /// (`state.managers.removeAll { !$0.premium }`) - here it's just one manager, on request,
+    /// instead of all of them, on a reset.
+    @discardableResult
+    func dismissManager(id: String) -> Bool {
+        guard state.unassignedManagers.contains(where: { $0.id == id && !$0.premium }) else { return false }
+        state.managers.removeAll { $0.id == id }
+        return true
+    }
+
+    /// Clears the whole backlog of idle Trainees at once - the "Auto-Assign Bench" button's
+    /// counterpart for a roster that has grown past what any station can use. Returns how many
+    /// were let go, for the toast.
+    @discardableResult
+    func dismissIdleTrainees() -> Int {
+        let ids = Set(state.unassignedManagers.filter { !$0.premium }.map(\.id))
+        guard !ids.isEmpty else { return 0 }
+        state.managers.removeAll { ids.contains($0.id) }
+        return ids.count
+    }
+
+    #if DEBUG
+    /// Test seam for `ManagerDismissalTests` - adds a manager straight to the roster, bypassing
+    /// hire cost and the one-time free-first-manager gate, so a test can shape an arbitrary
+    /// roster (idle, premium, assigned) without first having to fund it through the real
+    /// economy. Assigning goes through `GameState.hire`, which places for free the same way
+    /// `GameEngine.assign`'s own fee only applies to a station's first-ever staffing - this
+    /// seam always treats it as already staffed.
+    @discardableResult
+    func addManagerForTesting(specID: String = ManagerCatalog.traineeID, premium: Bool = false,
+                              assignedTo station: Int? = nil) -> OwnedManager {
+        if let station {
+            return state.hire(specID: specID, venue: state.currentVenue, station: station, premium: premium)
+        }
+        return state.recruit(specID: specID, premium: premium)
+    }
+    #endif
 
     /// Adds staff from a reward source and reports who turned up. Always premium - these are
     /// rare, one-off grants (festival, league, IAP), never the coin-grind staffing loop.

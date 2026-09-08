@@ -807,6 +807,7 @@ enum IntroKey {
     static let autoAssignStaff = "autoAssignStaff"
     static let claimAllFestivalIntro = "claimAllFestivalIntro"
     static let buyAllResearch = "buyAllResearch"
+    static let dismissIdleTrainees = "dismissIdleTrainees"
 
     static let allKeys: [String] = [
         welcome, prestige, legacy, perks, research, league, festival, staff, recipes, errands,
@@ -815,6 +816,6 @@ enum IntroKey {
         crewsUnlockToast, faceOffsUnlockToast, gauntletUnlockToast, toolsUnlockToast,
         tutorialDone, venueNudge,
         claimAllQuests, claimAllAchievements, claimAllErrandsIntro, autoAssignStaff,
-        claimAllFestivalIntro, buyAllResearch,
+        claimAllFestivalIntro, buyAllResearch, dismissIdleTrainees,
     ]
 }

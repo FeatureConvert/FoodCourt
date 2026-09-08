@@ -80,6 +80,16 @@ private struct StaffSection: View {
             autoAssignButton
         }
 
+        // Trainees are the one manager type that's free to replace, so a big idle backlog
+        // is pure clutter rather than banked value - this is the bulk version of the "Let
+        // Go" menu item on each row below.
+        if engine.idleTraineeCount > 1 {
+            IntroBanner(key: IntroKey.dismissIdleTrainees, symbol: "person.fill.xmark",
+                        title: "Trim a crowded bench",
+                        detail: "Coin-hired Trainees pile up fast across a big roster. Letting one go frees the roster slot for good - hiring a fresh one later costs the same as it always did.")
+            dismissIdleTraineesButton
+        }
+
         if engine.state.managers.isEmpty {
             emptyState
         } else {
@@ -108,6 +118,25 @@ private struct StaffSection: View {
             .padding(.vertical, 10)
         }
         .buttonStyle(ChunkyButtonStyle(fill: Theme.positive, shadow: Theme.positive.opacity(0.5), radius: 12))
+    }
+
+    private var dismissIdleTraineesButton: some View {
+        Button {
+            let dismissed = engine.dismissIdleTrainees()
+            guard dismissed > 0 else { return }
+            Haptics.thud()
+            sound.play(.tap)
+            onToast("Let go of \(Format.plural(dismissed, "Trainee"))")
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "person.fill.xmark")
+                Text("Let Go of Idle Trainees (\(engine.idleTraineeCount))")
+            }
+            .font(Theme.body(13, weight: .black))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
+        .buttonStyle(ChunkyButtonStyle(fill: Theme.negative, shadow: Theme.negative.opacity(0.5), radius: 12))
     }
 
     /// Every crew, with its live status in the CURRENT venue - assembled crews glow, the
@@ -232,12 +261,14 @@ private struct StaffSection: View {
     }
 
     /// Best staff first - the player cares about their legendaries, not their trainees.
+    /// Rarity is the primary key; bench status only breaks ties within the same rarity, so
+    /// an idle Legendary still outranks a working Common instead of sinking below them.
     private var sortedManagers: [OwnedManager] {
         let benched = Set(engine.state.unassignedManagers.map(\.id))
         return engine.state.managers.sorted { a, b in
+            if a.spec.rarity != b.spec.rarity { return a.spec.rarity > b.spec.rarity }
             let aBenched = benched.contains(a.id), bBenched = benched.contains(b.id)
             if aBenched != bBenched { return aBenched && !bBenched }
-            if a.spec.rarity != b.spec.rarity { return a.spec.rarity > b.spec.rarity }
             return a.name < b.name
         }
     }
@@ -323,6 +354,16 @@ private struct StaffSection: View {
                         if let placement {
                             engine.assign(managerID: nil, venue: placement.venue, station: placement.station)
                             onToast("\(manager.name) is on the bench")
+                        }
+                    }
+                } else if !manager.premium {
+                    // Only reachable for a benched, non-premium manager - in practice always
+                    // a coin-hired Trainee, since every named or reward hire is premium. See
+                    // `GameEngine.dismissManager`.
+                    Divider()
+                    Button("Let Go", role: .destructive) {
+                        if engine.dismissManager(id: manager.id) {
+                            onToast("\(manager.name) has left the roster")
                         }
                     }
                 }
