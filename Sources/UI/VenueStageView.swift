@@ -151,17 +151,34 @@ struct CustomerQueueView: View {
     @State private var nextSeed = 1
     @State private var lastRotation = Date.distantPast
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private var capacity: Int { max(3, min(6, Int(width / 58))) }
+
+    /// How a customer arrives and how they leave once served.
+    ///
+    /// Being served is the single moment this whole screen exists to deliver, and it used to
+    /// read as the opposite: the figure shrank to 0.6 and faded, which is the visual language
+    /// of something being dismissed or cancelled. Leaving now lifts and grows slightly as it
+    /// fades, so the beat resolves upward - the same direction the coin burst and the floating
+    /// payout already travel, so the three read as one event rather than three.
+    private var queueTransition: AnyTransition {
+        // Reduce-motion keeps the change legible without moving anything across the screen -
+        // a cross-fade still tells you the queue advanced.
+        guard !reduceMotion else { return .opacity }
+        return .asymmetric(
+            insertion: .move(edge: .leading).combined(with: .opacity),
+            removal: .offset(y: -16)
+                .combined(with: .scale(scale: 1.12))
+                .combined(with: .opacity))
+    }
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 6) {
             ForEach(seeds, id: \.self) { seed in
                 BobbingSprite(seed: seed)
                     .frame(width: 44, height: 62)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .leading).combined(with: .opacity),
-                        removal: .scale(scale: 0.6).combined(with: .opacity)
-                    ))
+                    .transition(queueTransition)
             }
             Spacer(minLength: 0)
         }
