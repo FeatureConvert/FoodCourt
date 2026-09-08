@@ -60,9 +60,17 @@ struct CoinBurstView: View {
         ZStack {
             ForEach(Array(particles.enumerated()), id: \.offset) { _, particle in
                 let local = max(0, min(1, (progress - particle.delay) / (1 - particle.delay)))
+                // Position gets a head start rather than launching from the exact anchor -
+                // seven particles sitting at (0, 0) with only their size differing renders as
+                // a stacked smudge, not a burst. That instant is meant to last one frame, but
+                // a station whose cycle outruns this animation's 0.9s duration (any speed
+                // bonus stacked on top of a base cycle this short) retriggers the burst before
+                // the last one disperses, so the pre-departure frame is what actually shows
+                // most of the time instead of a flash too brief to notice.
+                let spread = max(local, 0.18)
                 CoinSparkleView()
                     .frame(width: particle.size, height: particle.size)
-                    .offset(x: particle.dx * local, y: -particle.dy * local)
+                    .offset(x: particle.dx * spread, y: -particle.dy * spread)
                     .opacity(Double(1 - local))
                     .scaleEffect(0.6 + 0.4 * local)
             }
