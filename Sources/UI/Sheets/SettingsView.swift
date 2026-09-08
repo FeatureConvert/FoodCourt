@@ -21,7 +21,13 @@ struct SettingsView: View {
             SectionLabel(text: "Progress")
             VStack(spacing: 0) {
                 row("Lifetime earnings", Format.currency(engine.state.lifetimeEarnings))
-                row("Franchise stars", Format.count(engine.state.stars))
+                // Lifetime, not spendable - matches the same "Franchise stars" label in
+                // CloudConflictView. `state.stars` is the current balance, which drops every
+                // time research is bought; showing it here made a player who'd spent any
+                // stars see a much smaller number than the identically-labeled row elsewhere,
+                // right next to "Lifetime earnings" (a stat that only ever goes up) - easy to
+                // misread as lost progress.
+                row("Franchise stars", Format.count(engine.state.lifetimeStars))
                 row("Venues open", "\(engine.state.venues.filter(\.self.unlocked).count) of \(Balance.venues.count)")
                 row("Offline cap", "\(Format.trim(engine.state.offlineCapHours))h")
                 row("Ads shown", "0")
