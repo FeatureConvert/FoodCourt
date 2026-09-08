@@ -282,6 +282,24 @@ final class StoreService: ObservableObject {
         await transaction.finish()
     }
 
+    #if DEBUG
+    /// Test seam for `ShopGrantTests`.
+    ///
+    /// `StoreTests` can only run from Xcode: `xcodebuild test` never routes product queries to
+    /// the StoreKit test session, so on the command line every purchase test skips and the whole
+    /// path is unverified (the reasoning is written up in `StoreTests`). But almost everything
+    /// those tests actually assert is `GameEngine` state *after* a grant, not StoreKit's own
+    /// behaviour - and that half needs no StoreKit at all.
+    ///
+    /// This exposes the grant so it can be driven from any runner. It matters most for the
+    /// re-delivery guards: `refreshEntitlements()` re-delivers every non-consumable on each
+    /// launch, so a broken `firstTime` check does not fail loudly - it quietly hands out gems,
+    /// managers and boosts again on every relaunch, forever.
+    ///
+    /// DEBUG-only, and `announce: false` so it never touches the `lastGrant` banner state.
+    func grantForTesting(_ item: ShopItem) { grant(item, announce: false) }
+    #endif
+
     private func grant(_ item: ShopItem, announce: Bool) {
         guard let engine else { return }
         switch item.reward {

@@ -33,6 +33,7 @@
 		47C8E48D0CF365D21C3AF103 /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 90ADE33E20D3F2B41202C2A1 /* Products.storekit */; };
 		4B8908E4848CB4A490472FC5 /* IntroBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E521CF8AD39B5FE5F0B87D /* IntroBanner.swift */; };
 		4BF88D6EA3891724BF93EF61 /* SegmentedTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11ACEF22BC7C73E72DBDB0A6 /* SegmentedTabs.swift */; };
+		4F65023735E6A07B4916908E /* ShopGrantTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC5E08989A50DB319907013 /* ShopGrantTests.swift */; };
 		55196DF6AE0A21FE698DC391 /* EarlyGamePacingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE66E710F8BF24D2B3AE223B /* EarlyGamePacingTests.swift */; };
 		56BD95ED366A8F35E3D7BDEF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F09D63C291B04A5F9057BC6 /* SettingsView.swift */; };
 		58B4D9A595DA981E15FFF05E /* CosmeticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B0191022A667BB5281A2549 /* CosmeticsView.swift */; };
@@ -185,6 +186,7 @@
 		C1D05DA06D8F0FB494659C71 /* Fable.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Fable.entitlements; sourceTree = "<group>"; };
 		C4DB0CF77A65C39F0CC2BDBE /* GameRandom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameRandom.swift; sourceTree = "<group>"; };
 		C98DAA3BB768AFFC8E2F1073 /* SoundService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundService.swift; sourceTree = "<group>"; };
+		CAC5E08989A50DB319907013 /* ShopGrantTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopGrantTests.swift; sourceTree = "<group>"; };
 		CE66E710F8BF24D2B3AE223B /* EarlyGamePacingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarlyGamePacingTests.swift; sourceTree = "<group>"; };
 		D4F2EB0B4C5701B9F89C4497 /* FeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureTests.swift; sourceTree = "<group>"; };
 		D6110EAE66DAA23544163D60 /* ShopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopView.swift; sourceTree = "<group>"; };
@@ -372,6 +374,7 @@
 				B88F0500C02E9FEF53B3FBA4 /* MigrationTests.swift */,
 				98832890EF948F62445F2C19 /* PrestigeScalingTests.swift */,
 				ED78409947694A96FF745DF8 /* ProgressionTests.swift */,
+				CAC5E08989A50DB319907013 /* ShopGrantTests.swift */,
 				0CD20B6F5A66BCC6AC360C61 /* SoundServiceTests.swift */,
 				31A5387EB7E873CA622EDEB2 /* SpriteBlinkTests.swift */,
 				9AB2CA10EC227D58DEE2D0F1 /* SpriteSeedTests.swift */,
@@ -494,6 +497,7 @@
 				7E8B6006600CE8650FE12398 /* MigrationTests.swift in Sources */,
 				B72891DDF5E5C05C5CE15B2A /* PrestigeScalingTests.swift in Sources */,
 				1AF5363324B986459614ECC8 /* ProgressionTests.swift in Sources */,
+				4F65023735E6A07B4916908E /* ShopGrantTests.swift in Sources */,
 				659855CFDE9511A6C6B9AE2E /* SoundServiceTests.swift in Sources */,
 				EDCAD0F85D75F30D2127B628 /* SpriteBlinkTests.swift in Sources */,
 				C79EE37AF0F5CD7AAEF2A540 /* SpriteSeedTests.swift in Sources */,
