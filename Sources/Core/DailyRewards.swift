@@ -74,7 +74,19 @@ enum DailyRewards {
         if gap == 1 {
             return .available(day: min(state.daily.currentDay, cycleLength))
         }
-        // Missed a day: the streak restarts from the beginning.
+        // A Streak Freeze is sold as forgiving "exactly one missed day" - that has to mean
+        // the 7-day reward cycle the player actually sees and taps through, not just the
+        // separate `streakLength` milestone counter `updateStreak` already protects below.
+        // Without this, a freeze silently bought back nothing but the invisible counter: the
+        // visible calendar still dropped a player one day from the grand reward back to
+        // Day 1, while still charging the gem cost and consuming the freeze on claim.
+        // Consumption stays owned by `updateStreak` (only reached via `claim`, not every
+        // status() read) - this just has to agree with it on which day the cycle is on, so
+        // claiming right after a forgiven miss doesn't undo what the freeze just bought.
+        if gap == 2, state.daily.streakFreezes > 0 {
+            return .available(day: min(state.daily.currentDay, cycleLength))
+        }
+        // Missed a day with no freeze in stock: the streak restarts from the beginning.
         return .available(day: 1)
     }
 

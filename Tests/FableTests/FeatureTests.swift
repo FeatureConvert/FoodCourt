@@ -1673,6 +1673,25 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(state.daily.streakFreezes, 0, "and be consumed in the process")
     }
 
+    /// A Streak Freeze is sold as forgiving "exactly one missed day" - that has to mean the
+    /// 7-day reward cycle the player actually taps through, not just the invisible
+    /// `streakLength` counter the sibling test above already covers. Before this fix, a
+    /// freeze consumed itself and preserved `streakLength` while still silently dropping the
+    /// visible calendar back to Day 1 - the exact thing it was bought to prevent.
+    func testMissedDayWithFreezeAlsoForgivesTheSevenDayCycle() {
+        var state = GameState.newGame()
+        state.daily.streakFreezes = 1
+        let day1 = Date()
+        _ = DailyRewards.claim(state: &state, now: day1)
+        XCTAssertEqual(state.daily.currentDay, 2, "day 1 claimed, day 2 should be up next")
+
+        let day3 = Calendar.current.date(byAdding: .day, value: 2, to: day1)! // day 2 skipped
+        let payout = DailyRewards.claim(state: &state, now: day3)
+
+        XCTAssertEqual(payout?.gems, 10, "day 2's own reward, not day 1's, since the miss was forgiven")
+        XCTAssertEqual(state.daily.currentDay, 3, "the cycle should advance past the forgiven day, not restart")
+    }
+
     @MainActor
     func testStreakMilestoneClaimsOncePastLength() {
         var state = GameState.newGame()
