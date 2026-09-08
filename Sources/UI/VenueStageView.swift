@@ -256,8 +256,18 @@ private struct BobbingSprite: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Rolled once per figure rather than per frame - the wardrobe draw behind it walks a
-    /// seeded RNG through a dozen steps, which is not work to repeat 30 times a second.
-    private var blinkLook: SpriteBlinkLook { SpriteBlinkLook(seed: seed, variant: .customer) }
+    /// seeded RNG through a dozen steps, which is not work to repeat 30 times a second. Was a
+    /// computed property read from inside the 30Hz TimelineView closure below, which silently
+    /// did exactly that on every tick for every visible customer - `equatable()` on
+    /// `BlinkOverlay` caught the resulting value before it caused an extra redraw, so nothing
+    /// was ever visibly wrong, but the RNG walk itself still ran 30 times a second regardless.
+    /// A stored `let`, computed once at init, actually delivers what this comment claims.
+    private let blinkLook: SpriteBlinkLook
+
+    init(seed: Int) {
+        self.seed = seed
+        self.blinkLook = SpriteBlinkLook(seed: seed, variant: .customer)
+    }
 
     var body: some View {
         if reduceMotion {

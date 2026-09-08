@@ -702,7 +702,16 @@ struct BlinkingSprite: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var blinkLook: SpriteBlinkLook { SpriteBlinkLook(seed: seed, variant: variant) }
+    /// Rolled once per figure rather than per frame - see `BobbingSprite`'s identical fix in
+    /// VenueStageView.swift for the full reasoning. A computed property read from inside the
+    /// 30Hz TimelineView closure below silently re-rolled this every tick instead.
+    private let blinkLook: SpriteBlinkLook
+
+    init(seed: Int, variant: SpriteVariant = .customer) {
+        self.seed = seed
+        self.variant = variant
+        self.blinkLook = SpriteBlinkLook(seed: seed, variant: variant)
+    }
 
     var body: some View {
         if reduceMotion {
