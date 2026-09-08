@@ -9,13 +9,29 @@ import StoreKitTest
 /// in `setUp` checks for by seeing whether any products loaded. **Run them from Xcode
 /// (Product > Test) to exercise purchases for real.**
 ///
-/// On a freshly booted simulator, `xcodebuild test` does not apply the StoreKit configuration:
-/// the products come back empty and all twelve tests skip rather than reporting a false failure.
-/// That is the intended behaviour, and it means a CLI run gives you no IAP coverage at all -
-/// a green `xcodebuild test` says nothing about the purchase path. Note this holds *despite*
-/// `Fable.xctestplan` carrying a `storeKitConfigurationFileReference` and
-/// `Scripts/generate.sh` patching the same reference into the scheme's Test action; neither is
-/// sufficient on its own, so don't assume from the build config that these are running.
+/// On a freshly booted simulator, `xcodebuild test` does not route product queries to the test
+/// session: the products come back empty and all twelve tests skip rather than reporting a false
+/// failure. **A green `xcodebuild test` therefore says nothing whatsoever about the purchase
+/// path.** Treat CLI runs as having zero IAP coverage.
+///
+/// What has been ruled out, so nobody spends the afternoon again:
+///
+/// - Not a dangling reference. `Fable.xctestplan` carries a `storeKitConfigurationFileReference`
+///   and `Scripts/generate.sh` patches the same reference into the scheme's Test action; the
+///   identifier it points at is a live `PBXFileReference` in the generated project. Both are
+///   wired correctly and neither is sufficient.
+/// - Not a missing configuration file. `Products.storekit` is copied into the test bundle by
+///   `project.yml`, and `SKTestSession(configurationFileNamed:)` reports **created OK**. The
+///   session exists; `Product.products(for:)` just resolves 0 of 12 against it.
+/// - Not the daemon needing to warm up. A bounded retry - twelve attempts over six seconds -
+///   resolved nothing on every cold-booted run, and only added about a minute per run before
+///   skipping anyway. It was removed.
+///
+/// So the gap is in how `xcodebuild` launches the host versus how Xcode's own runner does, and
+/// it is not closable from inside this file. If CLI coverage matters, the realistic options are
+/// a UI-test host, or moving the grant/entitlement assertions off StoreKit onto a seam that can
+/// be driven directly - most of what these tests actually assert is `GameEngine` state after a
+/// grant, not StoreKit's own behaviour.
 ///
 /// **The failure mode worth knowing about is the in-between state.** If the simulator's StoreKit
 /// daemon has been primed by earlier activity in the same boot - repeated installs, launches and
@@ -37,9 +53,18 @@ final class StoreTests: XCTestCase {
     private var engine: GameEngine!
     private var store: StoreService!
 
+    /// Why the session could not be created, if it could not. Kept so the skip can say what
+    /// actually went wrong instead of "no StoreKit test environment", which is a symptom and
+    /// sent this investigation down two wrong paths before anyone looked at the real error.
+    private var sessionError: Error?
+
     override func setUp() async throws {
         try await super.setUp()
-        session = try? SKTestSession(configurationFileNamed: "Products")
+        do {
+            session = try SKTestSession(configurationFileNamed: "Products")
+        } catch {
+            sessionError = error
+        }
         session?.resetToDefaultState()
         session?.clearTransactions()
         session?.disableDialogs = true
@@ -47,10 +72,19 @@ final class StoreTests: XCTestCase {
         engine = GameEngine(state: GameState.newGame(), startTimers: false,
                             persistence: EphemeralPersistence())
         store = StoreService(engine: engine)
+
+        // Fetched once, deliberately. A bounded retry was tried here and removed: on a cleanly
+        // booted simulator, twelve attempts over six seconds resolved nothing, every time, so
+        // this is not the daemon needing a moment to warm up. All it bought was ~67s added to
+        // every CLI run before skipping anyway.
         await store.loadProducts()
 
-        try XCTSkipIf(store.products.isEmpty,
-                      "No StoreKit test environment - run from Xcode so the scheme's StoreKit configuration applies.")
+        try XCTSkipIf(store.products.isEmpty, """
+            No StoreKit test environment, so the purchase path is NOT covered by this run.
+            SKTestSession: \(sessionError.map { "failed - \($0)" } ?? (session == nil ? "nil, no error" : "created OK"))
+            Products requested: \(ShopCatalog.productIDs.count), resolved: \(store.products.count)
+            Run from Xcode (Product > Test) to exercise purchases for real.
+            """)
     }
 
     override func tearDown() async throws {
