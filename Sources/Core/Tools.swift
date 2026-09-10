@@ -84,11 +84,16 @@ enum Tools {
         ToolItem(id: "whisk", name: "Silver Whisk",
                  detail: "+8% profit and +5% offline rate", symbol: "tornado",
                  rarity: .epic, weight: 8, profitBonus: 0.08, offlineEfficiencyBonus: 0.05),
+        // At weight 1 in ~109, gated behind moments that are themselves rare (see `roll`
+        // below), this is a real once-in-hundreds-of-hours find - the payout is sized to
+        // match: double profit outright, dwarfing the next-best permanent bonus in the
+        // table (Silver Whisk's +8%), plus a combo window bump generous enough to matter at
+        // every tier of the ladder (ActivePlay.comboTiers' tightest window is 7s).
         ToolItem(id: "goldspatula", name: "Kristin's Golden Spatula",
-                 detail: "+25% profit everywhere and +1s combo window",
+                 detail: "+100% profit everywhere and +3s combo window",
                  symbol: "star.square.on.square.fill",
                  rarity: .legendary, weight: 1,
-                 profitBonus: 0.25, comboWindowBonus: 1.0),
+                 profitBonus: 1.0, comboWindowBonus: 3.0),
     ]
 
     private static let index = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })

@@ -215,9 +215,9 @@ final class SyncAndSafetyTests: XCTestCase {
         state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
         let base = state.automatedRate
         state.tools = ["goldspatula", "spoon"]
-        XCTAssertEqual(state.automatedRate, base * 1.25 * 1.03, accuracy: base * 0.001,
+        XCTAssertEqual(state.automatedRate, base * 2.0 * 1.03, accuracy: base * 0.001,
                        "owned tools multiply into the same rate everything else uses")
-        XCTAssertEqual(state.toolEffects.comboWindowBonus, 1.0)
+        XCTAssertEqual(state.toolEffects.comboWindowBonus, 3.0)
     }
 
     // MARK: Perk choice budget
