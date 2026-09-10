@@ -170,11 +170,11 @@ final class EconomyTests: XCTestCase {
 
     func testComboInvestmentHintNamesTheCheapestLeverStillOpen() {
         var state = GameState.newGame()
-        XCTAssertEqual(state.comboInvestmentHint, "Upgrade Kitchen Rhythm",
-                       "nothing invested yet - Research is the earliest lever")
+        XCTAssertEqual(state.comboInvestmentHint, "Research: Kitchen Rhythm",
+                       "nothing invested yet - Research is the earliest lever, named with where to find it")
 
         state.research["rhythm"] = 8
-        XCTAssertEqual(state.comboInvestmentHint, "Take Crowd Favorite",
+        XCTAssertEqual(state.comboInvestmentHint, "Legacy: Crowd Favorite",
                        "Research maxed - point at Legacy next, not back at Research")
 
         state.legacyPerks["showman"] = 2
