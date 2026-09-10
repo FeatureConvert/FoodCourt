@@ -37,6 +37,10 @@ struct ComboMeterView: View {
             let active = engine.combo.activeTier(bonusTaps: bonus)
             let tier = ActivePlay.comboTiers[active.index]
             let tierColor = Self.tierColors[active.index]
+            // Once real taps alone can't move the ladder any further this streak, "X/Y taps"
+            // reads as a normal, about-to-fill progress bar - it never actually fills without
+            // more comboBonusTaps investment, which looked indistinguishable from broken.
+            let stuck = live && engine.combo.isAtPersonalCeiling(bonusTaps: bonus)
             let barFill = live && tier.taps > 0 ? Double(active.tapsDone) / Double(tier.taps) : 0
             // Clamped to 1: a manager trait's windowBonus (e.g. Crowd-Reader Cleo) extends
             // the window past `tier.window` itself, so right after a tap `remaining` can
@@ -56,9 +60,14 @@ struct ComboMeterView: View {
                                 .font(Theme.body(12, weight: .black))
                                 .foregroundStyle(Theme.text)
                             Spacer()
-                            Text("\(active.tapsDone)/\(tier.taps) taps")
+                            // "Needs more investment" rather than naming Research specifically -
+                            // comboBonusTaps is Research + Legacy + Contract combined, and this
+                            // player might be capped by any mix of the three.
+                            Text(stuck ? "NEEDS MORE INVESTMENT" : "\(active.tapsDone)/\(tier.taps) taps")
                                 .font(Theme.body(10, weight: .bold))
                                 .foregroundStyle(Theme.textDim)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
                         } else {
                             Text("Tap a station to start your combo")
                                 .font(Theme.body(12, weight: .black))

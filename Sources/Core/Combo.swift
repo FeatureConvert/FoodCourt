@@ -206,6 +206,20 @@ struct ComboTracker: Equatable {
         return achieved >= 0 ? ActivePlay.comboTiers[achieved].multiplier : 1
     }
 
+    /// True once real taps alone can never advance the combo any further this streak -
+    /// `count` has already saturated `effectiveTaps`' clip at the base ceiling, so the value
+    /// feeding `activeTier`/`achievedTierIndex` is pinned at `baseCeiling + bonusTaps` for
+    /// good; only MORE `comboBonusTaps` investment (Research/Legacy/Contract), never more
+    /// tapping, can move it from here. Without surfacing this, the "next tier" bar in the UI
+    /// looks like a normal fillable progress bar that simply never fills - reported directly
+    /// as "the combo bar stops here and doesn't do anything" by a player whose investment
+    /// (some Research ranks, no Legacy/Contract) capped them mid-ladder rather than at the
+    /// true top tier.
+    func isAtPersonalCeiling(bonusTaps: Int) -> Bool {
+        count >= ActivePlay.comboCumulativeTaps[ActivePlay.comboBaseTierCount - 1]
+            && achievedTierIndex(bonusTaps: bonusTaps) < ActivePlay.comboTiers.count - 1
+    }
+
     /// Registers a tap. `bonusTaps` is the same late-game bonus `activeTier`/`multiplier`
     /// take, needed here too so the window matches whichever tier this tap just landed in -
     /// a bonus-boosted player who just crossed into a hotter tier should immediately get

@@ -72,6 +72,34 @@ final class FeatureTests: XCTestCase {
                        accuracy: 1e-9, "a full min-max should clear every extended tier")
     }
 
+    /// Regression: a player reported the combo bar "stops here and doesn't do anything" -
+    /// partial comboBonusTaps investment (not the full 24) caps them mid-ladder, and every
+    /// tap past that point is a genuine no-op by design (effectiveTaps is pinned at
+    /// baseCeiling + bonusTaps once real taps saturate it - there's no way to move it further
+    /// without more investment). That's correct math, but the UI showed a normal "X/6 taps"
+    /// counter with no indication it would never fill, indistinguishable from broken.
+    /// isAtPersonalCeiling is what lets the UI tell the two states apart.
+    func testIsAtPersonalCeilingReflectsWhetherMoreTapsCanEverHelp() {
+        var combo = ComboTracker()
+        let now = Date()
+        let bonusTaps = 12 // partial investment - short of the 18 needed for the next tier
+        for _ in 0..<70 { combo.register(at: now, bonusTaps: bonusTaps) }
+        XCTAssertFalse(combo.isAtPersonalCeiling(bonusTaps: bonusTaps),
+                       "only 70 real taps - count hasn't saturated the base ceiling yet, still filling")
+
+        for _ in 0..<60 { combo.register(at: now, bonusTaps: bonusTaps) }
+        XCTAssertTrue(combo.isAtPersonalCeiling(bonusTaps: bonusTaps),
+                     "130 real taps with only 12 bonus taps - no further tap can ever move this")
+        let stuckMultiplier = combo.multiplier(bonusTaps: bonusTaps)
+
+        for _ in 0..<1_000 { combo.register(at: now, bonusTaps: bonusTaps) }
+        XCTAssertEqual(combo.multiplier(bonusTaps: bonusTaps), stuckMultiplier, accuracy: 1e-9,
+                       "1,000 more taps must not move a multiplier that's genuinely capped")
+
+        XCTAssertFalse(combo.isAtPersonalCeiling(bonusTaps: 24),
+                       "the same 130 real taps, with full bonus taps instead, clears everything - never 'stuck'")
+    }
+
     func testComboExpiresAfterItsWindow() {
         var combo = ComboTracker()
         let start = Date()
