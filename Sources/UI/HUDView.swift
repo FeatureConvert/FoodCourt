@@ -110,7 +110,12 @@ struct HUDView: View {
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundStyle(Theme.positive)
                                 .frame(width: 20, height: 20)
-                            Text("\(engine.state.franchiseVouchers)")
+                            // "2/3" rather than a bare count - the cap itself was the
+                            // confusing part in practice (a full bank silently ate every
+                            // further drop with no feedback at all once the toast for that
+                            // was deliberately removed), so the ceiling needs to be visible
+                            // here instead of only discoverable by hitting it.
+                            Text("\(engine.state.franchiseVouchers)/\(FranchiseVoucher.inventoryCap)")
                                 .font(Theme.numeric(16))
                                 .foregroundStyle(Theme.text)
                                 .lineLimit(1)
@@ -120,7 +125,7 @@ struct HUDView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Franchise Vouchers")
-                    .accessibilityValue("\(engine.state.franchiseVouchers) banked")
+                    .accessibilityValue("\(engine.state.franchiseVouchers) of \(FranchiseVoucher.inventoryCap) banked")
                     .accessibilityHint("Double tap to use one for a random hour-long bonus")
                 }
 

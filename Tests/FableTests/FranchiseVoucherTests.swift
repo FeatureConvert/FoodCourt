@@ -83,38 +83,86 @@ final class FranchiseVoucherTests: XCTestCase {
     // MARK: Drop-rate and cooldown
 
     /// Mirrors `testGoldenCustomerPaysOutAndClearsItself`'s brute-force approach: at 0.5% per
-    /// completed station action, 5,000 tries makes a miss astronomically unlikely
-    /// ((1-0.005)^5000 ≈ 10^-11) without pinning the RNG.
+    /// ATTEMPT, 5,000 tries makes a miss astronomically unlikely ((1-0.005)^5000 ≈ 10^-11)
+    /// without pinning the RNG. Each "try" here is a full cooldown window, not a fixed 10s
+    /// tick - the cooldown gate is stamped on the attempt, not the hit (see
+    /// `testFailedDropAttemptStillConsumesTheCooldownWindow`), so a real attempt can only ever
+    /// happen once per `voucherDropCooldown` no matter how many completions land inside it.
     @MainActor
     func testRareStationDropEventuallyFiresThenRespectsItsCooldown() {
         var state = GameState.newGame()
         state.venues[0].stations[0].level = 40
         state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
         let e = engine(state)
+        let window = ActivePlay.voucherDropCooldown + 1
 
+        // `advance(by:)` simulates the economic delta but never moves `state.now` itself -
+        // that's what `debugAdvanceClock` is for (same reason the ORIGINAL version of this
+        // test needed it between the two halves below). Each try needs both: the clock
+        // skipped a full window so the cooldown gate actually reopens, then advance to
+        // process the completion that rolls against it.
         var attempts = 0
         while e.state.franchiseVouchers == 0 && attempts < 5_000 {
-            e.advance(by: 10)
+            e.debugAdvanceClock(seconds: window)
+            e.advance(by: window)
             attempts += 1
         }
         XCTAssertGreaterThan(e.state.franchiseVouchers, 0,
-                             "0.5% per completed action should land within 5,000 tries")
+                             "0.5% per attempt should land within 5,000 cooldown windows")
 
-        // Immediately after a drop, the shared cooldown blocks another - hundreds more
-        // completed actions inside the window must not move the count.
+        // Immediately after a drop, the shared cooldown blocks another - many completed
+        // actions inside the SAME window must not move the count, regardless of how many of
+        // them roll (and miss) in the meantime.
         let afterFirst = e.state.franchiseVouchers
         for _ in 0..<300 { e.advance(by: 10) }
         XCTAssertEqual(e.state.franchiseVouchers, afterFirst, "still inside voucherDropCooldown")
 
         // Skip past the cooldown - it can roll again.
-        e.debugAdvanceClock(seconds: ActivePlay.voucherDropCooldown + 1)
         attempts = 0
         while e.state.franchiseVouchers == afterFirst && attempts < 5_000 {
-            e.advance(by: 10)
+            e.debugAdvanceClock(seconds: window)
+            e.advance(by: window)
             attempts += 1
         }
         XCTAssertGreaterThan(e.state.franchiseVouchers, afterFirst,
                              "cooldown cleared - a second drop should eventually land")
+    }
+
+    /// Regression for the exact bug a live report caught: `rollVoucherDropIfNeeded` used to
+    /// stamp its cooldown gate only on a HIT, so every one of the ~99.5% missed rolls left the
+    /// gate open for the very next completed station action to try again immediately - on a
+    /// well-staffed board that's effectively unthrottled, not "once per 90s." A fixed RNG
+    /// sequence makes this fully deterministic rather than statistical: draw #1 is scripted to
+    /// miss, draw #2 is scripted to hit. If the gate is stamped on the ATTEMPT (the fix), the
+    /// second completed action - still well inside the cooldown - must never even reach draw
+    /// #2, so no voucher appears. If the gate were ever stamped on success again (the
+    /// regression), the miss on draw #1 would leave it open, draw #2 would land, and this test
+    /// would see a voucher where it must see none.
+    @MainActor
+    func testFailedDropAttemptStillConsumesTheCooldownWindow() {
+        struct ScriptedRNG: RandomNumberGenerator {
+            var draws: [UInt64]
+            var index = 0
+            mutating func next() -> UInt64 {
+                defer { index = min(index + 1, draws.count - 1) }
+                return draws[index]
+            }
+        }
+        var state = GameState.newGame()
+        state.venues[0].stations[0].level = 40
+        state.hire(specID: ManagerCatalog.traineeID, venue: 0, station: 0)
+        let e = engine(state)
+        // UInt64.max maps to (just under) 1.0 - certainly >= the 0.5% threshold, a miss.
+        // 0 maps to 0.0 - certainly < 0.5%, a guaranteed hit if it's ever actually drawn.
+        e.rng = ScriptedRNG(draws: [.max, 0])
+
+        e.advance(by: 10)
+        XCTAssertEqual(e.state.franchiseVouchers, 0, "first attempt was scripted to miss")
+
+        e.advance(by: 10) // 20s total - well inside even the shortest documented cooldown (60s)
+        XCTAssertEqual(e.state.franchiseVouchers, 0,
+                       "still inside the cooldown from the first ATTEMPT, not just the first hit - " +
+                       "the scripted guaranteed-hit draw must never be reached from here")
     }
 
     /// Locks in the judgment-call numbers themselves, same spirit as

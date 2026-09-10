@@ -62,6 +62,15 @@ struct RootView: View {
     @State private var toastTask: Task<Void, Never>?
     @State private var hasHandledLaunch = false
     @State private var lastPresented: ActiveSheet?
+    /// Gates `useFranchiseVoucher()` behind an actual choice - the badge tap used to spend a
+    /// voucher immediately, before the reveal sheet even opened, so its "Later"/swipe-to-
+    /// dismiss path (same shape as `pendingToolDrop`'s, see `handleSheetDismissed`) looked
+    /// like a real decline but could never actually give the voucher back - reported live as
+    /// "the dismiss button doesn't work." A tool drop is something that happens TO the player
+    /// with nothing to decline; a banked voucher is the one thing here the player explicitly
+    /// chooses to spend, and a small HUD badge next to the star pill is easy to tap by
+    /// accident with nothing else in this app needing an "are you sure."
+    @State private var confirmingVoucherUse = false
 
     /// Debug-only card-treatment review (see CardStyleVariant.swift) - `@AppStorage` so the
     /// debug menu's picker and this injection point stay in sync without prop-drilling a
@@ -169,7 +178,7 @@ struct RootView: View {
                     onHelp: { present(.help) },
                     onBadgeInfo: showToast,
                     onGoalNavigate: present,
-                    onUseVoucher: { engine.useFranchiseVoucher() })
+                    onUseVoucher: { confirmingVoucherUse = true })
                 .padding(.horizontal, 14)
 
             if engine.rushActive {
@@ -237,7 +246,7 @@ struct RootView: View {
                         onHelp: { present(.help) },
                         onBadgeInfo: showToast,
                         onGoalNavigate: present,
-                        onUseVoucher: { engine.useFranchiseVoucher() })
+                        onUseVoucher: { confirmingVoucherUse = true })
 
                 if engine.rushActive {
                     RushBannerView()
@@ -328,6 +337,12 @@ struct RootView: View {
                 showToast("\(tool.name) found! \(tool.detail)")
                 engine.pendingToolDrop = nil
             }
+        }
+        .alert("Use a Franchise Voucher?", isPresented: $confirmingVoucherUse) {
+            Button("Cancel", role: .cancel) {}
+            Button("Use It") { engine.useFranchiseVoucher() }
+        } message: {
+            Text("Spends one of your \(engine.state.franchiseVouchers) banked - rolls one random hour-long bonus.")
         }
         .onChange(of: engine.pendingVoucherEffect) { _, effect in
             guard effect != nil else { return }

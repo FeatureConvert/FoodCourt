@@ -2048,12 +2048,20 @@ final class GameEngine: ObservableObject {
     /// fan-out golden/order's own shared cooldowns already avoid.
     private func rollVoucherDropIfNeeded(now: Date) {
         guard now.timeIntervalSince(lastVoucherDropAt) >= ActivePlay.voucherDropCooldown else { return }
-        guard Double.random(in: 0..<1, using: &rng) < ActivePlay.voucherDropBaseChance else { return }
+        // Marks the cooldown gate consumed by the ATTEMPT, not by a success - the previous
+        // version only advanced this on a hit, so every one of the ~99.5% failed rolls left
+        // the gate open for the very next station completion to try again immediately. On a
+        // heavily-staffed board that's dozens of attempts a minute instead of one per 90s,
+        // which is exactly why a real report saw three drops in one morning session. Moving
+        // this above the chance roll caps it at one attempt per window board-wide, matching
+        // what "shared cooldown" was always supposed to mean.
         lastVoucherDropAt = now
+        guard Double.random(in: 0..<1, using: &rng) < ActivePlay.voucherDropBaseChance else { return }
+        // Silent on a full bank, same as prestige's own guaranteed grant - a toast for every
+        // cooldown-gated near-miss (still frequent even at the correct rate) trained a real
+        // player to expect one on every check, not just the rare hit.
         if addFranchiseVoucher() {
             toast = "Franchise Voucher! (\(state.franchiseVouchers)/\(FranchiseVoucher.inventoryCap) banked)"
-        } else {
-            toast = "Franchise Voucher lost - inventory full. Use one to make room."
         }
     }
 
