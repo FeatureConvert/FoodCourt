@@ -315,18 +315,21 @@ struct StageActionsView: View {
                     // appear during an actual cooldown, so whichever button wasn't cooling
                     // down at the moment (usually Rush, spent far less often than the free
                     // Coffee Break) looked like a plain flat dot next to the other one's ring,
-                    // reading as two different controls instead of one pair. White at moderate
-                    // opacity rather than CookerRing's Theme.stroke - CookerRing sits on the
-                    // light station-card panel, but these buttons float over the dark, busy
-                    // stage art, where Theme.stroke's dark violet all but disappears. Sized
-                    // LARGER than the fill circle (not equal) so the ring's whole stroke width
-                    // sits outside it - equal sizing left only a ~1.5pt sliver visible past the
-                    // fill's edge, too thin to read as a ring at all once it wasn't the bright
-                    // gold progress arc filling most of it. The 1pt gap this leaves between
-                    // fill and ring reads as a hairline at this size, not the multi-pt gap the
-                    // original 42-vs-48 mismatch produced.
+                    // reading as two different controls instead of one pair. A prior attempt
+                    // at this used white at 45% opacity, which measured out fine on paper but
+                    // was confirmed on a real device to all but disappear against the warm
+                    // stage backdrop - a light color needs real brightness contrast against a
+                    // busy background to read, and half-transparent white over mid-tone brown
+                    // doesn't have it. Theme.ink at high opacity instead: the same dark outline
+                    // already proven to read here, on the badge dot's own border a few lines
+                    // down, since a dark line's contrast comes from value, not hue, and holds
+                    // up against any backdrop this stage art throws at it. Sized LARGER than
+                    // the fill circle (not equal) so the ring's whole stroke width sits outside
+                    // it - equal sizing left only a sliver visible past the fill's edge, too
+                    // thin to read as a ring once it wasn't the bright gold progress arc
+                    // filling most of it.
                     Circle()
-                        .stroke(Color.white.opacity(0.45), lineWidth: 3)
+                        .stroke(Theme.ink.opacity(0.85), lineWidth: 3.5)
                         .frame(width: 44, height: 44)
                     if let cooldown {
                         Circle()
