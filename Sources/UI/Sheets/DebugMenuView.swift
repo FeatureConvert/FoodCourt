@@ -69,6 +69,11 @@ struct DebugMenuView: View {
                 grantButton("+1T coins") { engine.addCoins(1e12) }
                 grantButton("Staff all") { engine.grantManagerPack(venue: engine.state.currentVenue) }
             }
+            HStack(spacing: 8) {
+                // One-shot, same as every button in this menu - no toggle, no on/off
+                // indicator anywhere afterward. See Balance.deviceProfitBoostDefaultsKey.
+                grantButton("Profit boost") { engine.deviceProfitBoostEnabled = true }
+            }
 
             SectionLabel(text: "Systems")
             HStack(spacing: 8) {

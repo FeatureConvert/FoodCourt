@@ -592,6 +592,43 @@ enum Balance {
         1 + Double(level) * 0.20
     }
 
+    // MARK: Franchise loyalty bonus
+
+    /// A THIRD permanent multiplier, deliberately separate from the two above. Both
+    /// `starMultiplier` and `legacyMultiplier` are folded into `GameEngine.costInflation` as
+    /// well as profit - that's load-bearing (see the comment there), but it also means
+    /// raising either one's generosity is a wash for pacing: profit goes up, costs go up by
+    /// the identical factor, net zero. This multiplier is the answer to "franchising should
+    /// just pay more" - it scales with `prestigeCount` (a plain franchise count, permanent
+    /// even across Legacy resets, unlike `lifetimeStars`) and is applied ONLY to profit
+    /// (`GameState.persistentProfitMultiplier`), never to costs. A real, uncapped net gain.
+    ///
+    /// Square-rooted for the same reason `starMultiplier` is (see the runaway-growth comment
+    /// above) - a flat per-franchise percentage would be fine for a while and then compound
+    /// forever, since nothing else in the loop pushes back on it. Tuned so a devoted
+    /// Franchise-30 player - who was getting nothing extra for that depth beyond the
+    /// (cost-neutral) star/Legacy climb - sees roughly +45% pure profit from this alone:
+    /// Franchise 5 (Legacy unlock) ~+19%, 15 ~+33%, 30 ~+46%, 40 ~+54%, 100 ~+85%.
+    static let franchiseBonusCoefficient: Double = 0.6
+    static let franchiseBonusReferenceCount: Double = 50
+
+    static func franchiseBonusMultiplier(prestigeCount: Int) -> Double {
+        guard prestigeCount > 0 else { return 1 }
+        return 1 + franchiseBonusCoefficient * sqrt(Double(prestigeCount) / franchiseBonusReferenceCount)
+    }
+
+    // MARK: Device-local profit boost
+
+    /// Silent, per-device profit multiplier - see `GameEngine.deviceProfitBoostEnabled` (how
+    /// it's granted, one-shot from the Debug menu) and `GameState.persistentProfitMultiplier`
+    /// (where it's applied). UserDefaults-backed, never save data, off by default on every
+    /// install; nothing in any player-facing screen (HUD, Settings, patch notes, toasts)
+    /// ever names or reveals it - the only surface at all is one inert-looking button
+    /// behind the same double-gated Debug menu every other cheat/test tool already lives
+    /// behind, meant to be tapped once, by hand, on one specific physical device.
+    static let deviceProfitBoostDefaultsKey = "deviceProfitBoostEnabled"
+    static let deviceProfitBoostMultiplier: Double = 3.0
+
     // MARK: Research pricing
 
     /// Interactive perk choices per franchise run. Playtest feedback: with thirty stations

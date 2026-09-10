@@ -447,15 +447,27 @@ struct GameState: Codable, Equatable {
     var legacyEffects: LegacyTree.Effects { LegacyTree.effects(taken: legacyPerks) }
     var toolEffects: Tools.Effects { Tools.effects(owned: tools, rarities: toolRarities) }
 
-    /// The star/legacy/entitlement/research/tool stack, shared by `globalMultiplier` (which
-    /// adds boosts on top) and StationMath's `automatedRate`/`automatedRate(venueID:)` (which
-    /// deliberately exclude boosts - they tick in real time and aren't paid offline). One
-    /// shared list instead of hand-kept-in-sync copies: legacy's multiplier was once missing
-    /// from automatedRate's copy of this list for a while, quietly underpaying every offline
-    /// report, quest reward, time warp, and errand for anyone past their first Legacy reset.
+    /// The star/legacy/franchise/entitlement/research/tool stack, shared by `globalMultiplier`
+    /// (which adds boosts on top) and StationMath's `automatedRate`/`automatedRate(venueID:)`
+    /// (which deliberately exclude boosts - they tick in real time and aren't paid offline).
+    /// One shared list instead of hand-kept-in-sync copies: legacy's multiplier was once
+    /// missing from automatedRate's copy of this list for a while, quietly underpaying every
+    /// offline report, quest reward, time warp, and errand for anyone past their first Legacy
+    /// reset.
+    ///
+    /// `franchiseBonusMultiplier` is intentionally profit-only - unlike the two ahead of it,
+    /// it's NOT mirrored into `GameEngine.costInflation`. See the comment there.
+    ///
+    /// The UserDefaults read below is `GameEngine.deviceProfitBoostEnabled`'s sibling - a
+    /// silent, per-device multiplier, never save data. Read directly here (rather than
+    /// through the engine) because this is a plain computed property on `GameState`, which
+    /// has no reference back to the `GameEngine` instance that owns it.
     var persistentProfitMultiplier: Double {
         Balance.starMultiplier(stars: lifetimeStars)
             * Balance.legacyMultiplier(level: legacy.level)
+            * Balance.franchiseBonusMultiplier(prestigeCount: prestigeCount)
+            * (UserDefaults.standard.bool(forKey: Balance.deviceProfitBoostDefaultsKey)
+                ? Balance.deviceProfitBoostMultiplier : 1)
             * entitlements.profitMultiplier
             * researchEffects.profitMultiplier
             * toolEffects.profitMultiplier

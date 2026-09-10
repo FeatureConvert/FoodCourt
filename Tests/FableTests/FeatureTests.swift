@@ -2077,6 +2077,7 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(e.state.lifetimeStars, awarded)
 
         let expected = Balance.starMultiplier(stars: awarded) * Balance.legacyMultiplier(level: 1)
+            * Balance.franchiseBonusMultiplier(prestigeCount: e.state.prestigeCount)
         XCTAssertEqual(e.state.globalMultiplier, expected, accuracy: 0.0001)
     }
 

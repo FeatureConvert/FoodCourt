@@ -156,6 +156,38 @@ final class EconomyTests: XCTestCase {
         XCTAssertLessThan(bonusAt20k, bonusAt10k * 2)
     }
 
+    func testFranchiseBonusMultiplier() {
+        XCTAssertEqual(Balance.franchiseBonusMultiplier(prestigeCount: 0), 1,
+                       "no franchises yet, nothing to bonus")
+        XCTAssertEqual(Balance.franchiseBonusMultiplier(prestigeCount: 30), 1.4648,
+                       accuracy: 1e-4, "a Franchise-30 player should see roughly +46% here")
+    }
+
+    /// Same shape as `testStarMultiplierGrowsSlowerThanLinearly` and for the identical
+    /// reason - sqrt, not flat, so it can't feed the same class of runaway.
+    func testFranchiseBonusMultiplierGrowsSlowerThanLinearly() {
+        let bonusAt30 = Balance.franchiseBonusMultiplier(prestigeCount: 30) - 1
+        let bonusAt60 = Balance.franchiseBonusMultiplier(prestigeCount: 60) - 1
+        XCTAssertLessThan(bonusAt60, bonusAt30 * 2,
+                          "doubling franchise count must give less than double the bonus")
+    }
+
+    /// The entire point of this multiplier: unlike star/legacy, it must NOT be mirrored into
+    /// `costInflation` - see the comment there. If a future change accidentally folds it in,
+    /// this catches it (costInflation would stop matching the star/legacy-only formula).
+    @MainActor
+    func testFranchiseBonusIsExcludedFromCostInflation() {
+        var state = GameState.newGame()
+        state.prestigeCount = 30
+        state.lifetimeStars = 1_000
+        state.legacy.level = 1
+        state.venues[0].stations[0].level = 2 // any staleness so costInflation isn't the 1x floor
+        let engine = GameEngine(state: state, startTimers: false, persistence: EphemeralPersistence())
+        let costOnlyMultiplier = Balance.starMultiplier(stars: 1_000) * Balance.legacyMultiplier(level: 1)
+        XCTAssertEqual(engine.costInflation / engine.staleCostInflation, costOnlyMultiplier,
+                       accuracy: 1e-6, "franchiseBonusMultiplier must not appear in costInflation at all")
+    }
+
     /// Lifetime earnings large enough to reproduce the incident referenced above - a real
     /// save's star count reached ~1.7e19, which means its `lifetimeEarnings` (stars scale
     /// with its square root) was around 1.28e46. Converting a raw value that size straight

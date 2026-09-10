@@ -579,6 +579,11 @@ final class GameEngine: ObservableObject {
     /// time shrinking every Legacy level (2.14d -> 1.78d -> 1.53d -> ... at Legacy 0-5)
     /// instead of holding steady, with no ceiling on how far repeated Legacy resets could
     /// keep compounding it. Folding legacyMultiplier in here closes it the same way.
+    ///
+    /// `Balance.franchiseBonusMultiplier` is deliberately NOT here, unlike the two above -
+    /// it exists specifically to be a net profit gain for franchising deeper, not a
+    /// cost-neutral one. Mirroring it into costInflation would silence it the same way it
+    /// silenced star/legacy; leaving it out is the whole point, not an oversight.
     var costInflation: Double {
         staleCostInflation * Balance.starMultiplier(stars: state.lifetimeStars)
             * Balance.legacyMultiplier(level: state.legacy.level)
@@ -1915,6 +1920,18 @@ final class GameEngine: ObservableObject {
     var goldSpatulaLuckBoostEnabled: Bool {
         get { UserDefaults.standard.bool(forKey: Self.goldSpatulaLuckKey) }
         set { UserDefaults.standard.set(newValue, forKey: Self.goldSpatulaLuckKey) }
+    }
+
+    /// Same shape and same reasoning as `goldSpatulaLuckBoostEnabled` immediately above -
+    /// per-device, UserDefaults-backed, never save data. One-shot grant button in the Debug
+    /// menu rather than a Toggle: intentionally leaves no on/off indicator anywhere in the
+    /// UI once set, only an inert "grant" action indistinguishable from any other debug
+    /// button. `Balance.deviceProfitBoostDefaultsKey` is the single shared key - `GameState.
+    /// persistentProfitMultiplier` reads it directly (GameState has no reference back to
+    /// this engine instance to read this computed property through).
+    var deviceProfitBoostEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: Balance.deviceProfitBoostDefaultsKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Balance.deviceProfitBoostDefaultsKey) }
     }
 
     /// Rolls the drop table at one of the game's event moments, then separately rolls
