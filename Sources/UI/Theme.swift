@@ -217,6 +217,23 @@ struct PanelBackground: ViewModifier {
 }
 
 extension View {
+    /// The same lit-surface recipe as `PanelBackground` - a soft top-light wash, a brighter
+    /// lit top edge, and a soft shadow - generalized to any shape. `PanelBackground` only
+    /// ever draws a `RoundedRectangle`; badges (capsules) and the help/settings buttons
+    /// (circles) had no equivalent of their own and sat flat next to every panel and button
+    /// that already got this pass.
+    func litSurface<S: InsettableShape>(_ shape: S, fill: some ShapeStyle, lineWidth: CGFloat = 1.2,
+                                        shadowRadius: CGFloat = 3, shadowY: CGFloat = 1.5) -> some View {
+        background(
+            shape.fill(fill)
+                .overlay(shape.fill(Theme.topLight))
+                .overlay(shape.strokeBorder(Theme.edgeLight, lineWidth: lineWidth))
+                .shadow(color: .black.opacity(0.22), radius: shadowRadius, y: shadowY)
+        )
+    }
+}
+
+extension View {
     func panel(_ color: Color = Theme.panel, radius: CGFloat = 18) -> some View {
         modifier(PanelBackground(color: color, radius: radius))
     }

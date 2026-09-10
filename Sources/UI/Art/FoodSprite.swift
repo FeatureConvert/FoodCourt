@@ -23,16 +23,39 @@ struct FoodSprite: View, Equatable {
             // Shared dimension pass over every sprite: a soft top-left sheen and a whisper
             // of under-shade. One place instead of re-shading forty Canvas drawings - the
             // flat fills read as "lit" without any sprite knowing about it.
-            let sheen = Path(ellipseIn: CGRect(x: rect.minX + rect.width * 0.08,
-                                               y: rect.minY + rect.height * 0.02,
-                                               width: rect.width * 0.56,
-                                               height: rect.height * 0.42))
-            context.fill(sheen, with: .color(.white.opacity(0.10)))
+            //
+            // The sheen is a radial gradient, not a flat tint - a flat-opacity ellipse reads
+            // as a dull smudge at the ~40pt this actually renders at. Fading from a bright
+            // core is what sells an actual glossy highlight instead of a haze.
+            //
+            // `.sourceAtop` masks both passes to whatever FoodArtRenderer just painted: a
+            // plain ellipse floats over each shape's whole bounding box regardless of its
+            // actual silhouette, which reads fine on a wide burger but visibly bleeds onto
+            // the transparent canvas around a narrow fries basket or cup. Porter-Duff
+            // "source atop destination" forces result alpha to the destination's alpha, so
+            // the highlight only shows where the food itself is already opaque - free
+            // per-shape masking without FoodArtRenderer's 12 cases knowing about it.
+            context.blendMode = .sourceAtop
+            let sheenRect = CGRect(x: rect.minX + rect.width * 0.08,
+                                   y: rect.minY + rect.height * 0.02,
+                                   width: rect.width * 0.56,
+                                   height: rect.height * 0.42)
+            context.fill(
+                Path(ellipseIn: sheenRect),
+                with: .radialGradient(
+                    Gradient(colors: [.white.opacity(0.65), .white.opacity(0)]),
+                    center: CGPoint(x: sheenRect.minX + sheenRect.width * 0.35,
+                                    y: sheenRect.minY + sheenRect.height * 0.30),
+                    startRadius: 0,
+                    endRadius: sheenRect.width * 0.6
+                )
+            )
             let shade = Path(ellipseIn: CGRect(x: rect.minX + rect.width * 0.18,
                                                y: rect.minY + rect.height * 0.74,
                                                width: rect.width * 0.64,
                                                height: rect.height * 0.24))
             context.fill(shade, with: .color(.black.opacity(0.08)))
+            context.blendMode = .normal
         }
         .accessibilityHidden(true)
     }

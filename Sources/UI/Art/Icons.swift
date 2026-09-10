@@ -94,6 +94,22 @@ struct GemIcon: View {
     }
 }
 
+extension GemIcon {
+    /// Scales a reward icon to where its amount falls within the surrounding list's OWN
+    /// range, not a single global gems-to-size table - the same 16 gems is this section's top
+    /// prize in a 10-16 list, not "small" the way it'd read next to a 250-gem achievement.
+    /// Every call site draws `GemIcon()` at a fixed size regardless of amount today, which is
+    /// why a 10-gem and a 3,250-gem reward can render identically. Clamped so a value outside
+    /// the given range (shouldn't happen, but a future tier added without updating the range
+    /// here) degrades to the nearest end rather than draws off-scale.
+    static func rewardSize(_ amount: Int, in range: ClosedRange<Int>,
+                          from small: CGFloat, to large: CGFloat) -> CGFloat {
+        guard range.upperBound > range.lowerBound else { return large }
+        let t = Double(amount - range.lowerBound) / Double(range.upperBound - range.lowerBound)
+        return small + CGFloat(min(1, max(0, t))) * (large - small)
+    }
+}
+
 struct StarIcon: View {
     var body: some View {
         Canvas { context, size in

@@ -174,7 +174,12 @@ struct DailyRewardSection: View {
                             .font(Theme.body(12, weight: .bold))
                         Spacer()
                         HStack(spacing: 3) {
-                            GemIcon().frame(width: 12, height: 12)
+                            // Milestones span 32-3,250 gems (DailyRewards.streakMilestones) -
+                            // a flat icon made the 300-day prize look no bigger than the
+                            // 7-day one.
+                            let size = GemIcon.rewardSize(milestone.gems, in: 32...3_250,
+                                                          from: 10, to: 18)
+                            GemIcon().frame(width: size, height: size)
                             Text("\(milestone.gems)")
                         }
                         .font(Theme.numeric(12))
@@ -234,8 +239,11 @@ struct DailyRewardSection: View {
         switch spec.kind {
         case .coins:
             CoinIcon().frame(width: 32, height: 32)
-        case .gems:
-            GemIcon().frame(width: 30, height: 30)
+        case .gems(let amount):
+            // The only two `.gems` days are 10 and 16 - sized so the bigger prize actually
+            // looks bigger instead of matching the smaller one icon-for-icon.
+            let size = GemIcon.rewardSize(amount, in: 10...16, from: 26, to: 30)
+            GemIcon().frame(width: size, height: size)
         case .boost:
             GlyphIcon("bolt.fill", tint: Theme.coin)
                 .frame(width: 26, height: 26)

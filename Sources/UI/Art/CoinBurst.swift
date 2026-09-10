@@ -79,6 +79,7 @@ struct CoinBurstView: View {
             // a five-character payout like "+35.01K" wrapped mid-number onto a second line
             // and read as a rendering glitch. `fixedSize` lets it lay out at its natural
             // width and overhang the anchor instead of wrapping inside it.
+            //
             Text("+\(Format.currency(amount))")
                 .font(Theme.numeric(17))
                 .lineLimit(1)

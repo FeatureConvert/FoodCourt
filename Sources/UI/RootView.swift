@@ -61,6 +61,14 @@ struct RootView: View {
     @State private var hasHandledLaunch = false
     @State private var lastPresented: ActiveSheet?
 
+    /// Debug-only card-treatment review (see CardStyleVariant.swift) - `@AppStorage` so the
+    /// debug menu's picker and this injection point stay in sync without prop-drilling a
+    /// binding through the sheet-presentation boundary.
+    @AppStorage("debugCardStyleVariant") private var cardStyleVariantRaw: String = CardStyleVariant.current.rawValue
+    private var cardStyleVariant: CardStyleVariant {
+        CardStyleVariant(rawValue: cardStyleVariantRaw) ?? .current
+    }
+
     private var palette: VenuePalette {
         VenuePalette.of(Balance.venue(engine.state.currentVenue).theme,
                         skin: engine.state.skin(venue: engine.state.currentVenue))
@@ -69,7 +77,12 @@ struct RootView: View {
     // Split into three layers (content -> sheeted -> observed) purely for the
     // type-checker: the single-expression body grew past what Swift will infer in
     // reasonable time once the observer list passed a dozen entries.
-    var body: some View { observedContent }
+    var body: some View {
+        observedContent
+            #if DEBUG
+            .environment(\.cardStyleVariant, cardStyleVariant)
+            #endif
+    }
 
     private var mainContent: some View {
         ZStack {

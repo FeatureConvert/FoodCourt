@@ -353,6 +353,16 @@ private struct FestivalSection: View {
                 if claimed {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 12, weight: .bold))
+                } else if case .gems(let amount) = reward {
+                    // Free and premium gem tiers are separate pools (Festival.freeReward/
+                    // premiumReward) with very different ranges - 7-22 vs. 27-83 - so each
+                    // sizes against its own column, not a shared one. GlyphIcon's own
+                    // "diamond.fill" case silently ignores `tint:` (it draws a fixed-color
+                    // GemIcon internally), so that argument was never doing anything here -
+                    // dropped rather than left looking like a live parameter.
+                    let range = premium ? 27...83 : 7...22
+                    let size = GemIcon.rewardSize(amount, in: range, from: 11, to: premium ? 16 : 15)
+                    GemIcon().frame(width: size, height: size)
                 } else {
                     GlyphIcon(reward.symbol, tint: tint)
                         .frame(width: 13, height: 13)

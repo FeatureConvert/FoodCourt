@@ -16,10 +16,10 @@ struct DailyRewardSpec: Identifiable, Equatable {
 
     var title: String {
         switch kind {
-        case .coins(let h): return h < 1 ? "\(Int(h * 60)) min income" : "\(Format.trim(h))h income"
-        case .gems(let g): return "\(g) gems"
+        case .coins(let h): return h < 1 ? "\(Int(h * 60)) Min Income" : "\(Format.trim(h))h Income"
+        case .gems(let g): return "\(g) Gems"
         case .boost(let m, let h): return "×\(Format.trim(m)) for \(Format.trim(h))h"
-        case .grand(let g, let h): return "\(g) gems + \(Format.trim(h))h"
+        case .grand(let g, let h): return "\(g) Gems + \(Format.trim(h))h"
         }
     }
 

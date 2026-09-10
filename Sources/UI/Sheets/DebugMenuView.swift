@@ -5,10 +5,33 @@ import SwiftUI
 struct DebugMenuView: View {
     @EnvironmentObject private var engine: GameEngine
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("debugCardStyleVariant") private var cardStyleVariantRaw: String = CardStyleVariant.current.rawValue
     let onToast: (String) -> Void
 
     var body: some View {
         SheetScaffold(title: "Debug", subtitle: "Development build only") {
+            SectionLabel(text: "Card style review")
+            HStack(spacing: 8) {
+                ForEach(CardStyleVariant.allCases) { variant in
+                    Button {
+                        cardStyleVariantRaw = variant.rawValue
+                        onToast("Card style: \(variant.label)")
+                    } label: {
+                        Text(variant.label)
+                            .font(Theme.body(11, weight: .black))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .buttonStyle(ChunkyButtonStyle(
+                        fill: cardStyleVariantRaw == variant.rawValue ? Theme.coin : Theme.panelRaised,
+                        shadow: Theme.ink,
+                        radius: 12
+                    ))
+                }
+            }
+
             SectionLabel(text: "Clock")
             Text("Offset applied: \(Format.duration(engine.state.timeOffset))")
                 .font(Theme.body(12, weight: .bold))

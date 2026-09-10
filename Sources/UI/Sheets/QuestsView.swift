@@ -145,7 +145,10 @@ private struct QuestsSection: View {
                 }
             }
             HStack(spacing: 4) {
-                GemIcon().frame(width: 13, height: 13)
+                // Flat 25-gem reward, but shown in the same Goals tab as regular quests
+                // (3-10) and the Weekly Challenge (150) - sized to sit between them rather
+                // than match either.
+                GemIcon().frame(width: 15, height: 15)
                 Text("\(order.rewardGems) + \(Format.trim(order.rewardIncomeSeconds / 60))m income + tickets")
                     .font(Theme.body(10, weight: .bold))
                     .foregroundStyle(Theme.textDim)
@@ -204,7 +207,10 @@ private struct QuestsSection: View {
                 }
                 Spacer(minLength: 0)
                 HStack(spacing: 3) {
-                    GemIcon().frame(width: 13, height: 13)
+                    // Flat 150-gem reward - the standout prize in this whole tab, so it gets
+                    // the biggest icon of any Quests-tab reward rather than matching the
+                    // regular 3-10 gem quests below it.
+                    GemIcon().frame(width: 20, height: 20)
                     Text("\(quest.rewardGems)")
                         .font(Theme.numeric(13))
                         .foregroundStyle(Theme.text)
@@ -284,7 +290,10 @@ private struct QuestsSection: View {
                 Spacer(minLength: 0)
 
                 HStack(spacing: 3) {
-                    GemIcon().frame(width: 13, height: 13)
+                    // Regular quests pay 3-10 gems (Quests.roll) - sized against that range so
+                    // a rush quest's 10 doesn't look identical to a serve/tap quest's 3.
+                    let size = GemIcon.rewardSize(quest.rewardGems, in: 3...10, from: 11, to: 13)
+                    GemIcon().frame(width: size, height: size)
                     Text("\(quest.rewardGems)")
                         .font(Theme.numeric(13))
                         .foregroundStyle(Theme.text)
@@ -333,6 +342,11 @@ private struct AchievementsSection: View {
     @EnvironmentObject private var sound: SoundService
     let onToast: (String) -> Void
 
+    /// Persisted like every other standing view preference in this codebase (SettingsView's
+    /// notification/sound toggles) - a 27-entry catalog is exactly the kind of list a player
+    /// clears out once and doesn't want reappearing full of claimed rows every visit.
+    @AppStorage("hideCompletedAchievements") private var hideCompleted = false
+
     /// Claimable-but-unclaimed first, same reasoning as the quest list - a player shouldn't
     /// have to scroll the whole 27-entry catalog to find the one row with gems waiting.
     /// Stable otherwise, so the catalog's own order still governs everything else.
@@ -346,6 +360,11 @@ private struct AchievementsSection: View {
         }
     }
 
+    private var visibleSpecs: [AchievementSpec] {
+        guard hideCompleted else { return sortedSpecs }
+        return sortedSpecs.filter { !engine.state.claimedAchievements.contains($0.id) }
+    }
+
     var body: some View {
         if engine.claimableAchievements.count > 1 {
             IntroBanner(key: IntroKey.claimAllAchievements, symbol: "checkmark.circle.fill",
@@ -353,7 +372,12 @@ private struct AchievementsSection: View {
                         detail: "When more than one achievement is ready, this collects them all in a single tap instead of one at a time.")
             claimAllButton
         }
-        ForEach(sortedSpecs) { spec in
+        Toggle("Hide completed", isOn: $hideCompleted)
+            .font(Theme.body(12, weight: .bold))
+            .foregroundStyle(Theme.textDim)
+            .tint(Theme.positive)
+            .padding(.horizontal, 4)
+        ForEach(visibleSpecs) { spec in
             row(spec)
         }
     }
@@ -405,7 +429,11 @@ private struct AchievementsSection: View {
                         .foregroundStyle(Theme.positive)
                 } else {
                     HStack(spacing: 3) {
-                        GemIcon().frame(width: 13, height: 13)
+                        // Every metric's 4 tiers pay 15/45/120/250 gems - sized against that
+                        // full range so a first-tier and a max-tier achievement don't render
+                        // as the same size reward.
+                        let size = GemIcon.rewardSize(spec.rewardGems, in: 15...250, from: 12, to: 18)
+                        GemIcon().frame(width: size, height: size)
                         Text("\(spec.rewardGems)")
                             .font(Theme.numeric(13))
                             .foregroundStyle(Theme.text)

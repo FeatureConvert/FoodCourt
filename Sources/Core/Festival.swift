@@ -8,9 +8,12 @@ enum FestivalReward: Equatable {
 
     var label: String {
         switch self {
-        case .gems(let g): return "\(g) gems"
-        case .coinSeconds(let s): return s >= 3600 ? "\(Format.trim(s / 3600))h income" : "\(Int(s / 60))m income"
-        case .manager(let r): return "\(r.label) staff"
+        case .gems(let g): return "\(g) Gems"
+        case .coinSeconds(let s): return s >= 3600 ? "\(Format.trim(s / 3600))h Income" : "\(Int(s / 60))m Income"
+        // `r.label` is already uppercased ("RARE", "EPIC", ...) - title-casing just "Staff"
+        // next to it would still read as a mismatched pair, so this matches the rarity
+        // word's own casing instead of introducing a second, different convention.
+        case .manager(let r): return "\(r.label) STAFF"
         case .boost(let m, let h): return "×\(Format.trim(m)) for \(Format.trim(h))h"
         }
     }
