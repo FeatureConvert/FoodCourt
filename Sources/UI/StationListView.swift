@@ -54,6 +54,12 @@ struct StationListView: View {
                 .padding(.horizontal, 14)
             }
             .scrollIndicators(.hidden)
+            // Without an identity tied to the venue, switching venues keeps this same
+            // ScrollView instance and its scroll offset - a live report caught it landing on
+            // a brand new venue already scrolled near the bottom (whatever offset the
+            // PREVIOUS venue's longer/shorter station list happened to leave it at), showing
+            // its priciest station first instead of the cheapest opening one.
+            .id(engine.state.currentVenue)
         }
     }
 
