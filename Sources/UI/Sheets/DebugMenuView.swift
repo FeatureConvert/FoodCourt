@@ -32,6 +32,19 @@ struct DebugMenuView: View {
                 }
             }
 
+            SectionLabel(text: "Gold Spatula")
+            // Local to this device only (UserDefaults, not save data - see
+            // GameEngine.goldSpatulaLuckBoostEnabled) - flip on once, on whichever specific
+            // phone should get the nudge, and it stays on for that install.
+            Toggle(isOn: Binding(
+                get: { engine.goldSpatulaLuckBoostEnabled },
+                set: { engine.goldSpatulaLuckBoostEnabled = $0 }
+            )) {
+                Text("Gold Spatula Luck (this device)")
+                    .font(Theme.body(12, weight: .bold))
+            }
+            .tint(Theme.coin)
+
             SectionLabel(text: "Clock")
             Text("Offset applied: \(Format.duration(engine.state.timeOffset))")
                 .font(Theme.body(12, weight: .bold))

@@ -209,6 +209,28 @@ final class SyncAndSafetyTests: XCTestCase {
                        Tools.all[0].id)
     }
 
+    /// The per-device luck nudge (`GameEngine.goldSpatulaLuckBoostEnabled`) claims the front
+    /// slice of `roll2`'s range for a guaranteed Spatula and rescales the rest back to a full
+    /// 0...1 draw - both halves need checking independently.
+    func testBoostedLegendaryChanceClaimsItsSliceAndRescalesTheRest() {
+        XCTAssertEqual(Tools.roll(moment: .expeditionWin, roll1: 0, roll2: 0.03,
+                                  boostedLegendaryChance: 0.05)?.id, "goldspatula",
+                       "inside the boosted slice, the Spatula is guaranteed")
+        // Just past the boosted slice, roll2 = 0.05 rescales to (0.05-0.05)/(1-0.05) = 0 -
+        // the very start of the normal table again, i.e. Tools.all[0].
+        XCTAssertEqual(Tools.roll(moment: .expeditionWin, roll1: 0, roll2: 0.05,
+                                  boostedLegendaryChance: 0.05)?.id, Tools.all[0].id,
+                       "just past the boosted slice, the normal table resumes from its own start")
+        // roll2 = 0.9999 rescales to (0.9999-0.05)/0.95 ≈ 0.99989... - still lands the last
+        // (rarest) entry, so an unboosted roll landing the Spatula is still possible too.
+        XCTAssertEqual(Tools.roll(moment: .expeditionWin, roll1: 0, roll2: 0.9999,
+                                  boostedLegendaryChance: 0.05)?.id, "goldspatula",
+                       "the normal weighted table can still independently land the Spatula")
+        // Default parameter (no boost passed) must behave exactly as before.
+        XCTAssertEqual(Tools.roll(moment: .expeditionWin, roll1: 0, roll2: 0.03)?.id,
+                       Tools.all[0].id, "with no boost, 0.03 falls in the normal table's first slot")
+    }
+
     func testToolEffectsAggregateAndReachTheEconomy() {
         var state = GameState.newGame()
         state.venues[0].stations[0].level = 10

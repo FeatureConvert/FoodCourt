@@ -117,10 +117,25 @@ enum Tools {
     /// Rolls the weighted table. `roll1` gates the drop, `roll2` picks the item - split so
     /// tests can drive both deterministically. At weight 1 in ~109, the Gold Spatula is
     /// under 1% of drops, which are themselves rare: a real chase, months in the making.
-    static func roll(moment: DropMoment, roll1: Double, roll2: Double) -> ToolItem? {
+    ///
+    /// `boostedLegendaryChance` is a per-device, opt-in nudge (see `GameEngine.rollToolDrop`
+    /// and the Debug menu's "Gold Spatula Luck" toggle) - when above 0, it claims that slice
+    /// of `roll2`'s own range for a guaranteed Spatula and rescales the remainder back to
+    /// 0...1 for the normal weighted walk below, rather than editing the table's weights
+    /// (which would change the Spatula's odds for every device, not just the one that opted
+    /// in) or spending a second random draw (which `roll1`/`roll2` were deliberately split
+    /// down to exactly two for, so tests can drive the whole function deterministically).
+    static func roll(moment: DropMoment, roll1: Double, roll2: Double,
+                     boostedLegendaryChance: Double = 0) -> ToolItem? {
         guard roll1 < moment.chance else { return nil }
+        if boostedLegendaryChance > 0, roll2 < boostedLegendaryChance {
+            return tool("goldspatula")
+        }
+        let remaining = boostedLegendaryChance > 0
+            ? (roll2 - boostedLegendaryChance) / (1 - boostedLegendaryChance)
+            : roll2
         let total = all.reduce(0) { $0 + $1.weight }
-        var cursor = roll2 * total
+        var cursor = remaining * total
         for tool in all {
             cursor -= tool.weight
             if cursor <= 0 { return tool }

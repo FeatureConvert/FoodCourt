@@ -1907,6 +1907,16 @@ final class GameEngine: ObservableObject {
 
     // MARK: Kitchen tools
 
+    /// A per-device, opt-in nudge toward the Gold Spatula - toggled in the Debug menu, never
+    /// defaulted on, and read directly from `UserDefaults` rather than threaded through
+    /// `GameState`/`EphemeralPersistence` deliberately: it's a local device setting, not save
+    /// data, and never needs to sync, migrate, or appear in a save file at all.
+    private static let goldSpatulaLuckKey = "goldSpatulaLuckBoost"
+    var goldSpatulaLuckBoostEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: Self.goldSpatulaLuckKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Self.goldSpatulaLuckKey) }
+    }
+
     /// Rolls the drop table at one of the game's event moments, then separately rolls
     /// whether this drop's rarity climbs above the tool's base tier. New finds and rarity
     /// upgrades both celebrate via `pendingToolDrop` (scaled to the rolled rarity); anything
@@ -1914,7 +1924,8 @@ final class GameEngine: ObservableObject {
     private func rollToolDrop(_ moment: Tools.DropMoment) {
         guard let tool = Tools.roll(moment: moment,
                                     roll1: Double.random(in: 0..<1, using: &rng),
-                                    roll2: Double.random(in: 0..<1, using: &rng)) else { return }
+                                    roll2: Double.random(in: 0..<1, using: &rng),
+                                    boostedLegendaryChance: goldSpatulaLuckBoostEnabled ? 0.05 : 0) else { return }
         let rolledRarity = Tools.rollRarity(base: tool.rarity) { Double.random(in: 0..<1, using: &rng) }
         let previousRarity = state.toolRarities[tool.id]
         if state.tools.insert(tool.id).inserted {
