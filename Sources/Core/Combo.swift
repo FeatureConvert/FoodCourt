@@ -198,6 +198,18 @@ struct ComboTracker: Equatable {
         return achieved
     }
 
+    /// The tier whose window actually governs the current countdown - `register` schedules
+    /// `expiresAt` against the ACHIEVED tier's window (a bonus-boosted player who just
+    /// crossed into a hotter tier gets that tier's shorter window immediately), not the tier
+    /// currently filling, which usually has a shorter window of its own. The UI's drain
+    /// animation needs this exact index, or dividing `remaining` by the wrong (filling)
+    /// tier's window clamps `timeLeft` at 1 for the first stretch of the real countdown, then
+    /// makes the rest of the drain look compressed - reported as "no depleting bar, it just
+    /// drops to the next tier" once that compression made the drain hard to perceive at all.
+    func activeWindowTierIndex(bonusTaps: Int) -> Int {
+        max(0, achievedTierIndex(bonusTaps: bonusTaps))
+    }
+
     /// The multiplier actually in effect - the last tier whose bar has been fully CLEARED,
     /// not the one still filling. Stays at 1x until tier 0's bar completes.
     func multiplier(bonusTaps: Int) -> Double {
@@ -232,7 +244,7 @@ struct ComboTracker: Equatable {
         // honoring a tap against an already-stale window.
         if count > 0, expiresAt <= now { _ = prune(at: now, bonusTaps: bonusTaps) }
         count += 1
-        let tierIndex = max(0, achievedTierIndex(bonusTaps: bonusTaps))
+        let tierIndex = activeWindowTierIndex(bonusTaps: bonusTaps)
         expiresAt = now.addingTimeInterval(ActivePlay.comboTiers[tierIndex].window + windowBonus)
     }
 

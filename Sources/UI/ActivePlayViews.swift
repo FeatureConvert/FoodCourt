@@ -42,11 +42,18 @@ struct ComboMeterView: View {
             // more comboBonusTaps investment, which looked indistinguishable from broken.
             let stuck = live && engine.combo.isAtPersonalCeiling(bonusTaps: bonus)
             let barFill = live && tier.taps > 0 ? Double(active.tapsDone) / Double(tier.taps) : 0
+            // Divides by the ACHIEVED tier's window, not `tier.window` (the tier currently
+            // filling) - `expiresAt` is scheduled against the achieved tier (see `register`),
+            // which usually has a longer window than whatever's filling above it. Dividing by
+            // the wrong one clamped this at 1 for the first stretch of the real countdown,
+            // making the drain look compressed into the tail end - almost imperceptible.
+            //
             // Clamped to 1: a manager trait's windowBonus (e.g. Crowd-Reader Cleo) extends
-            // the window past `tier.window` itself, so right after a tap `remaining` can
-            // briefly exceed it - unclamped, the fill capsule's width formula below went
-            // wider than its own track and spilled past the frame.
-            let timeLeft = live ? min(1, engine.combo.remaining(at: now) / tier.window) : 0
+            // the window past the scheduled tier's own window, so right after a tap
+            // `remaining` can briefly exceed it - unclamped, the fill capsule's width formula
+            // below went wider than its own track and spilled past the frame.
+            let windowTier = ActivePlay.comboTiers[engine.combo.activeWindowTierIndex(bonusTaps: bonus)]
+            let timeLeft = live ? min(1, engine.combo.remaining(at: now) / windowTier.window) : 0
 
             HStack(spacing: 10) {
                 GlyphIcon("flame.fill", tint: live ? tierColor : Theme.textDim)
