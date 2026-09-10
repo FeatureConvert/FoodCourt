@@ -10,7 +10,7 @@ enum ActivePlay {
     // this at its old flat x5 with the free Coffee Break boost and Happy Hour hit up to
     // ~15x automated income, dwarfing the pacing sim's assumptions. That history is why
     // this is tiers now rather than one smooth ramp: every tier past the first costs the
-    // same 25 taps for the same +0.5x, so the ceiling is a real, sustained-engagement
+    // same 25 taps for the same +0.5x, so the base ceiling is a real, sustained-engagement
     // achievement rather than something a lucky burst reaches once and then coasts on.
     //
     // Tier 0 is deliberately short - 5 taps to x1.5 - so a casual player still feels an
@@ -18,26 +18,41 @@ enum ActivePlay {
     // reward (+0.5x), which is what makes "another 25 taps" a legible rule rather than a
     // curve a player has to feel out.
     //
-    // Four tiers land the ceiling at x3, not the x5 an earlier pass shipped: a
-    // maximally-hyperactive fresh install (every owned station tapped on every tick, never
-    // once dropping a tier) clears all 180 cumulative taps to x5 in about ten seconds and
-    // then sustains it for the rest of the session, which regressed
-    // `EarlyGamePacingTests.testHyperactiveFreshInstallCannotRushTheSushiBar` (the direct
-    // regression test for the x15-stack incident above) - it banked the Sushi Bar at ~15
-    // minutes against the 20-minute floor. x3 stacked with Coffee Break and Happy Hour
-    // tops out at x9, comfortably clear of that floor again; the escalating-tap-cost,
-    // shrinking-window shape below is otherwise unchanged from the original design.
+    // `comboTiers[0..<comboBaseTierCount]` (4 tiers) land the REAL-TAP ceiling at x3, not
+    // the x5 an earlier pass shipped: a maximally-hyperactive fresh install (every owned
+    // station tapped on every tick, never once dropping a tier) clears all 180 cumulative
+    // taps to x5 in about ten seconds and sustains it for the rest of the session, which
+    // regressed `EarlyGamePacingTests.testHyperactiveFreshInstallCannotRushTheSushiBar` (the
+    // direct regression test for the x15-stack incident above) - it banked the Sushi Bar at
+    // ~15 minutes against the 20-minute floor. x3 stacked with Coffee Break and Happy Hour
+    // tops out at x9, comfortably clear of that floor again.
+    //
+    // `comboTiers[comboBaseTierCount...]` (4 more tiers, x3.5/x4.0/x4.5/x5.0) exist ONLY for
+    // `comboBonusTaps` (StationMath.swift: up to +16 from Research's Kitchen Rhythm at max
+    // rank, +4 from Legacy's Crowd Favorite at max stacks, +4 from an active Showtime
+    // Contract - 24 at a full min-max) to unlock, never real taps alone - see
+    // `ComboTracker.effectiveTaps(bonusTaps:)`, which clips real taps at the base ceiling's
+    // own cumulative total before adding bonus taps on top, specifically so no amount of
+    // real-tap grinding can reach these tiers without the investment. A first version of
+    // this ladder collapsed base and extended tiers into one array with no such clip, which
+    // silently regressed exactly what it was meant to protect: the OLD (pre-tier) combo let
+    // late-game investment push the ceiling up to x4.4 with no hard cap at all ("left
+    // uncapped on purpose"), and the new array's fixed length turned that into a hard x3.0
+    // ceiling for every player regardless of investment - reported directly by a Franchise
+    // ~30 player as "everything is far too slow" once she updated. The extended tiers
+    // restore investment mattering, all the way back to the original x5 ceiling this
+    // whole tier system was designed around - safe to go that high now specifically because
+    // these 4 tiers are structurally unreachable without the investment, not just tuned
+    // small by convention: 6 taps each times 4 tiers is exactly 24, so a full min-max
+    // (also exactly 24) clears the whole extended ladder with nothing left over, and a
+    // fresh install with zero bonus taps can never so much as start it.
     //
     // The window - how long you can go between taps before the WHOLE combo resets to
     // zero, not just the current tier - shrinks every tier, from a forgiving 10s at tier 0
-    // down to 7s at tier 3. A ladder that got easier to sustain the higher it climbed would
-    // make x3 the new normal instead of a ceiling; shrinking the window is what keeps each
-    // higher tier feeling like it costs more attention, not just more history of tapping.
-    //
-    // `comboBonusTaps` (StationMath.swift) adds bonus taps toward this same ladder from
-    // Research's Kitchen Rhythm, Legacy's Crowd Favorite, and an active Showtime Franchise
-    // Contract - each an earned late-game investment, so a min-maxed player climbing the
-    // ladder faster is intentional depth, not a fresh-install exploit.
+    // down to 3s at the very top. A ladder that got easier to sustain the higher it climbed
+    // would make the ceiling the new normal instead of a ceiling; shrinking the window is
+    // what keeps each higher tier feeling like it costs more attention, not just more
+    // history of tapping.
     struct ComboTier {
         let taps: Int
         let multiplier: Double
@@ -49,7 +64,17 @@ enum ActivePlay {
         ComboTier(taps: 25, multiplier: 2.0, window: 9.0),
         ComboTier(taps: 25, multiplier: 2.5, window: 8.0),
         ComboTier(taps: 25, multiplier: 3.0, window: 7.0),
+        // Bonus-taps-only from here down - see the doc comment above. 6 taps/tier so a full
+        // min-max (24 bonus taps) clears all 4 with none left over.
+        ComboTier(taps: 6, multiplier: 3.5, window: 6.0),
+        ComboTier(taps: 6, multiplier: 4.0, window: 5.0),
+        ComboTier(taps: 6, multiplier: 4.5, window: 4.0),
+        ComboTier(taps: 6, multiplier: 5.0, window: 3.0),
     ]
+
+    /// Tiers 0..<4 - reachable by real taps alone, no investment required. Everything from
+    /// here on needs `comboBonusTaps` to ever reach; see `ComboTracker.effectiveTaps`.
+    static let comboBaseTierCount = 4
 
     /// Running total of taps needed to CLEAR each tier (index-aligned with `comboTiers`),
     /// e.g. `[5, 30, 55, ...]` - tier 1 clears at 30 total taps, not 25, since tier 0's 5
@@ -133,11 +158,25 @@ struct ComboTracker: Equatable {
 
     func remaining(at now: Date) -> TimeInterval { max(0, expiresAt.timeIntervalSince(now)) }
 
+    /// Real taps count fully toward the base tiers, but are clipped at the base ceiling's
+    /// own cumulative total before `bonusTaps` gets added on top - the only thing that
+    /// changes between "capped at the base ceiling" and "climbing the bonus-only tiers
+    /// above it" is having the investment those bonus taps represent, never how many real
+    /// taps happen to pile up. Without this clip, real taps alone would keep counting past
+    /// the base ceiling and into the bonus-only tiers just as fast as the base ones (a
+    /// maximally-hyperactive fresh install clears the whole base ladder in ~10 seconds - see
+    /// `ActivePlay.comboTiers`'s doc comment), silently reopening the exact fresh-install
+    /// exploit those tiers exist to keep closed.
+    private func effectiveTaps(bonusTaps: Int) -> Int {
+        let baseCeiling = ActivePlay.comboCumulativeTaps[ActivePlay.comboBaseTierCount - 1]
+        return min(count, baseCeiling) + bonusTaps
+    }
+
     /// Which tier's bar is currently filling, and exactly how many of that tier's taps are
     /// done - e.g. `(index: 2, tapsDone: 6, tapsRequired: 25)`. Once every tier is cleared,
-    /// reports the last tier full: there's nothing further to fill toward, x5 is the ceiling.
+    /// reports the last tier full: there's nothing further to fill toward, the ceiling.
     func activeTier(bonusTaps: Int) -> (index: Int, tapsDone: Int, tapsRequired: Int) {
-        let effective = count + bonusTaps
+        let effective = effectiveTaps(bonusTaps: bonusTaps)
         var previousThreshold = 0
         for (index, threshold) in ActivePlay.comboCumulativeTaps.enumerated() {
             if effective < threshold {
@@ -151,7 +190,7 @@ struct ComboTracker: Equatable {
 
     /// The last tier fully CLEARED, as an index into `comboTiers` - -1 if none yet (1x).
     private func achievedTierIndex(bonusTaps: Int) -> Int {
-        let effective = count + bonusTaps
+        let effective = effectiveTaps(bonusTaps: bonusTaps)
         var achieved = -1
         for (index, threshold) in ActivePlay.comboCumulativeTaps.enumerated() where effective >= threshold {
             achieved = index

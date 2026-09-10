@@ -36,10 +36,40 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(combo.multiplier(bonusTaps: 0), ActivePlay.comboTiers[1].multiplier, accuracy: 1e-9,
                        "tier 1's bar (the next tier's taps) just completed too")
 
-        // Way past every tier's total - the multiplier stops growing at the last tier's
-        // value even though real taps keep accumulating.
+        // Way past every tier's total - with zero bonus taps, real taps alone cap at the
+        // BASE ceiling (not `comboTiers.last!`, which is the bonus-taps-only extended
+        // ceiling above it - see `ActivePlay.comboBaseTierCount`) even though real taps
+        // keep accumulating.
         for _ in 0..<500 { combo.register(at: now) }
-        XCTAssertEqual(combo.multiplier(bonusTaps: 0), ActivePlay.comboTiers.last!.multiplier, accuracy: 1e-9)
+        let baseCeiling = ActivePlay.comboTiers[ActivePlay.comboBaseTierCount - 1].multiplier
+        XCTAssertEqual(combo.multiplier(bonusTaps: 0), baseCeiling, accuracy: 1e-9)
+    }
+
+    /// The regression this guards: a first version of the extended (bonus-taps-only) tiers
+    /// let real taps count toward them the same as bonus taps, so a hyperactive real-tap-only
+    /// player could reach them too - silently reopening the fresh-install exploit the base
+    /// ceiling exists to close. No number of real taps alone may ever exceed the base ceiling.
+    func testRealTapsAloneNeverExceedTheBaseCeilingNoMatterHowMany() {
+        var combo = ComboTracker()
+        let now = Date()
+        for _ in 0..<10_000 { combo.register(at: now) }
+        let baseCeiling = ActivePlay.comboTiers[ActivePlay.comboBaseTierCount - 1].multiplier
+        XCTAssertEqual(combo.multiplier(bonusTaps: 0), baseCeiling, accuracy: 1e-9,
+                       "10,000 real taps must still cap at the base ceiling, not the extended one")
+    }
+
+    /// A player with real, late-game investment (Research/Legacy/Contract) should be able to
+    /// climb past the base ceiling - that's the entire point of the extended tiers existing.
+    func testBonusTapsCanExceedTheBaseCeiling() {
+        var combo = ComboTracker()
+        let now = Date()
+        // Enough real taps to clear the whole base ladder (80, same total the earlier tests
+        // use), plus a full min-max worth of bonus taps (24, matching Research's Kitchen
+        // Rhythm at max rank + Legacy's Crowd Favorite maxed + an active Contract) - together
+        // that's exactly enough to clear every extended tier too, landing on the true ceiling.
+        for _ in 0..<80 { combo.register(at: now, bonusTaps: 24) }
+        XCTAssertEqual(combo.multiplier(bonusTaps: 24), ActivePlay.comboTiers.last!.multiplier,
+                       accuracy: 1e-9, "a full min-max should clear every extended tier")
     }
 
     func testComboExpiresAfterItsWindow() {
