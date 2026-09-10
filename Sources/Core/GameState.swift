@@ -447,6 +447,19 @@ struct GameState: Codable, Equatable {
     var legacyEffects: LegacyTree.Effects { LegacyTree.effects(taken: legacyPerks) }
     var toolEffects: Tools.Effects { Tools.effects(owned: tools, rarities: toolRarities) }
 
+    /// Names the cheapest lever still available to raise `comboBonusTaps` further - backs the
+    /// "needs more investment" combo-ceiling message (see `ComboMeterView`). Specific rather
+    /// than generic: a player who's already maxed Kitchen Rhythm gets pointed at Crowd
+    /// Favorite instead of being told to upgrade something with nothing left to give. Checks
+    /// Research before Legacy since Research is available from early game; Legacy requires
+    /// having unlocked it at all. A Showtime Contract's own +4 is per-run and can't be gone
+    /// and fetched mid-run, so it's named only once neither permanent lever has room left.
+    var comboInvestmentHint: String {
+        if (research["rhythm"] ?? 0) < 8 { return "Upgrade Kitchen Rhythm" }
+        if (legacyPerks["showman"] ?? 0) < 2 { return "Take Crowd Favorite" }
+        return "Needs a Showtime Contract"
+    }
+
     /// The star/legacy/franchise/entitlement/research/tool stack, shared by `globalMultiplier`
     /// (which adds boosts on top) and StationMath's `automatedRate`/`automatedRate(venueID:)`
     /// (which deliberately exclude boosts - they tick in real time and aren't paid offline).

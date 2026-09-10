@@ -60,10 +60,10 @@ struct ComboMeterView: View {
                                 .font(Theme.body(12, weight: .black))
                                 .foregroundStyle(Theme.text)
                             Spacer()
-                            // "Needs more investment" rather than naming Research specifically -
-                            // comboBonusTaps is Research + Legacy + Contract combined, and this
-                            // player might be capped by any mix of the three.
-                            Text(stuck ? "NEEDS MORE INVESTMENT" : "\(active.tapsDone)/\(tier.taps) taps")
+                            // Names the specific lever still open (Research vs Legacy vs
+                            // Contract) rather than a generic "needs more investment" - see
+                            // GameState.comboInvestmentHint.
+                            Text(stuck ? engine.state.comboInvestmentHint : "\(active.tapsDone)/\(tier.taps) taps")
                                 .font(Theme.body(10, weight: .bold))
                                 .foregroundStyle(Theme.textDim)
                                 .lineLimit(1)
