@@ -168,17 +168,30 @@ final class EconomyTests: XCTestCase {
                        "one color per combo tier - a mismatch here is a guaranteed crash, not a visual nit")
     }
 
+    @MainActor
     func testComboInvestmentHintNamesTheCheapestLeverStillOpen() {
-        var state = GameState.newGame()
-        XCTAssertEqual(state.comboInvestmentHint, "Research: Kitchen Rhythm",
-                       "nothing invested yet - Research is the earliest lever, named with where to find it")
+        func engine(_ configure: (inout GameState) -> Void = { _ in }) -> GameEngine {
+            var state = GameState.newGame()
+            configure(&state)
+            return GameEngine(state: state, startTimers: false, persistence: EphemeralPersistence())
+        }
 
-        state.research["rhythm"] = 8
-        XCTAssertEqual(state.comboInvestmentHint, "Legacy: Crowd Favorite",
+        XCTAssertEqual(engine().comboInvestmentHint, "Franchise once to unlock this",
+                       "never franchised and nowhere near eligible - Research/Legacy aren't reachable at all yet, so don't point at either")
+
+        XCTAssertEqual(engine { $0.lifetimeStars = 1 }.comboInvestmentHint,
+                       "Franchise \u{25B8} Research: Kitchen Rhythm",
+                       "franchised at least once - Research is reachable now, named with where to find it")
+
+        XCTAssertEqual(engine { $0.lifetimeStars = 1; $0.research["rhythm"] = 8 }.comboInvestmentHint,
+                       "Franchise \u{25B8} Legacy: Crowd Favorite",
                        "Research maxed - point at Legacy next, not back at Research")
 
-        state.legacyPerks["showman"] = 2
-        XCTAssertEqual(state.comboInvestmentHint, "Needs a Showtime Contract",
+        XCTAssertEqual(engine {
+            $0.lifetimeStars = 1
+            $0.research["rhythm"] = 8
+            $0.legacyPerks["showman"] = 2
+        }.comboInvestmentHint, "Needs a Showtime Contract",
                        "both permanent levers maxed - only the per-run Contract is left")
     }
 

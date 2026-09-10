@@ -447,21 +447,6 @@ struct GameState: Codable, Equatable {
     var legacyEffects: LegacyTree.Effects { LegacyTree.effects(taken: legacyPerks) }
     var toolEffects: Tools.Effects { Tools.effects(owned: tools, rarities: toolRarities) }
 
-    /// Names the cheapest lever still available to raise `comboBonusTaps` further, WITH where
-    /// to find it - backs the "needs more investment" combo-ceiling message (see
-    /// `ComboMeterView`). A bare node/perk name isn't actually actionable: Kitchen Rhythm sits
-    /// several taps deep in the Franchise sheet's own Research tab, and Crowd Favorite is
-    /// worse - it only ever appears in the moment of a Legacy reset's choice popup
-    /// (`ChoiceSheetView`), nowhere a player can casually go browse it. Naming the section
-    /// alongside the node is the difference between a real answer and another dead end.
-    /// Checks Research before Legacy since Research is available from early game; Legacy
-    /// requires having unlocked it at all. A Showtime Contract's own +4 is per-run and can't
-    /// be gone and fetched mid-run, so it's named only once neither permanent lever has room.
-    var comboInvestmentHint: String {
-        if (research["rhythm"] ?? 0) < 8 { return "Research: Kitchen Rhythm" }
-        if (legacyPerks["showman"] ?? 0) < 2 { return "Legacy: Crowd Favorite" }
-        return "Needs a Showtime Contract"
-    }
 
     /// The star/legacy/franchise/entitlement/research/tool stack, shared by `globalMultiplier`
     /// (which adds boosts on top) and StationMath's `automatedRate`/`automatedRate(venueID:)`

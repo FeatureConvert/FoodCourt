@@ -1324,6 +1324,27 @@ final class GameEngine: ObservableObject {
             && allVenuesAndStationsUnlocked
     }
 
+    /// Names the cheapest lever still available to raise `comboBonusTaps` further, WITH where
+    /// to find it - backs the "needs more investment" combo-ceiling message (see
+    /// `ComboMeterView`). A bare node/perk name isn't actually actionable, in two layers:
+    /// first, HUDView's own Franchise/stars button - the only way to reach either Research or
+    /// Legacy at all - stays hidden entirely until `lifetimeStars > 0 || canPrestige` (see
+    /// there), so a player who hasn't franchised even once yet, and isn't close to eligible,
+    /// has no path to either system regardless of what this says; second, even once reachable,
+    /// Kitchen Rhythm sits several taps deep in the Franchise sheet's own Research tab, and
+    /// Crowd Favorite is worse - it only ever appears in the moment of a Legacy reset's choice
+    /// popup (`ChoiceSheetView`), nowhere a player can casually go browse it afterward. This
+    /// lives on the engine rather than GameState because that first check needs `canPrestige`,
+    /// which depends on `allVenuesAndStationsUnlocked` - engine-level, not state-level.
+    var comboInvestmentHint: String {
+        guard state.lifetimeStars > 0 || canPrestige else {
+            return "Franchise once to unlock this"
+        }
+        if (state.research["rhythm"] ?? 0) < 8 { return "Franchise \u{25B8} Research: Kitchen Rhythm" }
+        if (state.legacyPerks["showman"] ?? 0) < 2 { return "Franchise \u{25B8} Legacy: Crowd Favorite" }
+        return "Needs a Showtime Contract"
+    }
+
     /// Every unlocked venue fully built out - staffed on every station - with nowhere left
     /// to spend coins: either every venue is open, or the next one is unaffordable. A player
     /// in this state has nothing actionable left on the board itself; prestige is the only

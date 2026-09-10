@@ -69,8 +69,8 @@ struct ComboMeterView: View {
                             Spacer()
                             // Names the specific lever still open (Research vs Legacy vs
                             // Contract) rather than a generic "needs more investment" - see
-                            // GameState.comboInvestmentHint.
-                            Text(stuck ? engine.state.comboInvestmentHint : "\(active.tapsDone)/\(tier.taps) taps")
+                            // GameEngine.comboInvestmentHint.
+                            Text(stuck ? engine.comboInvestmentHint : "\(active.tapsDone)/\(tier.taps) taps")
                                 .font(Theme.body(10, weight: .bold))
                                 .foregroundStyle(Theme.textDim)
                                 .lineLimit(1)
