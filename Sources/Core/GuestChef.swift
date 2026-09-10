@@ -5,9 +5,11 @@ import Foundation
 /// same "compute it from `now`" approach `Festival`/`League` rollovers already use.
 enum GuestChef {
 
-    /// 700, up from 400: at 400 this was a guaranteed legendary for ~\$3-4 of gems while
-    /// the Legendary Chef Crate charges \$9.99 cash for the same headline outcome - the
-    /// gem route should be the patient path, not a 60% discount. Also separates the three
+    /// 700, up from 400: at 400 this was a guaranteed legendary for ~\$3-4 of gems, cheap
+    /// enough to undercut the real-money route to the same headline outcome - the gem route
+    /// should be the patient path, not a discount. (That comparison was originally against
+    /// the Legendary Chef Crate, since cut from the shop - the pricing logic still holds
+    /// against any cash route to a guaranteed Legendary.) Also separates the three
     /// once-identical 400-gem sinks (Star Infusion 250 / Automate Venue 400 / this at 700)
     /// so price signals value.
     static let gemPrice = 700

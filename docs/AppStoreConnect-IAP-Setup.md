@@ -1,17 +1,43 @@
 # Setting up real In-App Purchases in App Store Connect
 
 Everything on the code side is done — `Sources/Store/StoreService.swift` and
-`Sources/Store/Products.storekit` already know about all 12 products (trimmed down from an
-earlier 17-product catalog - Empire/Dynasty gem packs, Grand Opening Bundle, Time Vault, and
-Founder's Bundle were cut as redundant with cleaner tiers already in the list). **Nothing in
-this document requires touching code.** It's the steps to make those same 12 products exist
-for real on Apple's side, which only you can do (it needs your Apple Developer account, your
-banking details, and your agreement signatures — none of which I can enter on your behalf).
+`Sources/Store/Products.storekit` already know about all 8 products. **Nothing in this
+document requires touching code.** It's the steps to make those same 8 products exist for real
+on Apple's side, which only you can do (it needs your Apple Developer account, your banking
+details, and your agreement signatures — none of which I can enter on your behalf).
 
 Once the real products exist and are approved, the app doesn't need a single line changed:
 StoreKit fetches by product ID, and the IDs below are already exactly what the code asks for.
 The local `Products.storekit` file stays in the project *only* for Xcode's test runner — the
 shipped app never reads it.
+
+**If you've already created products in ASC from an earlier version of this doc** (this
+catalog has been rebalanced several times before anyone actually did the ASC-side work, so
+there's a real chance the live/reference numbers you're looking at are stale): the product
+*table* below is always the current truth - diff it against whatever you already created.
+Two things specifically to know about, since they're not just "the badge text changed" like
+most of the churn has been:
+
+- **Gem amounts changed again for every gem pack** (Handful/Pouch/Chest/Hoard all pay out
+  different amounts than any earlier version of this doc). Their ASC Description fields were
+  deliberately written without exact numbers ("A pouch of gems for the ambitious owner", etc.)
+  specifically so a rebalance like this wouldn't require touching App Store Connect at all -
+  if you already created these 4 product IDs with the old amounts, there is genuinely nothing
+  to change in ASC; the new amounts are entirely an app-side (`ShopCatalog`) concern.
+- **`pack.legendary`, `pack.accelerator`, `vip.mogul`, and `gems.vault` are cut** (not
+  currently sold) - if any are already live in ASC, **Remove from Sale** them (App Store
+  Connect → your app → Monetization → In-App Purchases → [product] → Pricing and Availability
+  → Remove from Sale; some ASC layouts label this "Deactivate"). Apple does not allow deleting
+  a product that's ever had a real transaction, so this is the only correct action - never
+  delete. Existing owners keep what they bought either way: the app's own code
+  (`ShopCatalog.retired`, see `Sources/Store/StoreService.swift`) already re-grants their
+  entitlements on restore/reinstall independent of anything in ASC. `gems.pouch` was cut for
+  one pass and then revived - if you removed it from sale in the meantime, just re-enable it
+  (same product ID, same $4.99 price, new gem amount) rather than recreating it.
+- **VIP Pass's Description text changed** (profit bonus and offline cap both increased) - see
+  its entry below for the current copy. Price is unchanged ($14.99) - a value increase for the
+  same price isn't a price change, so no re-approval flow, just an edit to the existing
+  product's Description field.
 
 ## 0. Before you touch In-App Purchases at all
 
@@ -35,7 +61,7 @@ App Store Connect → **Apps** → **+** → **New App**. iOS platform, the bund
 capability doesn't need a separate entitlement or Xcode capability toggle — it's available to
 every app by default once the app record exists.
 
-## 2. Create the 12 products
+## 2. Create the 8 products
 
 App Store Connect → your app → **Monetization** → **In-App Purchases** (older ASC layouts
 call this tab **Features → In-App Purchases** — same place, different label depending on
@@ -51,15 +77,15 @@ character for character, or the app will never find the product.
 | `com.fable.foodcourt.gems.handful` | Consumable | $0.99 | Handful of Gems | Handful of Gems |
 | `com.fable.foodcourt.gems.pouch` | Consumable | $4.99 | Pouch of Gems | Pouch of Gems |
 | `com.fable.foodcourt.gems.chest` | Consumable | $9.99 | Chest of Gems | Chest of Gems |
-| `com.fable.foodcourt.gems.vault` | Consumable | $24.99 | Vault of Gems | Vault of Gems |
 | `com.fable.foodcourt.gems.hoard` | Consumable | $49.99 | Hoard of Gems | Hoard of Gems |
 | `com.fable.foodcourt.pack.starter` | Non-Consumable | $4.99 | Starter Pack | Starter Pack |
 | `com.fable.foodcourt.pack.festival` | Consumable | $3.99 | Carnival Pass | Carnival Pass |
-| `com.fable.foodcourt.pack.legendary` | Consumable | $9.99 | Legendary Chef Crate | Legendary Chef Crate |
-| `com.fable.foodcourt.pack.accelerator` | Consumable | $19.99 | Franchise Accelerator | Franchise Accelerator |
 | `com.fable.foodcourt.vip.pass` | Non-Consumable | $14.99 | VIP Pass | VIP Pass |
 | `com.fable.foodcourt.pack.research` | Consumable | $9.99 | Research Grant | Research Grant |
-| `com.fable.foodcourt.vip.mogul` | Non-Consumable | $49.99 | Mogul Pass | Mogul Pass |
+
+Cut, don't recreate: `gems.vault`, `pack.legendary`, `pack.accelerator`, `vip.mogul`. If any
+are already live in ASC, see the removal note above; if you're setting up fresh and never
+created them, just skip them entirely.
 
 **Consumable vs. Non-Consumable matters and must match the table exactly.** Get it wrong and
 either the purchase won't restore when it should (VIP/Starter Pack must be Non-Consumable),
@@ -74,24 +100,21 @@ directly:
 - Handful — *A handful of gems to keep the fryers hot.*
 - Pouch — *A pouch of gems for the ambitious owner.*
 - Chest — *A chest of gems. Best everyday value.*
-- Vault — *A vault of gems for serious franchise builders.*
 - Hoard — *A hoard of gems for players building an empire fast. The biggest gem pack.*
 - Starter Pack — *500 gems, a manager for every open station, and 24 hours of double profit.*
 - Carnival Pass — *Unlocks the premium reward on all 30 festival tiers for this season.*
-- Legendary Chef Crate — *One guaranteed Legendary-rarity manager, instantly.*
-- Franchise Accelerator — *2,500 gems, 8 hours of income banked instantly, and double profit for 48 hours.*
-- VIP Pass — *Permanent +25% profit, 12 hour offline earnings, and the Carnival Pass every season.*
+- VIP Pass — *Permanent +40% profit, 16 hour offline earnings, and the Carnival Pass every season.*
 - Research Grant — *A research windfall scaled to your empire - at least 2,500 stars, and far more the further you've come.*
-- Mogul Pass — *Permanent +50% profit that stacks with VIP, plus 12 extra hours of offline earnings.*
 
-**VIP Pass and Mogul Pass only**: turn on **Family Sharing** for those two (matches
-`familyShareable: true` in the local config) — the rest should stay off.
+**VIP Pass only**: turn on **Family Sharing** (matches `familyShareable: true` in the local
+config) — the rest should stay off. (Mogul Pass used to share this too, but it's cut from
+sale - see the top of this doc.)
 
 ### Screenshot requirement
 
 Every IAP needs one App Review screenshot showing it in context in the app (App Store
 Connect will ask for it per-product, minimum roughly 640×920px). A screenshot of the Shop
-sheet with that product's row visible satisfies this for all 12 — you can reuse the same one
+sheet with that product's row visible satisfies this for all 8 — you can reuse the same one
 or two shop screenshots across every product, Apple doesn't require a unique image per item.
 The Research Grant also appears inline in the Franchise sheet's Research tab, so a screenshot
 of that placement works just as well if you'd rather use it.
@@ -118,7 +141,7 @@ Apple-approved first, so you can fully test the whole store before ever submitti
 
 New IAPs are reviewed **alongside an app binary** — App Store Connect won't send them for
 review by themselves the very first time. When you submit the app version for review, you'll
-see a prompt to select which "Ready to Submit" IAPs to include. Select all 12.
+see a prompt to select which "Ready to Submit" IAPs to include. Select all 8.
 
 After that first approval, adding a *new* IAP later can go through review on its own,
 without needing a fresh app binary.
@@ -133,7 +156,7 @@ it does in local testing today — same product IDs, same `ShopCatalog`, same gr
 
 ## If you want a subscription later
 
-None of the 12 products above are subscriptions — everything is a one-time consumable or
+None of the 8 products above are subscriptions — everything is a one-time consumable or
 non-consumable, matching how `Sources/Core/Balance.swift` and the store layer are built
 today. If you later want a recurring "VIP, but monthly" tier instead of (or alongside) the
 one-time VIP Pass, that's a materially different setup: a **Subscription Group** in App Store

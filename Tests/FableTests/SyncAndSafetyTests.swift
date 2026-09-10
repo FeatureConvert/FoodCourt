@@ -128,19 +128,25 @@ final class SyncAndSafetyTests: XCTestCase {
         }
     }
 
-    func testCatalogHasTwelveUniqueProducts() {
-        XCTAssertEqual(ShopCatalog.all.count, 12)
-        XCTAssertEqual(Set(ShopCatalog.productIDs).count, 12, "duplicate product id")
+    func testCatalogHasEightUniqueProducts() {
+        XCTAssertEqual(ShopCatalog.all.count, 8)
+        XCTAssertEqual(Set(ShopCatalog.productIDs).count, 8, "duplicate product id")
     }
 
     // MARK: Mogul Pass entitlement effects
+    //
+    // Mogul Pass itself is cut from sale (see ShopCatalog.retired), but the entitlement and
+    // its stacking behavior stay fully intact for anyone whose save already has `mogul:
+    // true` - these tests keep covering that, symbolically against `Balance` so a future
+    // bonus-value tune can't silently desync them the way hardcoded literals would.
 
     func testMogulStacksMultiplicativelyWithVIP() {
         var state = GameState.newGame()
         state.entitlements.mogul = true
-        XCTAssertEqual(state.entitlements.profitMultiplier, 1.5, accuracy: 0.0001)
+        XCTAssertEqual(state.entitlements.profitMultiplier, 1 + Balance.mogulProfitBonus, accuracy: 0.0001)
         state.entitlements.vip = true
-        XCTAssertEqual(state.entitlements.profitMultiplier, 1.25 * 1.5, accuracy: 0.0001,
+        XCTAssertEqual(state.entitlements.profitMultiplier,
+                       (1 + Balance.vipProfitBonus) * (1 + Balance.mogulProfitBonus), accuracy: 0.0001,
                        "the two passes multiply - neither replaces the other")
     }
 

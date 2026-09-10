@@ -58,60 +58,104 @@ struct ShopItem: Identifiable, Equatable {
 enum ShopCatalog {
     static let prefix = "com.fable.foodcourt."
 
+    /// Fourth pass (Empire/Dynasty/Grand Opening/Time Vault/Founder's cut first; then a
+    /// repricing with no cuts; then a trim to 3 tiers - see `retired` below): back to 4,
+    /// Pouch revived, every tier repriced from a fixed $0.99/500-gem anchor rather than the
+    /// prior tiers' own history. Gems-per-dollar rises with every tier on purpose - each
+    /// step up is a genuinely better rate, not just a bigger number, so "buy more" reads as
+    /// "save more":
+    ///
+    ///   Handful   $0.99 ->   500 gems (505 g/$, baseline)
+    ///   Pouch     $4.99 -> 3,000 gems (601 g/$, +19%)
+    ///   Chest     $9.99 -> 7,000 gems (701 g/$, +39%)
+    ///   Hoard    $49.99 -> 45,000 gems (900 g/$, +78%)
     static let gemPacks: [ShopItem] = [
-        ShopItem(id: prefix + "gems.handful", title: "Handful", subtitle: "100 gems",
-                 reward: .gems(100), fallbackPrice: "$0.99", badge: nil, magnitude: 1),
-        // The $5 anchor: a moderate free player's weekly pinch (the 700-gem Guest Chef,
-        // a season-end ticket push) is exactly one Pouch away - this is the pack the
-        // economy is tuned to make *tempting*, never necessary.
-        ShopItem(id: prefix + "gems.pouch", title: "Pouch", subtitle: "550 gems · most popular",
-                 reward: .gems(550), fallbackPrice: "$4.99", badge: "POPULAR", magnitude: 2),
-        ShopItem(id: prefix + "gems.chest", title: "Chest", subtitle: "1,200 gems",
-                 reward: .gems(1200), fallbackPrice: "$9.99", badge: "+20%", magnitude: 3),
-        ShopItem(id: prefix + "gems.vault", title: "Vault", subtitle: "3,300 gems",
-                 reward: .gems(3300), fallbackPrice: "$24.99", badge: "+35%", magnitude: 4),
-        ShopItem(id: prefix + "gems.hoard", title: "Hoard", subtitle: "7,500 gems",
-                 reward: .gems(7500), fallbackPrice: "$49.99", badge: "+50%", magnitude: 4),
-        // Hoard is the ceiling now - Empire ($99.99) and Dynasty ($199.99) cut to trim the
-        // whale end of the gem ladder.
+        ShopItem(id: prefix + "gems.handful", title: "Handful", subtitle: "500 gems",
+                 reward: .gems(500), fallbackPrice: "$0.99", badge: nil, magnitude: 1),
+        ShopItem(id: prefix + "gems.pouch", title: "Pouch", subtitle: "3,000 gems · most popular",
+                 reward: .gems(3000), fallbackPrice: "$4.99", badge: "POPULAR", magnitude: 2),
+        ShopItem(id: prefix + "gems.chest", title: "Chest", subtitle: "7,000 gems",
+                 reward: .gems(7000), fallbackPrice: "$9.99", badge: "+39%", magnitude: 3),
+        ShopItem(id: prefix + "gems.hoard", title: "Hoard", subtitle: "45,000 gems",
+                 reward: .gems(45000), fallbackPrice: "$49.99", badge: "+78%", magnitude: 4),
+        // Hoard is the ceiling - Empire ($99.99) and Dynasty ($199.99) stay cut, and the top
+        // tier itself never gets cut: a small share of players account for roughly half of
+        // all IAP revenue industry-wide, and they're exactly who a whale ceiling is for.
     ]
 
     /// Display order is catalog order - keep this ascending by price (StoreTests pins it).
     /// Price ties break by where the purchase lands in a player's journey: the
     /// earlier-game buy first.
+    ///
+    /// Second trim pass: Legendary Chef Crate, Franchise Accelerator, and Mogul Pass all cut
+    /// (see `retired`). Mogul's role - a second permanent profit tier - folds into a more
+    /// generous VIP Pass instead of two whale tiers a player has to piece together; the other
+    /// two were reconstructable from a gem pack plus a normal boost and didn't earn their own
+    /// slot. Four offers left, each doing something the other three can't.
     static let offers: [ShopItem] = [
         ShopItem(id: prefix + "pack.festival", title: "Carnival Pass",
                  subtitle: "Premium reward on all 30 tiers · this season only",
                  reward: .festivalPass, fallbackPrice: "$3.99", badge: "THIS SEASON", magnitude: 2),
+        // Badge reads "value", not just "repeatability" - starter-pack conversion research
+        // says the framing that matters most (after price) is a clear value anchor, not the
+        // one-time-purchase mechanic itself, which players don't parse as a selling point.
         ShopItem(id: prefix + "pack.starter", title: "Starter Pack",
                  subtitle: "500 gems · a manager for every open station · 24h double profit",
-                 reward: .starterPack, fallbackPrice: "$4.99", badge: "ONE TIME", magnitude: 3),
+                 reward: .starterPack, fallbackPrice: "$4.99", badge: "NEW PLAYER DEAL", magnitude: 3),
+        ShopItem(id: prefix + "pack.research", title: "Research Grant",
+                 subtitle: "Research stars scaled to your empire - 80% of your last Franchise, repeatable",
+                 reward: .researchGrant, fallbackPrice: "$9.99", badge: "SHORTCUT", magnitude: 2),
+        ShopItem(id: prefix + "vip.pass", title: "VIP Pass",
+                 subtitle: "+40% profit forever · 16h offline earnings · Carnival Pass every season",
+                 reward: .vip, fallbackPrice: "$14.99", badge: "BEST VALUE", magnitude: 4),
+    ]
+
+    /// Cut from sale, but a real customer may still hold one from before it was retired.
+    /// Kept resolvable ONLY for transaction lookup (`item(for:)`) - never added to `all`/
+    /// `productIDs`, so StoreKit is never asked to fetch these and none of them can render
+    /// in ShopView. Without this, `refreshEntitlements()` silently stops re-granting a
+    /// non-consumable the moment it's cut from `offers` (`item(for:)` returns nil, the
+    /// `guard let item = ...` fails, nothing is re-delivered) - which is exactly what was
+    /// quietly happening to Grand Opening Bundle and Founder's Bundle before this list
+    /// existed. Even a consumable's in-flight transaction at the exact moment of removal
+    /// would otherwise finish ungranted the same way, so every historically-sold product
+    /// lives here once it's cut, not just the non-consumables. Real ids/prices recovered
+    /// from git history (commit 5468c90) for the first trim pass rather than guessed.
+    static let retired: [ShopItem] = [
+        ShopItem(id: prefix + "gems.empire", title: "Empire", subtitle: "18,000 gems",
+                 reward: .gems(18000), fallbackPrice: "$99.99", badge: "+80%", magnitude: 4),
+        ShopItem(id: prefix + "gems.dynasty", title: "Dynasty", subtitle: "45,000 gems",
+                 reward: .gems(45000), fallbackPrice: "$199.99", badge: "+125%", magnitude: 4),
+        ShopItem(id: prefix + "pack.grandopening", title: "Grand Opening Bundle",
+                 subtitle: "1,500 gems · a manager for every open station in every venue · ×2 for 72h",
+                 reward: .grandOpeningBundle, fallbackPrice: "$14.99", badge: "ONE TIME", magnitude: 3),
+        ShopItem(id: prefix + "pack.timevault", title: "Time Vault",
+                 subtitle: "A full day of income banked now · ×3 profit for 72h",
+                 reward: .timeVault, fallbackPrice: "$39.99", badge: "BUNDLE", magnitude: 4),
+        ShopItem(id: prefix + "pack.founders", title: "Founder's Bundle",
+                 subtitle: "12,000 gems · 2 Legendary managers · ×2 profit for 7 days",
+                 reward: .foundersBundle, fallbackPrice: "$99.99", badge: "ONE TIME", magnitude: 4),
         ShopItem(id: prefix + "pack.legendary", title: "Legendary Chef Crate",
                  subtitle: "One guaranteed Legendary manager, instantly",
                  reward: .legendaryManager, fallbackPrice: "$9.99", badge: "GUARANTEED", magnitude: 4),
-        ShopItem(id: prefix + "pack.research", title: "Research Grant",
-                 subtitle: "Research stars scaled to your empire - 60% of your last Franchise, repeatable",
-                 reward: .researchGrant, fallbackPrice: "$9.99", badge: "SHORTCUT", magnitude: 2),
-        ShopItem(id: prefix + "vip.pass", title: "VIP Pass",
-                 subtitle: "+25% profit forever · 12h offline earnings · Carnival Pass every season",
-                 reward: .vip, fallbackPrice: "$14.99", badge: "BEST VALUE", magnitude: 4),
-        // Grand Opening Bundle cut - it overlapped Starter Pack (same free-managers idea,
-        // different scope/price); one clean early bundle instead of two similar ones.
         ShopItem(id: prefix + "pack.accelerator", title: "Franchise Accelerator",
                  subtitle: "2,500 gems · 8 hours of income banked now · ×2 profit for 48h",
                  reward: .accelerator, fallbackPrice: "$19.99", badge: "BUNDLE", magnitude: 4),
-        // Time Vault cut - a more expensive, largely redundant version of Franchise Accelerator.
         ShopItem(id: prefix + "vip.mogul", title: "Mogul Pass",
                  subtitle: "+50% profit forever · +12h offline cap · stacks with VIP",
                  reward: .mogulPass, fallbackPrice: "$49.99", badge: "PERMANENT", magnitude: 4),
-        // Founder's Bundle cut - a one-time grab-bag at the same price range as Mogul Pass,
-        // redundant with the two clean permanent-boost tiers (VIP, Mogul) already above it.
+        // Vault stays cut (Pouch was revived in the fourth pass - see `gemPacks` - so it's
+        // no longer retired; only Vault remains here from that trim).
+        ShopItem(id: prefix + "gems.vault", title: "Vault", subtitle: "5,000 gems",
+                 reward: .gems(5000), fallbackPrice: "$24.99", badge: "+30%", magnitude: 4),
     ]
 
     static let all: [ShopItem] = offers + gemPacks
     static var productIDs: [String] { all.map(\.id) }
 
-    static func item(for id: String) -> ShopItem? { all.first { $0.id == id } }
+    static func item(for id: String) -> ShopItem? {
+        all.first { $0.id == id } ?? retired.first { $0.id == id }
+    }
 }
 
 @MainActor

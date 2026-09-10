@@ -12,15 +12,17 @@ struct GemOffer: Identifiable, Equatable {
     static let all: [GemOffer] = [
         GemOffer(id: "boost", title: "Double Profit",
                  subtitle: "×2 on everything for 1 hour", cost: 50, symbol: "bolt.fill"),
-        GemOffer(id: "manager", title: "Instant Manager",
-                 subtitle: "Staff your cheapest open station", cost: 100, symbol: "person.fill.badge.plus"),
+        // "Instant Manager" (auto-picks the cheapest unstaffed station) and "Start Rush
+        // Hour" used to have Shop cards here too, at these same prices - cut as exact
+        // duplicates of purchases already reachable elsewhere at the identical cost: the
+        // per-station "hire with gems" button (StationListView, contextual - no auto-picker
+        // needed) and the stage's own Rush Hour button (RootView, where its cooldown is
+        // already visible). See `GemSpend.hireManagerWithGems` and `startRush` respectively -
+        // neither changed, only the redundant Shop-side doors to them came out.
         GemOffer(id: "timewarp", title: "Time Warp",
                  subtitle: "Collect 4 hours of income now", cost: 150, symbol: "clock.arrow.circlepath"),
         GemOffer(id: "instant", title: "Serve Everyone",
                  subtitle: "Finish every station's cycle instantly", cost: 20, symbol: "hand.tap.fill"),
-        GemOffer(id: "rush", title: "Start Rush Hour",
-                 subtitle: "Skip the cooldown and go again now",
-                 cost: ActivePlay.rushGemCost, symbol: "timer"),
         GemOffer(id: "automate", title: "Automate Venue",
                  subtitle: "Staff every open station here at once", cost: 400, symbol: "person.3.fill"),
         GemOffer(id: "reserve", title: "Chef's Reserve",
@@ -69,15 +71,6 @@ enum GemSpend {
             engine.addBoost(id: "gem-boost", label: "×2 Profit", multiplier: 2, hours: 1)
             return .success("Double profit for 1 hour")
 
-        case "manager":
-            guard let target = cheapestUnmanagedStation(engine: engine) else {
-                return .nothingToDo("Every open station is already staffed")
-            }
-            guard engine.spendGems(offer.cost) else { return .insufficientGems }
-            engine.hireManager(for: target, free: true, premium: true)
-            let name = Balance.venue(engine.state.currentVenue).stations[target].name
-            return .success("\(name) is now staffed")
-
         case "timewarp":
             let preview = OfflineEarnings.automatedIncomePerSecond(engine.state)
             guard preview > 0 else {
@@ -91,12 +84,6 @@ enum GemSpend {
             guard engine.spendGems(offer.cost) else { return .insufficientGems }
             let earned = engine.instantCompleteAll()
             return .success("Served everyone for \(Format.currency(earned))")
-
-        case "rush":
-            guard !engine.rushActive else { return .nothingToDo("Rush Hour is already running") }
-            guard engine.spendGems(offer.cost) else { return .insufficientGems }
-            engine.startRush(force: true)
-            return .success("Rush Hour started")
 
         case "automate":
             // Deliberately NOT scaled by the staleness tax, unlike coin hires: gems buying
@@ -140,19 +127,6 @@ enum GemSpend {
         default:
             return .nothingToDo("Unavailable")
         }
-    }
-
-    /// The manager offer targets the cheapest station the player has open but not staffed,
-    /// which is almost always the one they want and saves them a picker.
-    static func cheapestUnmanagedStation(engine: GameEngine) -> Int? {
-        let venue = Balance.venue(engine.state.currentVenue)
-        return venue.stations
-            .filter { spec in
-                let station = engine.state.venues[venue.id].stations[spec.id]
-                return station.isOwned && !station.hasManager
-            }
-            .min { Balance.managerCost(spec: $0) < Balance.managerCost(spec: $1) }?
-            .id
     }
 
     /// Price to skip the coin cost of a specific station's manager, offered on the card.

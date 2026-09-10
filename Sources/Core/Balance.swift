@@ -207,7 +207,7 @@ enum Balance {
     // Offline / retention
     static let offlineEfficiency: Double = 0.5
     static let offlineCapHours: Double = 2
-    static let offlineCapHoursVIP: Double = 12
+    static let offlineCapHoursVIP: Double = 16
 
     // Prestige
     static let prestigeStarDivisor: Double = 1e12
@@ -244,10 +244,16 @@ enum Balance {
     static let minimumLifetimeForPrestige: Double = 1e13
 
     // Entitlements
-    static let vipProfitBonus: Double = 0.25
-    /// Mogul Pass, the $49.99 whale permanent. Multiplies WITH VIP (x1.25 x x1.5 = x1.875
-    /// for both) - a percentage bonus stays meaningful at any income scale, which is what
-    /// makes it whale-proof against the compounding star curve.
+    /// Was 0.25 (+25%) when VIP and Mogul Pass were two separate permanent tiers sold
+    /// separately ($14.99 + $49.99) that multiplied together (x1.25 x x1.5 = x1.875 for
+    /// both). Mogul Pass is cut from sale (see ShopCatalog.retired) and its role folded in
+    /// here instead - one simpler, more generous tier rather than two whales have to piece
+    /// together. Existing Mogul owners are untouched: `Entitlements.profitMultiplier` still
+    /// multiplies this by `mogulProfitBonus` for anyone whose save already has `mogul: true`.
+    static let vipProfitBonus: Double = 0.40
+    /// Kept only for historical Mogul Pass owners - `Entitlements.profitMultiplier` and
+    /// `offlineCapHours` still read this for anyone whose save already has `mogul: true`.
+    /// No longer purchasable; see ShopCatalog.retired.
     static let mogulProfitBonus: Double = 0.5
     static let mogulOfflineCapBonusHours: Double = 12
 
@@ -383,6 +389,32 @@ enum Balance {
             ? spec.baseCost * firstStationManagerFactor
             : managerCostScale * pow(spec.baseCost, managerCostExponent)
     }
+
+    /// Retiring a benched manager for gems (`GameEngine.dismissManager`/`dismissIdleCommons`).
+    /// Only Common and Rare are eligible today (`GameEngine.isRetirementEligible`) - Epic and
+    /// Legendary are excluded on purpose, since those are the managers a player specifically
+    /// farmed or paid for (a Guest Chef costs 700 gems for a guaranteed Legendary) and
+    /// letting them retire risks both an accidental loss of a synergy-set piece and a real
+    /// wash-trade (buy for gems, retire back for gems). Same per-rarity shape as
+    /// `Errands.gemsPerHour`/`Tools.duplicateGems` even though only the first two cases are
+    /// reachable right now, so extending eligibility later is a one-line change here, not a
+    /// new table. Deliberately modest at every tier: `managerCost` above has no per-hire
+    /// escalation, so an uncapped reward would be a plain coins-to-gems mint for the one
+    /// on-demand-hireable case (Trainee). The real guard is `managerRetirementDailyCap`, not
+    /// these values being tiny - the cap is what keeps a big one-time bench cleanup generous
+    /// while keeping a hire-retire loop worthless.
+    static func managerRetirementGems(_ rarity: ManagerRarity) -> Int {
+        switch rarity {
+        case .common: return 5
+        case .rare: return 15
+        case .epic: return 45
+        case .legendary: return 135
+        }
+    }
+    /// Rewarded retirements per day - the 11th+ eligible manager retired on a given day still
+    /// frees the roster slot, just without gems. Even at the ceiling (10 Rares) this is a
+    /// rounding error against the wider economy, which is the point.
+    static let managerRetirementDailyCap = 10
 
     // MARK: Staleness (organic-growth cap)
 

@@ -44,16 +44,15 @@ final class ShopGrantTests: XCTestCase {
 
     /// A product that has been withdrawn from sale but whose grant is still live.
     ///
-    /// The Grand Opening Bundle and the Founder's Bundle were cut when the catalog was trimmed
-    /// from 17 products to 12, so `ShopCatalog` no longer lists them - but `grant` still handles
-    /// both, and it has to: `refreshEntitlements()` re-delivers non-consumables on every launch,
-    /// so anyone who bought one *before* it was withdrawn still has that transaction replayed at
-    /// them for the life of the install. Their `firstTime` guards are therefore still load-bearing
-    /// for real players, and are exactly the code least likely to be exercised by hand again.
-    /// Built here rather than looked up, since there is no catalog entry left to find.
-    private func retiredItem(_ reward: ShopReward, id: String) -> ShopItem {
-        ShopItem(id: id, title: "retired", subtitle: "", reward: reward,
-                 fallbackPrice: "", badge: nil, magnitude: 0)
+    /// Cut products are kept in `ShopCatalog.retired` (real ids, not fabricated here) so
+    /// `ShopCatalog.item(for:)` can still resolve them - `refreshEntitlements()` re-delivers
+    /// non-consumables on every launch, so anyone who bought one *before* it was withdrawn
+    /// still has that transaction replayed at them for the life of the install. Their
+    /// `firstTime` guards are therefore still load-bearing for real players, and are exactly
+    /// the code least likely to be exercised by hand again.
+    private func retiredItem(_ reward: ShopReward) throws -> ShopItem {
+        try XCTUnwrap(ShopCatalog.retired.first { $0.reward == reward },
+                      "no retired catalog item rewards \(reward)")
     }
 
     private func boosts(id: String) -> Int {
@@ -104,7 +103,7 @@ final class ShopGrantTests: XCTestCase {
     /// Same guard, and the one whose comment in `grant` spells out the failure: 1,500 gems and a
     /// fresh 72h boost on every relaunch forever.
     func testGrandOpeningBundleContentsLandExactlyOnceAcrossRedelivery() throws {
-        let bundle = retiredItem(.grandOpeningBundle, id: "com.fable.foodcourt.grandopening")
+        let bundle = try retiredItem(.grandOpeningBundle)
         let gemsBefore = engine.state.gems
 
         store.grantForTesting(bundle)
@@ -124,7 +123,7 @@ final class ShopGrantTests: XCTestCase {
     /// The most expensive one to get wrong: 12,000 gems, two legendary managers and a week-long
     /// x2, every launch.
     func testFoundersBundleContentsLandExactlyOnceAcrossRedelivery() throws {
-        let founders = retiredItem(.foundersBundle, id: "com.fable.foodcourt.founders")
+        let founders = try retiredItem(.foundersBundle)
         let gemsBefore = engine.state.gems
         let rosterBefore = engine.state.managers.count
 
@@ -164,13 +163,37 @@ final class ShopGrantTests: XCTestCase {
                        "VIP granted twice compounded its own profit bonus")
         XCTAssertGreaterThan(engine.state.offlineCapHours, baseCap)
 
-        store.grantForTesting(try item(.mogulPass))
+        // Mogul Pass is cut from sale (ShopCatalog.retired, not .offers) - the entitlement
+        // and its stacking math must keep working exactly as before for anyone who already
+        // bought it.
+        store.grantForTesting(try retiredItem(.mogulPass))
 
         XCTAssertTrue(engine.state.entitlements.mogul)
         // The two are documented as stacking multiplicatively rather than replacing each other.
         XCTAssertEqual(engine.state.entitlements.profitMultiplier,
                        (1 + Balance.vipProfitBonus) * (1 + Balance.mogulProfitBonus),
                        accuracy: 1e-9)
+    }
+
+    // MARK: retired catalog resolution
+
+    /// The bug `ShopCatalog.retired` fixes: `StoreService.deliver(_:)` and
+    /// `refreshEntitlements()` both gate a grant behind `ShopCatalog.item(for:
+    /// transaction.productID)`. Before `retired` existed, that lookup returned nil for
+    /// anything cut from `offers` - Grand Opening Bundle and Founder's Bundle silently
+    /// stopped being re-delivered to real owners on relaunch the moment they were trimmed.
+    /// Mogul Pass would hit the identical gap the moment it was cut too. This locks in that
+    /// every non-consumable ever sold, live or retired, still resolves.
+    func testRetiredNonConsumablesStillResolveForRestoreDelivery() throws {
+        for reward: ShopReward in [.starterPack, .vip, .grandOpeningBundle, .foundersBundle, .mogulPass] {
+            let resolved = ShopCatalog.all.first { $0.reward == reward }
+                ?? ShopCatalog.retired.first { $0.reward == reward }
+            let productItem = try XCTUnwrap(resolved, "\(reward) has no catalog entry, live or retired")
+            XCTAssertNotNil(ShopCatalog.item(for: productItem.id),
+                            "\(productItem.id) does not resolve via item(for:) - " +
+                            "refreshEntitlements would silently stop re-granting it")
+        }
+        XCTAssertNil(ShopCatalog.offers.first { $0.reward == .mogulPass }, "Mogul Pass is no longer purchasable")
     }
 
     /// The Carnival Pass had a real bug report against it ("button does nothing"), and the

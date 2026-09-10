@@ -76,9 +76,10 @@ struct HelpView: View {
         GuideSection(
             symbol: "flame.fill", title: "Combo and Rush Hour",
             text: """
-            Taps within a couple of seconds of each other build a combo, up to ×2 (deeper \
-            with research and Legacy perks), and it multiplies everything you earn while \
-            it lasts — even from staffed stations, so it is always worth tapping. Rush \
+            Taps within a few seconds of each other build a combo, climbing in tiers up to \
+            ×3 (deeper with research and Legacy perks), and it multiplies everything you \
+            earn while it lasts — even from staffed stations, so it is always worth \
+            tapping. Rush \
             Hour is a 60-second ×5 on a 30-minute cooldown, and coming back promptly \
             builds a chain worth up to +50% more. The coffee cup is a free ×2 for 15 \
             minutes.
@@ -308,9 +309,9 @@ struct HelpView: View {
         FAQItem(question: "What is the difference between the Carnival Pass and VIP?",
                 answer: """
                 The Carnival Pass unlocks the premium reward on all 30 tiers for the current \
-                season only. VIP includes that pass every season, plus +25% profit forever \
-                and a longer offline window. If you expect to play for more than a few \
-                seasons, VIP is the cheaper route.
+                season only. VIP includes that pass every season, plus +\(Int(Balance.vipProfitBonus * 100))% \
+                profit forever and a longer offline window. If you expect to play for more \
+                than a few seasons, VIP is the cheaper route.
                 """),
         FAQItem(question: "Does the game keep earning while it's closed?",
                 answer: """

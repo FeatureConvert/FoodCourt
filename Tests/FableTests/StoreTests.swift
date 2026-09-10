@@ -106,12 +106,12 @@ final class StoreTests: XCTestCase {
     }
 
     func testBuyingAGemPackCreditsGemsExactlyOnce() async throws {
-        let pack = ShopCatalog.gemPacks[0]          // 100 gems
+        let pack = ShopCatalog.gemPacks[0]          // Handful, 500 gems
         let before = engine.state.gems
 
         await store.purchase(pack)
 
-        XCTAssertEqual(engine.state.gems, before + 100)
+        XCTAssertEqual(engine.state.gems, before + 500)
         // Nothing should be left unfinished in the queue.
         var unfinished = 0
         for await _ in Transaction.unfinished { unfinished += 1 }
@@ -119,13 +119,13 @@ final class StoreTests: XCTestCase {
     }
 
     func testRepeatedGemPurchasesAccumulate() async throws {
-        let pack = ShopCatalog.gemPacks[1]          // 550 gems
+        let pack = ShopCatalog.gemPacks[1]          // Pouch, 3,000 gems
         let before = engine.state.gems
 
         await store.purchase(pack)
         await store.purchase(pack)
 
-        XCTAssertEqual(engine.state.gems, before + 1100)
+        XCTAssertEqual(engine.state.gems, before + 6000)
     }
 
     func testVIPUnlocksProfitBonusAndLongerOfflineCap() async throws {
@@ -218,38 +218,15 @@ final class StoreTests: XCTestCase {
         }
         let before = engine.state.gems
         await store.purchase(hoard)
-        XCTAssertEqual(engine.state.gems, before + 7_500)
+        XCTAssertEqual(engine.state.gems, before + 45_000)
     }
 
-    func testLegendaryChefCrateGrantsALegendaryManagerAndIsRepeatable() async throws {
-        guard let crate = ShopCatalog.offers.first(where: { $0.reward == .legendaryManager }) else {
-            return XCTFail("missing the Legendary Chef Crate")
-        }
-        await store.purchase(crate)
-        XCTAssertEqual(engine.state.managers.count, 1)
-        XCTAssertEqual(engine.state.managers.first?.spec.rarity, .legendary)
-        XCTAssertFalse(store.isOwned(crate), "repeatable - must never lock as OWNED")
-
-        // Buying it again should recruit a second legendary, not silently no-op.
-        await store.purchase(crate)
-        XCTAssertEqual(engine.state.managers.count, 2)
-    }
-
-    func testFranchiseAcceleratorGrantsTheFullBundle() async throws {
-        engine.hireManager(for: 0, free: true)   // give automatedRate something to bank
-
-        guard let accelerator = ShopCatalog.offers.first(where: { $0.reward == .accelerator }) else {
-            return XCTFail("missing the Franchise Accelerator")
-        }
-        let gemsBefore = engine.state.gems
-        let coinsBefore = engine.state.coins
-
-        await store.purchase(accelerator)
-
-        XCTAssertEqual(engine.state.gems, gemsBefore + 2_500)
-        XCTAssertGreaterThan(engine.state.coins, coinsBefore)
-        XCTAssertEqual(engine.state.activeBoosts.first { $0.id == "accelerator" }?.multiplier, 2)
-    }
+    // Legendary Chef Crate and Franchise Accelerator are cut from sale (see
+    // ShopCatalog.retired) - there's no longer a StoreKit purchase flow to test for either.
+    // Their grant mechanics stay covered directly: ShopGrantTests.testPureEntitlementsIs...
+    // (via retiredItem) isn't the right fit since both are consumables, but
+    // FeatureTests.testLegendaryChefCrateGrantsAGuaranteedLegendary and
+    // testFranchiseAcceleratorGrantsAllThreeRewards exercise the engine calls directly.
 
     func testFailedPurchaseGrantsNothing() async throws {
         // failTransactionsEnabled was deprecated in iOS 17 with no replacement property;

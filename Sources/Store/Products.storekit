@@ -58,21 +58,6 @@
       "type": "Consumable"
     },
     {
-      "displayPrice": "24.99",
-      "familyShareable": false,
-      "internalID": "1000000004",
-      "localizations": [
-        {
-          "description": "A vault of gems for serious franchise builders.",
-          "displayName": "Vault of Gems",
-          "locale": "en_US"
-        }
-      ],
-      "productID": "com.fable.foodcourt.gems.vault",
-      "referenceName": "Vault of Gems",
-      "type": "Consumable"
-    },
-    {
       "displayPrice": "49.99",
       "familyShareable": false,
       "internalID": "1000000008",
@@ -85,36 +70,6 @@
       ],
       "productID": "com.fable.foodcourt.gems.hoard",
       "referenceName": "Hoard of Gems",
-      "type": "Consumable"
-    },
-    {
-      "displayPrice": "9.99",
-      "familyShareable": false,
-      "internalID": "1000000010",
-      "localizations": [
-        {
-          "description": "One guaranteed Legendary-rarity manager, instantly.",
-          "displayName": "Legendary Chef Crate",
-          "locale": "en_US"
-        }
-      ],
-      "productID": "com.fable.foodcourt.pack.legendary",
-      "referenceName": "Legendary Chef Crate",
-      "type": "Consumable"
-    },
-    {
-      "displayPrice": "19.99",
-      "familyShareable": false,
-      "internalID": "1000000011",
-      "localizations": [
-        {
-          "description": "2,500 gems, 8 hours of income banked instantly, and double profit for 48 hours.",
-          "displayName": "Franchise Accelerator",
-          "locale": "en_US"
-        }
-      ],
-      "productID": "com.fable.foodcourt.pack.accelerator",
-      "referenceName": "Franchise Accelerator",
       "type": "Consumable"
     },
     {
@@ -168,28 +123,13 @@
       "internalID": "1000000006",
       "localizations": [
         {
-          "description": "Permanent +25% profit, 12 hour offline earnings, and the Carnival Pass every season.",
+          "description": "Permanent +40% profit, 16 hour offline earnings, and the Carnival Pass every season.",
           "displayName": "VIP Pass",
           "locale": "en_US"
         }
       ],
       "productID": "com.fable.foodcourt.vip.pass",
       "referenceName": "VIP Pass",
-      "type": "NonConsumable"
-    },
-    {
-      "displayPrice": "49.99",
-      "familyShareable": true,
-      "internalID": "1000000015",
-      "localizations": [
-        {
-          "description": "Permanent +50% profit that stacks with VIP, plus 12 extra hours of offline earnings.",
-          "displayName": "Mogul Pass",
-          "locale": "en_US"
-        }
-      ],
-      "productID": "com.fable.foodcourt.vip.mogul",
-      "referenceName": "Mogul Pass",
       "type": "NonConsumable"
     }
   ],
