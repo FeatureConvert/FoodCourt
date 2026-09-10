@@ -2284,6 +2284,16 @@ final class GameEngine: ObservableObject {
 
     var boostReady: Bool { state.now >= state.boostAvailableAt }
 
+    /// Coffee Break has no dedicated "active window" timestamp of its own like Rush's
+    /// `rushEndsAt` - `boostAvailableAt` alone can't distinguish "still actively boosting"
+    /// from "just on cooldown afterward", so this reads the actual BoostState entry
+    /// `claimFreeBoost` adds, the same source of truth the profit multiplier itself uses.
+    /// Lets the button give Coffee Break the same active/ready/cooldown treatment Rush
+    /// Hour already has, instead of looking merely "locked" the whole time it's helping.
+    var isBoostActive: Bool {
+        state.boosts.contains { $0.id == ActivePlay.freeBoostID && $0.remaining(at: state.now) > 0 }
+    }
+
     var boostCooldownRemaining: TimeInterval {
         Swift.max(0, state.boostAvailableAt.timeIntervalSince(state.now))
     }

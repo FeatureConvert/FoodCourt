@@ -9,12 +9,18 @@ import SwiftUI
 struct ComboMeterView: View {
     @EnvironmentObject private var engine: GameEngine
 
-    /// One color per tier in `ActivePlay.comboTiers` - light yellow climbing to a hot red as
-    /// the multiplier climbs. The flame icon already reads as heat, so each new bar getting
-    /// visibly hotter reinforces "this is getting harder to hold onto" before a player has
-    /// even read the multiplier or noticed the window shrinking.
-    private static let tierColors: [Color] = [
+    /// One color per tier in `ActivePlay.comboTiers` - MUST stay index-aligned and the same
+    /// length as that array, not just "4, since that's how many tiers there used to be".
+    /// This crashed on real devices (array index out of range in this file, not Combo.swift
+    /// itself, which is why it survived that whole session's test suite - nothing here was
+    /// under test) the moment a player with any comboBonusTaps investment climbed into the
+    /// bonus-only tiers added past index 3: comboTiers grew to 8 entries, this array stayed
+    /// at 4. Base tiers keep the original light-yellow-to-red climb; the bonus-only tiers
+    /// above the base ceiling shift into purple and finish on gold, so reaching them reads
+    /// as a distinct payoff for the investment, not just "a darker red".
+    static let tierColors: [Color] = [
         Color(hex: "#FFF3B0"), Color(hex: "#FFC247"), Color(hex: "#FF6B3D"), Color(hex: "#D62839"),
+        Color(hex: "#A61B4A"), Color(hex: "#7B1FA2"), Color(hex: "#4A148C"), Color(hex: "#FFD700"),
     ]
 
     var body: some View {
@@ -254,7 +260,8 @@ struct StageActionsView: View {
     var body: some View {
         VStack(spacing: 8) {
             circleButton(symbol: "cup.and.saucer.fill",
-                         tint: engine.boostReady ? Theme.positive : Theme.locked,
+                         tint: engine.isBoostActive ? Theme.negative
+                                                    : (engine.boostReady ? Theme.positive : Theme.locked),
                          badge: engine.boostReady,
                          cooldown: engine.boostReady ? nil :
                             // `remaining` counts down across the FULL span from activation to
@@ -263,24 +270,33 @@ struct StageActionsView: View {
                             // just the cooldown-minutes constant, or the ring sits pinned at
                             // 0% for the entire active window and only starts filling once the
                             // boost ends - reading as if the cooldown were 15 minutes shorter
-                            // than it actually is.
+                            // than it actually is. Shown through BOTH the active window and the
+                            // cooldown after - only the tint above distinguishes them, matching
+                            // Rush Hour below (paired buttons meant to read as one control, not
+                            // two - see the ring-track comment in circleButton).
                             Cooldown(remaining: engine.boostCooldownRemaining,
                                     total: ActivePlay.freeBoostHours * 3600
                                         + ActivePlay.freeBoostCooldownMinutes * 60),
                          action: onBoost)
                 .tutorialHighlight(.coffeeButton)
                 .accessibilityLabel("Coffee Break boost")
-                .accessibilityValue(engine.boostReady ? "Ready"
+                .accessibilityValue(engine.isBoostActive ? "Active"
+                    : engine.boostReady ? "Ready"
                     : "Ready in \(Format.duration(engine.boostCooldownRemaining))")
 
             circleButton(symbol: "timer",
                          tint: engine.rushActive ? Theme.negative
                                                  : (engine.rushReady ? Theme.coin : Theme.locked),
                          badge: engine.rushReady && !engine.rushActive,
-                         cooldown: (engine.rushReady || engine.rushActive) ? nil :
+                         cooldown: engine.rushReady ? nil :
                             // Same fix as Coffee Break above - rushAvailableAt is set from
                             // rushEndsAt, so `remaining` spans the run's own duration plus the
-                            // 30-minute cooldown, not the cooldown alone.
+                            // 30-minute cooldown, not the cooldown alone. Also shown through the
+                            // active window itself (not just nil'd out until it ends) - it used
+                            // to go blank while running, so a paired Coffee Break + Rush Hour
+                            // activation (the intended way to use them together) showed a timer
+                            // on one button and nothing on the other, reading as two mismatched
+                            // controls instead of the matched pair they're meant to be.
                             Cooldown(remaining: engine.rushCooldownRemaining,
                                     total: engine.state.rushDuration
                                         + ActivePlay.rushCooldownMinutes * 60),

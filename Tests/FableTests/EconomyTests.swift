@@ -156,6 +156,18 @@ final class EconomyTests: XCTestCase {
         XCTAssertLessThan(bonusAt20k, bonusAt10k * 2)
     }
 
+    /// Regression: `ComboMeterView.tierColors` is a plain array indexed by tier, maintained
+    /// separately from `ActivePlay.comboTiers` - nothing in the type system keeps them the
+    /// same length. When comboTiers grew from 4 to 8 entries this session, tierColors stayed
+    /// at 4 and crashed on a real device (array index out of range) the moment any player
+    /// with comboBonusTaps investment climbed into the new bonus-only tiers. Both arrays
+    /// live in different files (Core vs UI) specifically so a future change to one has no
+    /// compiler-enforced link to the other - this is the only thing that would have caught it.
+    func testComboMeterTierColorsStaysAlignedWithComboTiers() {
+        XCTAssertEqual(ComboMeterView.tierColors.count, ActivePlay.comboTiers.count,
+                       "one color per combo tier - a mismatch here is a guaranteed crash, not a visual nit")
+    }
+
     func testFranchiseBonusMultiplier() {
         XCTAssertEqual(Balance.franchiseBonusMultiplier(prestigeCount: 0), 1,
                        "no franchises yet, nothing to bonus")
