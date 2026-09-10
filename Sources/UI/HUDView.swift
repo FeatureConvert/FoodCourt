@@ -15,6 +15,10 @@ struct HUDView: View {
     /// is about - a goal with no natural sheet (e.g. "take a station to Lv 100", which is
     /// already right there on the board) just gets no button.
     let onGoalNavigate: (ActiveSheet) -> Void
+    /// Spends one banked Franchise Voucher - see `engine.useFranchiseVoucher()`. The reveal
+    /// of which effect it rolled is driven separately, by RootView observing
+    /// `pendingVoucherEffect`, the same split `onStars` has with the sheet it opens.
+    let onUseVoucher: () -> Void
 
     /// Which goal's explainer is unfolded - keyed by id so advancing to the next goal
     /// collapses the chip again on its own.
@@ -95,6 +99,29 @@ struct HUDView: View {
                     .accessibilityValue(engine.pendingStars > 0
                         ? "\(engine.pendingStars) stars ready to claim"
                         : "\(engine.state.stars) stars to spend")
+                }
+
+                // Nothing to show beats a dead button - matches how the star pill itself
+                // stays hidden with nothing to spend or claim, above.
+                if engine.state.franchiseVouchers > 0 {
+                    Button(action: onUseVoucher) {
+                        currencyPill {
+                            Image(systemName: "ticket.fill")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(Theme.positive)
+                                .frame(width: 20, height: 20)
+                            Text("\(engine.state.franchiseVouchers)")
+                                .font(Theme.numeric(16))
+                                .foregroundStyle(Theme.text)
+                                .lineLimit(1)
+                                .minimumScaleFactor(hudMinScale(for: 16))
+                                .layoutPriority(1)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Franchise Vouchers")
+                    .accessibilityValue("\(engine.state.franchiseVouchers) banked")
+                    .accessibilityHint("Double tap to use one for a random hour-long bonus")
                 }
 
                 Spacer(minLength: 0)

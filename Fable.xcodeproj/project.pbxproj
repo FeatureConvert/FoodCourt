@@ -31,6 +31,7 @@
 		30CFDD3FD5F954C521D0E0A2 /* OfflineEarnings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7222D4A6ECABE2F13FE32FAE /* OfflineEarnings.swift */; };
 		30F8A8CF61FE595A0EE1187A /* Quests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B34835D7F5A7622BB272E93 /* Quests.swift */; };
 		312921B8E3AE9A57B3E6EBF4 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E8833189801270C6E78D286 /* RootView.swift */; };
+		3724E8D3734FABE64BC24E87 /* FranchiseVoucher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88EC296E622682B414323CD9 /* FranchiseVoucher.swift */; };
 		4316A9235C201DB1F03272C1 /* VenueSceneCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE67CDCE2C37B1E47F4F177 /* VenueSceneCoverageTests.swift */; };
 		46EF0E95E698953D1B5F9277 /* CustomerSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = B56026DD041F82FCAAF814D9 /* CustomerSprite.swift */; };
 		47C8E48D0CF365D21C3AF103 /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 90ADE33E20D3F2B41202C2A1 /* Products.storekit */; };
@@ -83,6 +84,7 @@
 		D34C13D878FA064DFCB12DE1 /* HireReuseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6EC6B46F551B4C48970A292 /* HireReuseTests.swift */; };
 		D4E84DE511EB946EE745296D /* GameEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97F978F2657BFE1A5089482A /* GameEngine.swift */; };
 		D5C4005C6D80D45623A66660 /* VenueScenes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4D8B62A270B89ADC697C071 /* VenueScenes.swift */; };
+		D5D780FE16836699E7C32D51 /* FranchiseVoucherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F79484BEB9AA0894114CBE3F /* FranchiseVoucherTests.swift */; };
 		DA7753FD7192F3A0D960C1A5 /* ShopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6110EAE66DAA23544163D60 /* ShopView.swift */; };
 		DAA618AE10CAE02924719006 /* Icons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F8CDD98905FDF24A7F37B5 /* Icons.swift */; };
 		DE1FBDD2A5D54E8B7BB4E062 /* EconomyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6C8B5AE629838FD3011DB86 /* EconomyTests.swift */; };
@@ -166,6 +168,7 @@
 		860FBC913D5888A186827AA9 /* LegacyTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyTree.swift; sourceTree = "<group>"; };
 		86417C4E82F8DBA0FDCEE737 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		865DD982FAD587AC44DCEB96 /* Expeditions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Expeditions.swift; sourceTree = "<group>"; };
+		88EC296E622682B414323CD9 /* FranchiseVoucher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FranchiseVoucher.swift; sourceTree = "<group>"; };
 		89E521CF8AD39B5FE5F0B87D /* IntroBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroBanner.swift; sourceTree = "<group>"; };
 		89F2E53AB8B4FAF1BD409A44 /* CollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionView.swift; sourceTree = "<group>"; };
 		8A26A43CF2C4D9BBECE52A00 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
@@ -210,6 +213,7 @@
 		ED78409947694A96FF745DF8 /* ProgressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionTests.swift; sourceTree = "<group>"; };
 		F1BF9EE7260A69239205CF05 /* BigMomentAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BigMomentAlertView.swift; sourceTree = "<group>"; };
 		F6EC6B46F551B4C48970A292 /* HireReuseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HireReuseTests.swift; sourceTree = "<group>"; };
+		F79484BEB9AA0894114CBE3F /* FranchiseVoucherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FranchiseVoucherTests.swift; sourceTree = "<group>"; };
 		FCCB4854B3C941890956BB3B /* RoadmapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadmapView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -242,6 +246,7 @@
 				865DD982FAD587AC44DCEB96 /* Expeditions.swift */,
 				6B5E019C15AA811DEA06C126 /* Festival.swift */,
 				1B320AD114EF8759BA8EA4A0 /* Formatting.swift */,
+				88EC296E622682B414323CD9 /* FranchiseVoucher.swift */,
 				1837A7A9214C46DF66AA3576 /* GameCenterService.swift */,
 				97F978F2657BFE1A5089482A /* GameEngine.swift */,
 				C4DB0CF77A65C39F0CC2BDBE /* GameRandom.swift */,
@@ -380,6 +385,7 @@
 				D6C8B5AE629838FD3011DB86 /* EconomyTests.swift */,
 				151BDAEA1FB511A124A63628 /* ExtremeScaleTests.swift */,
 				D4F2EB0B4C5701B9F89C4497 /* FeatureTests.swift */,
+				F79484BEB9AA0894114CBE3F /* FranchiseVoucherTests.swift */,
 				F6EC6B46F551B4C48970A292 /* HireReuseTests.swift */,
 				B5EB59D9CB242D42C24825E4 /* ManagerDismissalTests.swift */,
 				B88F0500C02E9FEF53B3FBA4 /* MigrationTests.swift */,
@@ -506,6 +512,7 @@
 				DE1FBDD2A5D54E8B7BB4E062 /* EconomyTests.swift in Sources */,
 				E2D07432C4C8F98ED8D9FCCA /* ExtremeScaleTests.swift in Sources */,
 				B3109EC527197FB0405AE433 /* FeatureTests.swift in Sources */,
+				D5D780FE16836699E7C32D51 /* FranchiseVoucherTests.swift in Sources */,
 				D34C13D878FA064DFCB12DE1 /* HireReuseTests.swift in Sources */,
 				0B6F5D7B10213BD2FEAAFB5E /* ManagerDismissalTests.swift in Sources */,
 				7E8B6006600CE8650FE12398 /* MigrationTests.swift in Sources */,
@@ -552,6 +559,7 @@
 				FC246313F805860C203CB101 /* Festival.swift in Sources */,
 				75321F06B4C9A848CBD2DC9B /* FoodSprite.swift in Sources */,
 				E018DD2D1670A22E593B6962 /* Formatting.swift in Sources */,
+				3724E8D3734FABE64BC24E87 /* FranchiseVoucher.swift in Sources */,
 				9B94CEEE3AEB652BE73FB476 /* GameCenterService.swift in Sources */,
 				03E7079F368EFFC722DF4657 /* GameCenterView.swift in Sources */,
 				D4E84DE511EB946EE745296D /* GameEngine.swift in Sources */,

@@ -112,6 +112,19 @@ enum ActivePlay {
     static let orderBonusMinSeconds: Double = 10  // of current income
     static let orderBonusMaxSeconds: Double = 30
 
+    // Franchise Voucher drop - a rare bankable find during play, gated the same
+    // cooldown-plus-chance way as golden/order above, but rolled per completed station
+    // action in GameEngine.advance(by:) rather than the customer queue's own rotation: unlike
+    // golden/order (one shared roll for whichever venue is on screen), a station-action roll
+    // would otherwise fan out with however many stations are staffed, so a single shared
+    // cooldown has to gate ALL of them at once or a 10+-station board would roll this many
+    // times over in the same tick. 0.5% is deliberately far thinner than golden/order's 5% -
+    // this grants a full bankable hour, not a one-off tip - and 90s matches golden's own
+    // cooldown (the longer of the two), so the low chance is the rare part, not a fight
+    // against a cooldown that's already doing most of the work.
+    static let voucherDropBaseChance = 0.005  // per completed station action, once off cooldown
+    static let voucherDropCooldown: TimeInterval = 90
+
     /// Tips and order bonuses are "N seconds of income", but a fresh board earns ~1/s and
     /// the old flat floor of 50/s was a mid-game number - on day one it quietly paid 25-50x
     /// the board's real rate and bankrolled the whole early game. Scaling the floor to the

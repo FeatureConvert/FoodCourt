@@ -103,6 +103,9 @@ struct DebugMenuView: View {
                     }
                 }
             }
+            HStack(spacing: 8) {
+                grantButton("+1 voucher") { engine.debugGrantFranchiseVoucher() }
+            }
 
             SectionLabel(text: "State")
             Button {

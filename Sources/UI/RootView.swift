@@ -12,6 +12,7 @@ enum ActiveSheet: Identifiable, Equatable {
     case runRecap
     case contractChoice, legacyPerkChoice
     case toolDrop
+    case voucherReveal
 
     var id: String {
         switch self {
@@ -36,6 +37,7 @@ enum ActiveSheet: Identifiable, Equatable {
         case .contractChoice: return "contract-choice"
         case .legacyPerkChoice: return "legacy-perk-choice"
         case .toolDrop: return "tool-drop"
+        case .voucherReveal: return "voucher-reveal"
         }
     }
 }
@@ -166,7 +168,8 @@ struct RootView: View {
                     onStars: { present(.prestige) },
                     onHelp: { present(.help) },
                     onBadgeInfo: showToast,
-                    onGoalNavigate: present)
+                    onGoalNavigate: present,
+                    onUseVoucher: { engine.useFranchiseVoucher() })
                 .padding(.horizontal, 14)
 
             if engine.rushActive {
@@ -233,7 +236,8 @@ struct RootView: View {
                         onStars: { present(.prestige) },
                         onHelp: { present(.help) },
                         onBadgeInfo: showToast,
-                        onGoalNavigate: present)
+                        onGoalNavigate: present,
+                        onUseVoucher: { engine.useFranchiseVoucher() })
 
                 if engine.rushActive {
                     RushBannerView()
@@ -324,6 +328,12 @@ struct RootView: View {
                 showToast("\(tool.name) found! \(tool.detail)")
                 engine.pendingToolDrop = nil
             }
+        }
+        .onChange(of: engine.pendingVoucherEffect) { _, effect in
+            guard effect != nil else { return }
+            sound.play(.reward)
+            Haptics.success()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { present(.voucherReveal) }
         }
         .onChange(of: engine.pendingLandmark) { _, landmark in
             guard let landmark else { return }
@@ -491,6 +501,17 @@ struct RootView: View {
                     onCTA: { engine.pendingToolDrop = nil }
                 )
             }
+        case .voucherReveal:
+            if let effect = engine.pendingVoucherEffect {
+                BigMomentAlertView(
+                    symbol: effect.symbol,
+                    headline: "\(effect.label)!",
+                    detail: effect.detail,
+                    stat: (label: "Duration", value: "\(Format.trim(FranchiseVoucher.effectDurationHours))h active play"),
+                    ctaTitle: "Let's Go",
+                    onCTA: { engine.pendingVoucherEffect = nil }
+                )
+            }
         case .legacyIntro:
             BigMomentAlertView(
                 symbol: "crown.fill",
@@ -538,6 +559,11 @@ struct RootView: View {
         // fire its sheet again for the rest of the session (the tool itself is already
         // safely owned either way; only the celebration was at risk of going stuck).
         if lastPresented == .toolDrop { engine.pendingToolDrop = nil }
+        // Same reasoning as toolDrop just above: "Later" and a plain swipe-to-dismiss both
+        // skip BigMomentAlertView's onCTA closure entirely. The voucher itself is already
+        // spent and its effect already running either way - only the celebration is at risk
+        // of going stuck.
+        if lastPresented == .voucherReveal { engine.pendingVoucherEffect = nil }
         // Marked seen on dismiss rather than the moment each sheet is presented, so an app
         // kill mid-alert doesn't burn the one-shot before the player ever actually saw it.
         if lastPresented == .welcome { engine.markIntroSeen(IntroKey.welcome) }

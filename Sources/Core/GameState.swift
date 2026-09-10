@@ -324,6 +324,22 @@ struct GameState: Codable, Equatable {
     /// "at base rarity," so a pre-upgrade save or a tool found before this existed just
     /// works without a migration.
     var toolRarities: [String: ToolItem.Rarity] = [:]
+    /// Franchise Vouchers - bankable, capped consumables from `GameEngine.prestige` and a
+    /// rare mid-play drop (`ActivePlay.voucherDropBaseChance`). See `FranchiseVoucher
+    /// .inventoryCap` for why the cap, and its `Effect` enum for what using one can roll.
+    var franchiseVouchers: Int = 0
+    /// Wall-clock expiry for two of the Franchise Voucher effects - "Lucky Hour" (boosted
+    /// legendary tool-drop chance) and "All Hands on Deck" (automated-income-only
+    /// multiplier). Plain Date fields rather than another `BoostState` in `boosts`, since
+    /// both apply somewhere `globalMultiplier`'s uniform stack doesn't reach: Lucky Hour is
+    /// read only inside `GameEngine.rollToolDrop`, and All Hands on Deck only inside the
+    /// STAFFED branch of `advance(by:)`, deliberately excluding tap-driven income. Neither is
+    /// ever read from offline/idle math (OfflineEarnings, `automatedRate`, `timeWarp`) - the
+    /// same "active play only" exclusion every other boost gets, enforced here simply by
+    /// never wiring these two fields into any of those call sites, rather than a shared list
+    /// something else has to remember to filter.
+    var luckyHourExpiresAt: Date = .distantPast
+    var allHandsOnDeckExpiresAt: Date = .distantPast
     // Weekly Gauntlet - the scored sprint. See `GameEngine.startGauntlet`.
     var gauntletEndsAt: Date? = nil
     var gauntletScore: Double = 0
@@ -625,6 +641,7 @@ struct GameState: Codable, Equatable {
         case weeklyQuest, weeklyQuestWeek
         case activeContract, legacyPerks, signatureDish, expedition, expeditionWins, catering
         case perkChoicesUsed, tools, toolRarities, prestigeCountAtLegacy
+        case franchiseVouchers, luckyHourExpiresAt, allHandsOnDeckExpiresAt
         case gauntletEndsAt, gauntletScore, gauntletWeekPlayed, gauntletBestEver
         case gauntletBaseline
         case boardStartedAt
@@ -744,6 +761,9 @@ struct GameState: Codable, Equatable {
             ?? min(prestigeCount, legacy.level * Balance.legacyUnlockPrestigeCount)
         tools = try c.decodeIfPresent(Set<String>.self, forKey: .tools) ?? []
         toolRarities = try c.decodeIfPresent([String: ToolItem.Rarity].self, forKey: .toolRarities) ?? [:]
+        franchiseVouchers = try c.decodeIfPresent(Int.self, forKey: .franchiseVouchers) ?? 0
+        luckyHourExpiresAt = try c.decodeIfPresent(Date.self, forKey: .luckyHourExpiresAt) ?? .distantPast
+        allHandsOnDeckExpiresAt = try c.decodeIfPresent(Date.self, forKey: .allHandsOnDeckExpiresAt) ?? .distantPast
         gauntletEndsAt = try c.decodeIfPresent(Date.self, forKey: .gauntletEndsAt)
         gauntletScore = try c.decodeIfPresent(Double.self, forKey: .gauntletScore) ?? 0
         gauntletWeekPlayed = try c.decodeIfPresent(Int.self, forKey: .gauntletWeekPlayed)

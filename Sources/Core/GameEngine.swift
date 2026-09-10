@@ -108,6 +108,11 @@ final class GameEngine: ObservableObject {
     /// A kitchen tool that just dropped (newly found, not a duplicate), waiting on its
     /// celebration - the Gold Spatula gets the biggest moment in the game.
     @Published var pendingToolDrop: ToolItem?
+    /// Set by `useFranchiseVoucher()` the instant a banked voucher is spent, so the UI can
+    /// reveal which of the random effects it rolled - same shape as `pendingToolDrop`
+    /// (already-granted/applied by the time this is set; the sheet it drives is a pure
+    /// celebration, not a confirmation gate).
+    @Published var pendingVoucherEffect: FranchiseVoucher.Effect?
     /// Set by `prestige()` for the end-of-run recap the UI shows after the reset - the
     /// numbers have to be captured BEFORE the board wipes them.
     @Published var lastRunRecap: RunRecap?
@@ -330,6 +335,11 @@ final class GameEngine: ObservableObject {
         var serves: [Int: ServeEvent] = [:]
         var totalServed = 0
         let multiplier = payoutMultiplier
+        // All Hands on Deck (a Franchise Voucher effect) deliberately sits outside
+        // `payoutMultiplier`, which both branches below share - it must only ever multiply
+        // the STAFFED (automated) branch's payout, never the tap-driven one, so it can't be
+        // folded into the same shared `multiplier` those branches both read.
+        let automatedMultiplier = allHandsOnDeckMultiplier
         var earned: Double = 0
 
         for venue in Balance.venues where state.venues[venue.id].unlocked {
@@ -355,12 +365,14 @@ final class GameEngine: ObservableObject {
                         station.elapsed -= completions * cycle
                         let served = Int(completions)
                         let payout = revenue * completions * doubleServeFactor(mods, servings: served)
+                            * automatedMultiplier
                         earned += payout
                         totalServed += served
                         advanceCatering(venue: venue.id, station: spec.id, served: served)
                         if venue.id == state.currentVenue {
                             serves[spec.id] = ServeEvent(station: spec.id, amount: payout, count: served)
                         }
+                        rollVoucherDropIfNeeded(now: now)
                     }
                 } else if station.isRunning {
                     station.elapsed += delta
@@ -374,6 +386,7 @@ final class GameEngine: ObservableObject {
                         if venue.id == state.currentVenue {
                             serves[spec.id] = ServeEvent(station: spec.id, amount: payout, count: 1)
                         }
+                        rollVoucherDropIfNeeded(now: now)
                     }
                 }
 
@@ -514,13 +527,32 @@ final class GameEngine: ObservableObject {
     }
 
     var incomePerSecond: Double {
-        state.automatedRate * activeBoostMultiplier * comboMultiplier
+        state.automatedRate * activeBoostMultiplier * comboMultiplier * allHandsOnDeckMultiplier
             * (state.isHappyHour() ? ActivePlay.happyHourMultiplier : 1)
     }
 
     private var activeBoostMultiplier: Double {
         state.activeBoosts.reduce(1.0) { $0 * $1.multiplier }
     }
+
+    /// All Hands on Deck (a Franchise Voucher effect, see FranchiseVoucher.swift) multiplies
+    /// ONLY the automated share of income - the whole point is rewarding a fully-staffed
+    /// board while the player is away from the tap loop, not adding a second, redundant tap
+    /// multiplier on top of Rush/Coffee Break/combo, which already cover that ground. Kept out
+    /// of `payoutMultiplier` (which the tap-driven branch of `advance(by:)` also reads) for
+    /// exactly that reason - see the `automatedMultiplier` local there, `incomePerSecond`'s
+    /// display above, and `StationCardView.payout`, which folds this in only when its own
+    /// station is staffed so the displayed number matches what it actually earns.
+    var allHandsOnDeckMultiplier: Double {
+        state.allHandsOnDeckExpiresAt > state.now ? FranchiseVoucher.allHandsMultiplier : 1
+    }
+
+    /// Lucky Hour (a Franchise Voucher effect) - read only by `rollToolDrop`, which combines
+    /// it with the Debug menu's permanent per-device luck toggle via `max`, not addition:
+    /// both claim a slice of the same `roll2` range (see `Tools.roll`'s own doc comment), and
+    /// max keeps that combined slice simple to reason about instead of two claims potentially
+    /// overlapping the same range twice.
+    var isLuckyHourActive: Bool { state.luckyHourExpiresAt > state.now }
 
     // MARK: Player actions
 
@@ -1165,6 +1197,10 @@ final class GameEngine: ObservableObject {
     /// do is let one spawn arrive early, which isn't worth a save-format field.
     private var lastGoldenSpawnAt = Date.distantPast
     private var lastOrderSpawnAt = Date.distantPast
+    /// Cooldown gate for the rare Franchise Voucher drop - see `rollVoucherDropIfNeeded` and
+    /// `ActivePlay.voucherDropCooldown`. In-memory only, same reasoning as the two above: the
+    /// worst a relaunch does is let one roll arrive a little early.
+    private var lastVoucherDropAt = Date.distantPast
 
     /// Called by the queue each time it rotates a customer out.
     func rollGoldenCustomer() {
@@ -1409,6 +1445,7 @@ final class GameEngine: ObservableObject {
         state.lifetimeStars += award    // permanent multiplier
         state.lastPrestigeAward = award // prices the next research ranks
         state.prestigeCount += 1
+        addFranchiseVoucher() // one guaranteed per franchise, silently capped - see the doc comment
         state.coins = 0
         state.runEarnings = 0
         state.perkChoicesUsed = 0
@@ -1955,6 +1992,17 @@ final class GameEngine: ObservableObject {
         set { UserDefaults.standard.set(newValue, forKey: Balance.deviceProfitBoostDefaultsKey) }
     }
 
+    /// The two independent sources of a boosted legendary chance - the permanent per-device
+    /// Debug toggle and the temporary Lucky Hour voucher effect - combined via `max` rather
+    /// than addition: both claim a slice of the same `roll2` range (see `Tools.roll`'s own
+    /// doc comment), and max keeps that combined slice simple to reason about instead of two
+    /// claims potentially overlapping the same range twice. Pulled out of `rollToolDrop` so
+    /// it's independently testable without needing a live roll.
+    var effectiveBoostedLegendaryChance: Double {
+        max(goldSpatulaLuckBoostEnabled ? 0.05 : 0,
+            isLuckyHourActive ? FranchiseVoucher.luckyHourLegendaryChance : 0)
+    }
+
     /// Rolls the drop table at one of the game's event moments, then separately rolls
     /// whether this drop's rarity climbs above the tool's base tier. New finds and rarity
     /// upgrades both celebrate via `pendingToolDrop` (scaled to the rolled rarity); anything
@@ -1963,7 +2011,7 @@ final class GameEngine: ObservableObject {
         guard let tool = Tools.roll(moment: moment,
                                     roll1: Double.random(in: 0..<1, using: &rng),
                                     roll2: Double.random(in: 0..<1, using: &rng),
-                                    boostedLegendaryChance: goldSpatulaLuckBoostEnabled ? 0.05 : 0) else { return }
+                                    boostedLegendaryChance: effectiveBoostedLegendaryChance) else { return }
         let rolledRarity = Tools.rollRarity(base: tool.rarity) { Double.random(in: 0..<1, using: &rng) }
         let previousRarity = state.toolRarities[tool.id]
         if state.tools.insert(tool.id).inserted {
@@ -1977,6 +2025,64 @@ final class GameEngine: ObservableObject {
             state.gems += gems
             toast = "Duplicate \(tool.name) - traded for \(gems) gems"
         }
+    }
+
+    // MARK: Franchise Vouchers
+
+    /// Adds one Franchise Voucher, capped at `FranchiseVoucher.inventoryCap` - see that
+    /// constant's doc comment for why 3. Returns whether it actually fit; callers decide
+    /// whether/how to announce a miss. Shared by `prestige()` (silent - the recap sheet
+    /// already owns that moment) and the rare mid-play drop below (toasts either way - its
+    /// only feedback).
+    @discardableResult
+    private func addFranchiseVoucher() -> Bool {
+        guard state.franchiseVouchers < FranchiseVoucher.inventoryCap else { return false }
+        state.franchiseVouchers += 1
+        return true
+    }
+
+    /// The rare mid-play drop - see `ActivePlay.voucherDropCooldown`'s doc comment for why
+    /// this rolls once per completed station action (either branch of `advance(by:)`) behind
+    /// ONE shared cooldown rather than a per-station one: a per-station cooldown would let a
+    /// heavily-staffed board roll far more often than a single-station one, exactly the
+    /// fan-out golden/order's own shared cooldowns already avoid.
+    private func rollVoucherDropIfNeeded(now: Date) {
+        guard now.timeIntervalSince(lastVoucherDropAt) >= ActivePlay.voucherDropCooldown else { return }
+        guard Double.random(in: 0..<1, using: &rng) < ActivePlay.voucherDropBaseChance else { return }
+        lastVoucherDropAt = now
+        if addFranchiseVoucher() {
+            toast = "Franchise Voucher! (\(state.franchiseVouchers)/\(FranchiseVoucher.inventoryCap) banked)"
+        } else {
+            toast = "Franchise Voucher lost - inventory full. Use one to make room."
+        }
+    }
+
+    /// Spends one banked voucher and rolls its effect (see `FranchiseVoucher.Effect`). The
+    /// effect is already applied by the time this returns - `pendingVoucherEffect` only
+    /// drives the reveal sheet, same as `pendingToolDrop` (a tool is already owned before its
+    /// sheet ever shows).
+    @discardableResult
+    func useFranchiseVoucher() -> FranchiseVoucher.Effect? {
+        guard state.franchiseVouchers > 0 else { return nil }
+        state.franchiseVouchers -= 1
+        let effect = FranchiseVoucher.rollEffect(random: Double.random(in: 0..<1, using: &rng))
+        let expiry = state.now.addingTimeInterval(FranchiseVoucher.effectDurationHours * 3600)
+        switch effect {
+        case .rushHour:
+            // Exactly `claimFreeBoost` (Coffee Break)'s own mechanism - a plain global boost,
+            // no new machinery needed.
+            addBoost(id: FranchiseVoucher.rushHourBoostID,
+                     label: "\(effect.label) ×\(Format.trim(FranchiseVoucher.rushHourMultiplier))",
+                     multiplier: FranchiseVoucher.rushHourMultiplier,
+                     hours: FranchiseVoucher.effectDurationHours)
+        case .luckyHour:
+            state.luckyHourExpiresAt = expiry
+        case .allHandsOnDeck:
+            state.allHandsOnDeckExpiresAt = expiry
+        }
+        pendingVoucherEffect = effect
+        save()
+        return effect
     }
 
     // MARK: Catering
@@ -2498,6 +2604,12 @@ final class GameEngine: ObservableObject {
         for index in state.quests.indices {
             state.quests[index].progress = state.quests[index].target
         }
+    }
+
+    /// Grants one Franchise Voucher, same cap as every real grant - lets the debug menu
+    /// exercise the reveal-and-use flow without waiting on the rare drop or a full prestige.
+    func debugGrantFranchiseVoucher() {
+        addFranchiseVoucher()
     }
 
     func debugCompleteWeeklyQuest() {

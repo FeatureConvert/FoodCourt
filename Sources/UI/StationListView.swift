@@ -142,7 +142,13 @@ struct StationCardView: View {
     }
     private var cycle: TimeInterval { engine.cachedCycleTime(venue: venueID, station: spec.id) }
     private var payout: Double {
-        engine.cachedBaseRevenue(venue: venueID, station: spec.id) * engine.payoutMultiplier
+        let base = engine.cachedBaseRevenue(venue: venueID, station: spec.id) * engine.payoutMultiplier
+        // All Hands on Deck (a Franchise Voucher effect) is deliberately excluded from
+        // `payoutMultiplier` itself - see that property's doc comment - since it must only
+        // ever apply to a STAFFED station's real payout, never a tap-driven one. Folded in
+        // here, scoped the same way, so a staffed card's displayed number matches what it
+        // actually earns instead of quietly understating it while the effect is active.
+        return state.isStaffed ? base * engine.allHandsOnDeckMultiplier : base
     }
     private var recipeStars: Int {
         Recipes.stars(engine.state.recipeCards, venue: venueID, station: spec.id)
