@@ -7,26 +7,57 @@ enum ActivePlay {
     // Combo. This multiplies with Coffee Break, Rush Hour, and Happy Hour on every
     // station's automated income, not just a tapped one - a live report showed a
     // hyperactive fresh install banking the Sushi Bar in 8 real minutes, and stacking
-    // this at its old x5 (10 steps x 0.4/step) with the free Coffee Break boost and Happy
-    // Hour hit up to ~15x automated income, dwarfing the pacing sim's assumptions. 10
-    // steps x 0.1/step caps at a clean x2 for a fresh install - still a genuine reward for
-    // active tapping, without letting the combo alone dominate the early economy.
-    // That base of 10 is a floor, not the whole story: `comboMaxSteps` (StationMath.swift)
-    // adds Research's Kitchen Rhythm (+16 at max rank), Legacy's Crowd Favorite (+4 at max
-    // stacks), and an active Showtime Franchise Contract (+4), a theoretical ceiling of 34
-    // steps / x4.4. Each of those is itself an earned late-game investment - full Research
-    // spend, two Legacy resets, a specific Contract running - so the higher ceiling is
-    // intentional depth for a min-maxed late game, not a fresh-install exploit. Left
-    // uncapped on purpose; revisit only if a live report shows it distorting pacing the
-    // way the old x5 flat version did.
-    // The window itself was 1.5s, then 2.5s, both of which reset the whole combo back to
-    // zero for anything short of rapid-fire tapping - punishing enough that a normal tap
-    // cadence across multiple stations (not just one under a thumb) kept dying. 5s keeps it
-    // an active-play mechanic (still requires genuine engagement, not idle taps minutes
-    // apart) without demanding a metronome.
-    static let comboWindow: TimeInterval = 5.0
-    static let comboBaseSteps = 10
-    static let comboPerStep = 0.1
+    // this at its old flat x5 with the free Coffee Break boost and Happy Hour hit up to
+    // ~15x automated income, dwarfing the pacing sim's assumptions. That history is why
+    // this is tiers now rather than one smooth ramp: every tier past the first costs the
+    // same 25 taps for the same +0.5x, so the ceiling is a real, sustained-engagement
+    // achievement rather than something a lucky burst reaches once and then coasts on.
+    //
+    // Tier 0 is deliberately short - 5 taps to x1.5 - so a casual player still feels an
+    // early, easy reward. Every tier after that is priced the same (25 taps) for the same
+    // reward (+0.5x), which is what makes "another 25 taps" a legible rule rather than a
+    // curve a player has to feel out.
+    //
+    // Four tiers land the ceiling at x3, not the x5 an earlier pass shipped: a
+    // maximally-hyperactive fresh install (every owned station tapped on every tick, never
+    // once dropping a tier) clears all 180 cumulative taps to x5 in about ten seconds and
+    // then sustains it for the rest of the session, which regressed
+    // `EarlyGamePacingTests.testHyperactiveFreshInstallCannotRushTheSushiBar` (the direct
+    // regression test for the x15-stack incident above) - it banked the Sushi Bar at ~15
+    // minutes against the 20-minute floor. x3 stacked with Coffee Break and Happy Hour
+    // tops out at x9, comfortably clear of that floor again; the escalating-tap-cost,
+    // shrinking-window shape below is otherwise unchanged from the original design.
+    //
+    // The window - how long you can go between taps before the WHOLE combo resets to
+    // zero, not just the current tier - shrinks every tier, from a forgiving 10s at tier 0
+    // down to 7s at tier 3. A ladder that got easier to sustain the higher it climbed would
+    // make x3 the new normal instead of a ceiling; shrinking the window is what keeps each
+    // higher tier feeling like it costs more attention, not just more history of tapping.
+    //
+    // `comboBonusTaps` (StationMath.swift) adds bonus taps toward this same ladder from
+    // Research's Kitchen Rhythm, Legacy's Crowd Favorite, and an active Showtime Franchise
+    // Contract - each an earned late-game investment, so a min-maxed player climbing the
+    // ladder faster is intentional depth, not a fresh-install exploit.
+    struct ComboTier {
+        let taps: Int
+        let multiplier: Double
+        let window: TimeInterval
+    }
+
+    static let comboTiers: [ComboTier] = [
+        ComboTier(taps: 5, multiplier: 1.5, window: 10.0),
+        ComboTier(taps: 25, multiplier: 2.0, window: 9.0),
+        ComboTier(taps: 25, multiplier: 2.5, window: 8.0),
+        ComboTier(taps: 25, multiplier: 3.0, window: 7.0),
+    ]
+
+    /// Running total of taps needed to CLEAR each tier (index-aligned with `comboTiers`),
+    /// e.g. `[5, 30, 55, ...]` - tier 1 clears at 30 total taps, not 25, since tier 0's 5
+    /// still count.
+    static var comboCumulativeTaps: [Int] {
+        var running = 0
+        return comboTiers.map { tier in running += tier.taps; return running }
+    }
 
     // Rush Hour
     static let rushBaseSeconds: TimeInterval = 60
@@ -102,30 +133,73 @@ struct ComboTracker: Equatable {
 
     func remaining(at now: Date) -> TimeInterval { max(0, expiresAt.timeIntervalSince(now)) }
 
-    /// Progress toward the cap, for the meter fill.
-    func fraction(maxSteps: Int) -> Double {
-        guard maxSteps > 0 else { return 0 }
-        return min(1, Double(count) / Double(maxSteps))
+    /// Which tier's bar is currently filling, and exactly how many of that tier's taps are
+    /// done - e.g. `(index: 2, tapsDone: 6, tapsRequired: 25)`. Once every tier is cleared,
+    /// reports the last tier full: there's nothing further to fill toward, x5 is the ceiling.
+    func activeTier(bonusTaps: Int) -> (index: Int, tapsDone: Int, tapsRequired: Int) {
+        let effective = count + bonusTaps
+        var previousThreshold = 0
+        for (index, threshold) in ActivePlay.comboCumulativeTaps.enumerated() {
+            if effective < threshold {
+                return (index, effective - previousThreshold, ActivePlay.comboTiers[index].taps)
+            }
+            previousThreshold = threshold
+        }
+        let last = ActivePlay.comboTiers.count - 1
+        return (last, ActivePlay.comboTiers[last].taps, ActivePlay.comboTiers[last].taps)
     }
 
-    func multiplier(maxSteps: Int) -> Double {
+    /// The last tier fully CLEARED, as an index into `comboTiers` - -1 if none yet (1x).
+    private func achievedTierIndex(bonusTaps: Int) -> Int {
+        let effective = count + bonusTaps
+        var achieved = -1
+        for (index, threshold) in ActivePlay.comboCumulativeTaps.enumerated() where effective >= threshold {
+            achieved = index
+        }
+        return achieved
+    }
+
+    /// The multiplier actually in effect - the last tier whose bar has been fully CLEARED,
+    /// not the one still filling. Stays at 1x until tier 0's bar completes.
+    func multiplier(bonusTaps: Int) -> Double {
         guard count > 0 else { return 1 }
-        return 1 + Double(min(count, maxSteps)) * ActivePlay.comboPerStep
+        let achieved = achievedTierIndex(bonusTaps: bonusTaps)
+        return achieved >= 0 ? ActivePlay.comboTiers[achieved].multiplier : 1
     }
 
-    /// Registers a tap. `windowBonus` comes from manager traits like Crowd-Reader Cleo.
-    mutating func register(at now: Date, windowBonus: TimeInterval = 0) {
-        if expiresAt <= now { count = 0 }
+    /// Registers a tap. `bonusTaps` is the same late-game bonus `activeTier`/`multiplier`
+    /// take, needed here too so the window matches whichever tier this tap just landed in -
+    /// a bonus-boosted player who just crossed into a hotter tier should immediately get
+    /// that tier's shorter window, not the previous one's. `windowBonus` is a separate flat
+    /// add-on from manager traits like Crowd-Reader Cleo.
+    mutating func register(at now: Date, bonusTaps: Int = 0, windowBonus: TimeInterval = 0) {
+        // Catches up a depletion step that was due but hadn't run yet (prune normally runs
+        // every engine tick, well before a tap could land after expiry - this just keeps
+        // register correct even if that ordering ever changes) rather than silently
+        // honoring a tap against an already-stale window.
+        if count > 0, expiresAt <= now { _ = prune(at: now, bonusTaps: bonusTaps) }
         count += 1
-        expiresAt = now.addingTimeInterval(ActivePlay.comboWindow + windowBonus)
+        let tierIndex = max(0, achievedTierIndex(bonusTaps: bonusTaps))
+        expiresAt = now.addingTimeInterval(ActivePlay.comboTiers[tierIndex].window + windowBonus)
     }
 
-    /// Drops the combo once the window lapses. Returns true when it actually expired.
+    /// Drops the combo one tier at a time once its window lapses, rather than to zero in
+    /// one shot - a x5 combo lost to one slow moment should cost a tier, not the whole
+    /// climb. Each step reschedules against the tier it lands on, so a still-idle player
+    /// keeps stepping down (faster near the top, since higher tiers carry shorter windows)
+    /// until either a tap saves it or it bottoms out at nothing. Returns true when a step
+    /// actually happened.
     @discardableResult
-    mutating func prune(at now: Date) -> Bool {
+    mutating func prune(at now: Date, bonusTaps: Int = 0) -> Bool {
         guard count > 0, expiresAt <= now else { return false }
-        count = 0
-        expiresAt = .distantPast
+        let droppedTo = achievedTierIndex(bonusTaps: bonusTaps) - 1
+        guard droppedTo >= 0 else {
+            count = 0
+            expiresAt = .distantPast
+            return true
+        }
+        count = max(0, ActivePlay.comboCumulativeTaps[droppedTo] - bonusTaps)
+        expiresAt = now.addingTimeInterval(ActivePlay.comboTiers[droppedTo].window)
         return true
     }
 

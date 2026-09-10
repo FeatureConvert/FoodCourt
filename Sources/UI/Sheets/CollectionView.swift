@@ -80,14 +80,14 @@ private struct StaffSection: View {
             autoAssignButton
         }
 
-        // Trainees are the one manager type that's free to replace, so a big idle backlog
-        // is pure clutter rather than banked value - this is the bulk version of the "Let
-        // Go" menu item on each row below.
-        if engine.idleTraineeCount > 1 {
-            IntroBanner(key: IntroKey.dismissIdleTrainees, symbol: "person.fill.xmark",
+        // Common and Rare managers are roster filler next to Epic/Legendary, so a big idle
+        // backlog of them is clutter rather than banked value - this is the bulk version of
+        // the "Retire" menu item on each row below.
+        if engine.idleRetirableCount > 1 {
+            IntroBanner(key: IntroKey.retireIdleManagers, symbol: "person.fill.xmark",
                         title: "Trim a crowded bench",
-                        detail: "Coin-hired Trainees pile up fast across a big roster. Letting one go frees the roster slot for good - hiring a fresh one later costs the same as it always did.")
-            dismissIdleTraineesButton
+                        detail: "Common and Rare managers pile up fast across a big roster. Retiring one frees the roster slot for good and pays gems, scaled to rarity - hiring a fresh Trainee later costs the same as it always did. The gem payout is capped at \(Balance.managerRetirementDailyCap) retirements a day; retiring past that still frees the slot.")
+            retireIdleManagersButton
         }
 
         if engine.state.managers.isEmpty {
@@ -120,17 +120,18 @@ private struct StaffSection: View {
         .buttonStyle(ChunkyButtonStyle(fill: Theme.positive, shadow: Theme.positive.opacity(0.5), radius: 12))
     }
 
-    private var dismissIdleTraineesButton: some View {
+    private var retireIdleManagersButton: some View {
         Button {
-            let dismissed = engine.dismissIdleTrainees()
+            let (dismissed, gems) = engine.retireIdleManagers()
             guard dismissed > 0 else { return }
             Haptics.thud()
-            sound.play(.tap)
-            onToast("Let go of \(Format.plural(dismissed, "Trainee"))")
+            sound.play(gems > 0 ? .reward : .tap)
+            let base = "Retired \(Format.plural(dismissed, "manager"))"
+            onToast(gems > 0 ? "\(base) · +\(gems) gems" : base)
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "person.fill.xmark")
-                Text("Let Go of Idle Trainees (\(engine.idleTraineeCount))")
+                Text("Retire Idle Managers (\(engine.idleRetirableCount))")
             }
             .font(Theme.body(13, weight: .black))
             .frame(maxWidth: .infinity)
@@ -356,14 +357,17 @@ private struct StaffSection: View {
                             onToast("\(manager.name) is on the bench")
                         }
                     }
-                } else if !manager.premium {
-                    // Only reachable for a benched, non-premium manager - in practice always
-                    // a coin-hired Trainee, since every named or reward hire is premium. See
-                    // `GameEngine.dismissManager`.
+                } else if manager.spec.rarity == .common || manager.spec.rarity == .rare {
+                    // Common or Rare, benched - see `GameEngine.isRetirementEligible`. Not
+                    // gated on `premium` here: Sam/Tina/Otto and every Rare are premium hires
+                    // but still ordinary roster filler, same as a coin-hired Trainee.
                     Divider()
-                    Button("Let Go", role: .destructive) {
-                        if engine.dismissManager(id: manager.id) {
-                            onToast("\(manager.name) has left the roster")
+                    Button("Retire (+\(Balance.managerRetirementGems(manager.spec.rarity)) gems)",
+                          role: .destructive) {
+                        if let gems = engine.dismissManager(id: manager.id) {
+                            onToast(gems > 0
+                                ? "\(manager.name) retired · +\(gems) gems"
+                                : "\(manager.name) retired · today's gem reward is used up")
                         }
                     }
                 }
@@ -916,7 +920,11 @@ private struct ErrandsSection: View {
                     .foregroundStyle(done ? Theme.positive : Theme.textDim)
                 HStack(spacing: 8) {
                     HStack(spacing: 3) {
-                        GemIcon().frame(width: 11, height: 11)
+                        // A 2h common-manager errand pays as little as 2 gems, a 12h
+                        // legendary as much as 84 (Errands.gemsPerHour × duration) - sized
+                        // against that range so the two don't read as the same reward.
+                        let size = GemIcon.rewardSize(errand.rewardGems, in: 2...84, from: 9, to: 14)
+                        GemIcon().frame(width: size, height: size)
                         Text("\(errand.rewardGems)")
                     }
                     HStack(spacing: 3) {

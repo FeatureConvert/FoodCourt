@@ -196,10 +196,10 @@ final class ProgressionTests: XCTestCase {
     func testGlobalMultiplierCombinesBoostsStarsAndVIP() {
         var state = GameState.newGame()
         state.lifetimeStars = 50
-        state.entitlements.vip = true                     // +25%
+        state.entitlements.vip = true
         state.boosts = [BoostState(id: "b", label: "×2", multiplier: 2,
                                    expiry: state.now.addingTimeInterval(600))]
-        let expected = 2 * Balance.starMultiplier(stars: 50) * 1.25
+        let expected = 2 * Balance.starMultiplier(stars: 50) * (1 + Balance.vipProfitBonus)
         XCTAssertEqual(state.globalMultiplier, expected, accuracy: 1e-9)
     }
 
@@ -324,9 +324,9 @@ final class ProgressionTests: XCTestCase {
         XCTAssertFalse(engine.tap(station: 0), "a running station ignores further taps")
 
         engine.advance(by: spec.baseCycle + 0.01)
-        // Both taps fed the combo, so the payout carries its multiplier.
-        let expectedCombo = 1 + 2 * ActivePlay.comboPerStep
-        XCTAssertEqual(engine.state.coins, spec.baseRevenue * expectedCombo, accuracy: 1e-6)
+        // Both taps fed the combo, but tier 0 needs ActivePlay.comboTiers[0].taps (5) taps
+        // before any multiplier kicks in - 2 isn't enough yet, so the payout is still flat.
+        XCTAssertEqual(engine.state.coins, spec.baseRevenue, accuracy: 1e-6)
         XCTAssertFalse(engine.state.venues[0].stations[0].isRunning,
                        "an unstaffed station stops after one cycle")
     }

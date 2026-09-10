@@ -222,6 +222,12 @@ struct GameState: Codable, Equatable {
     var boostAvailableAt: Date = .distantPast
     /// Start-of-day of the last free welcome-back double, so it is once per day.
     var lastOfflineDoubleDay: Date? = nil
+    /// How many manager retirements have earned gems so far today, and the day that count is
+    /// for - `GameEngine.rewardedManagerRetirement` resets the count on a new calendar day.
+    /// Bounds `Balance.managerRetirementGems`'s payout, not dismissal itself: a manager past
+    /// the cap still frees its roster slot, it just doesn't pay out.
+    var managerRetirementsToday: Int = 0
+    var lastManagerRetirementDay: Date? = nil
     var timeOffset: TimeInterval = 0
 
     /// When the current board (since the last Franchise or Legacy reset, or the start of a
@@ -424,6 +430,13 @@ struct GameState: Codable, Equatable {
         return hour >= ActivePlay.happyHourStartHour && hour < ActivePlay.happyHourEndHour
     }
 
+    /// Seconds until this window closes (the top of `happyHourEndHour`), for the HUD badge's
+    /// countdown - only meaningful while `isHappyHour` is true.
+    func happyHourRemaining(calendar: Calendar = .current) -> TimeInterval {
+        let end = calendar.date(bySettingHour: ActivePlay.happyHourEndHour, minute: 0, second: 0, of: now) ?? now
+        return max(0, end.timeIntervalSince(now))
+    }
+
     var activeBoosts: [BoostState] {
         let t = now
         return boosts.filter { $0.isActive(at: t) }
@@ -607,6 +620,7 @@ struct GameState: Codable, Equatable {
         case legacy
         case lastGuestChefPurchaseWeek, lastGuestChefSpotlightWeek
         case freeFirstManagerClaimed
+        case managerRetirementsToday, lastManagerRetirementDay
     }
 
     init() {}
@@ -654,6 +668,8 @@ struct GameState: Codable, Equatable {
         lastSeen = try c.decodeIfPresent(Date.self, forKey: .lastSeen) ?? Date()
         boostAvailableAt = try c.decodeIfPresent(Date.self, forKey: .boostAvailableAt) ?? .distantPast
         lastOfflineDoubleDay = try c.decodeIfPresent(Date.self, forKey: .lastOfflineDoubleDay)
+        managerRetirementsToday = try c.decodeIfPresent(Int.self, forKey: .managerRetirementsToday) ?? 0
+        lastManagerRetirementDay = try c.decodeIfPresent(Date.self, forKey: .lastManagerRetirementDay)
         timeOffset = try c.decodeIfPresent(TimeInterval.self, forKey: .timeOffset) ?? 0
 
         research = try c.decodeIfPresent([String: Int].self, forKey: .research) ?? [:]
@@ -813,7 +829,7 @@ enum IntroKey {
     static let autoAssignStaff = "autoAssignStaff"
     static let claimAllFestivalIntro = "claimAllFestivalIntro"
     static let buyAllResearch = "buyAllResearch"
-    static let dismissIdleTrainees = "dismissIdleTrainees"
+    static let retireIdleManagers = "retireIdleManagers"
 
     static let allKeys: [String] = [
         welcome, prestige, legacy, perks, research, league, festival, staff, recipes, errands,
@@ -822,6 +838,6 @@ enum IntroKey {
         crewsUnlockToast, faceOffsUnlockToast, gauntletUnlockToast, toolsUnlockToast,
         tutorialDone, venueNudge,
         claimAllQuests, claimAllAchievements, claimAllErrandsIntro, autoAssignStaff,
-        claimAllFestivalIntro, buyAllResearch, dismissIdleTrainees,
+        claimAllFestivalIntro, buyAllResearch, retireIdleManagers,
     ]
 }

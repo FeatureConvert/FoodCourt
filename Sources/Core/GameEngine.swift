@@ -321,7 +321,7 @@ final class GameEngine: ObservableObject {
         let now = state.now
         lastAdvanceAt = Date()
 
-        if combo.prune(at: now) { objectWillChange.send() }
+        if combo.prune(at: now, bonusTaps: state.comboBonusTaps) { objectWillChange.send() }
         expireGoldenIfNeeded(now: now)
         expireOrderIfNeeded(now: now)
         finishRushIfNeeded(now: now)
@@ -486,7 +486,7 @@ final class GameEngine: ObservableObject {
     // MARK: Multipliers
 
     var comboMultiplier: Double {
-        combo.isLive(at: state.now) ? combo.multiplier(maxSteps: state.comboMaxSteps) : 1
+        combo.isLive(at: state.now) ? combo.multiplier(bonusTaps: state.comboBonusTaps) : 1
     }
 
     /// Everything that scales a payout right now, including the transient combo and the
@@ -531,7 +531,8 @@ final class GameEngine: ObservableObject {
 
         // Every tap feeds the combo, even on a staffed station - otherwise automation kills
         // the reason to hold the phone.
-        combo.register(at: state.now, windowBonus: state.comboWindowBonus(venue: venue))
+        combo.register(at: state.now, bonusTaps: state.comboBonusTaps,
+                       windowBonus: state.comboWindowBonus(venue: venue))
         state.totalTaps += 1
         advanceQuests(kind: .tap, by: 1)
         state.tutorial.complete(.tapStation)
@@ -778,7 +779,7 @@ final class GameEngine: ObservableObject {
         // ordinary hire reuses an idle Trainee already on the bench before minting a new
         // one. Without this, every "Hire" tap created a fresh Trainee even while others sat
         // idle, and across a full 7-venue roster that grows into dozens of interchangeable
-        // commons with no way back out (see `dismissIdleTrainees`, the cleanup for whatever
+        // commons with no way back out (see `retireIdleManagers`, the cleanup for whatever
         // had already piled up before this existed). A premium hire (gem-rushed) always gets
         // a genuinely new one instead: reusing an existing non-premium Trainee and just
         // flipping it to premium would upgrade it to prestige-proof for free.
@@ -895,35 +896,82 @@ final class GameEngine: ObservableObject {
         return assigned
     }
 
-    /// How many managers `dismissIdleTrainees()` would let go right now - a benched, coin-hired
-    /// Trainee. `premium` is false only for that ordinary coin hire (`hireManager`); every named
-    /// or reward-granted manager passes `premium: true` at creation, so this can never catch
-    /// anyone the player would recognize by name.
-    var idleTraineeCount: Int {
-        state.unassignedManagers.filter { !$0.premium }.count
+    /// Common and Rare rarity, not the `premium` flag, is what makes a manager eligible for
+    /// retirement - `premium` alone would miss Sam/Tina/Otto (`ManagerCatalog.baseRoster`'s
+    /// other 3 commons besides Trainee) and every Rare, all of which are quest/achievement/
+    /// festival rewards and so always `premium: true` despite being ordinary roster filler.
+    /// Epic and Legendary are never eligible regardless of how they were acquired - those are
+    /// the managers a player specifically farmed or paid for (see `Balance
+    /// .managerRetirementGems`'s doc comment for why).
+    private func isRetirementEligible(_ manager: OwnedManager) -> Bool {
+        let rarity = ManagerCatalog.spec(manager.specID).rarity
+        return rarity == .common || rarity == .rare
     }
 
-    /// Lets go of one benched, non-premium manager, freeing the roster slot for good. Only
-    /// offered while benched, so a currently-earning manager can't be fired by mistake, and
-    /// this is the same survivor rule `prestige()` already applies to the whole roster
-    /// (`state.managers.removeAll { !$0.premium }`) - here it's just one manager, on request,
-    /// instead of all of them, on a reset.
+    /// How many managers `retireIdleManagers()` would let go right now.
+    var idleRetirableCount: Int {
+        state.unassignedManagers.filter(isRetirementEligible).count
+    }
+
+    /// Grants `Balance.managerRetirementGems(rarity:)` for up to `Balance
+    /// .managerRetirementDailyCap` of today's retirements - same day-rollover shape as
+    /// `offlineDoubleAvailable`/`claimOfflineDouble`. When a batch is bigger than the
+    /// remaining daily allowance, the highest-value managers are rewarded first, so a capped
+    /// batch still pays out as much as it can rather than an arbitrary subset. Returns the
+    /// gems actually granted, which can be less than the batch's full value (or zero) once
+    /// the day's cap is reached; dismissal itself is never gated by this, only the payout.
+    private func rewardedManagerRetirement(_ managers: [OwnedManager], calendar: Calendar = .current) -> Int {
+        let today = calendar.startOfDay(for: state.now)
+        if let last = state.lastManagerRetirementDay, calendar.startOfDay(for: last) == today {
+            // Same day as the last reward - counter carries over.
+        } else {
+            state.managerRetirementsToday = 0
+            state.lastManagerRetirementDay = today
+        }
+        let remaining = Balance.managerRetirementDailyCap - state.managerRetirementsToday
+        guard remaining > 0 else { return 0 }
+        let values = managers
+            .map { Balance.managerRetirementGems(ManagerCatalog.spec($0.specID).rarity) }
+            .sorted(by: >)
+            .prefix(remaining)
+        guard !values.isEmpty else { return 0 }
+        state.managerRetirementsToday += values.count
+        let gems = values.reduce(0, +)
+        state.gems += gems
+        return gems
+    }
+
+    /// Retires one benched, Common or Rare manager, freeing the roster slot for good and
+    /// paying out (see `isRetirementEligible`). Only offered while benched, so a
+    /// currently-earning manager can't be retired by mistake. Independent of `prestige()`'s
+    /// own survivor rule (`state.managers.removeAll { !$0.premium }`) - a premium Common/Rare
+    /// like Sam/Tina/Otto or Rosa already survives a Franchise reset the same as any other
+    /// premium hire; retirement is a separate, player-initiated way to give one up, not a
+    /// change to what prestige itself wipes. Returns the gems earned (0 if today's reward cap
+    /// was already spent), or nil if the manager wasn't eligible to begin with.
     @discardableResult
-    func dismissManager(id: String) -> Bool {
-        guard state.unassignedManagers.contains(where: { $0.id == id && !$0.premium }) else { return false }
+    func dismissManager(id: String) -> Int? {
+        guard let manager = state.unassignedManagers.first(where: { $0.id == id }),
+              isRetirementEligible(manager) else { return nil }
         state.managers.removeAll { $0.id == id }
-        return true
+        let gems = rewardedManagerRetirement([manager])
+        save()
+        return gems
     }
 
-    /// Clears the whole backlog of idle Trainees at once - the "Auto-Assign Bench" button's
-    /// counterpart for a roster that has grown past what any station can use. Returns how many
-    /// were let go, for the toast.
+    /// Clears the whole backlog of idle, retirement-eligible managers at once - the
+    /// "Auto-Assign Bench" button's counterpart for a roster that has grown past what any
+    /// station can use. Returns how many were let go and how many gems that earned
+    /// (post-cap), for the toast.
     @discardableResult
-    func dismissIdleTrainees() -> Int {
-        let ids = Set(state.unassignedManagers.filter { !$0.premium }.map(\.id))
-        guard !ids.isEmpty else { return 0 }
+    func retireIdleManagers() -> (dismissed: Int, gemsEarned: Int) {
+        let eligible = state.unassignedManagers.filter(isRetirementEligible)
+        guard !eligible.isEmpty else { return (0, 0) }
+        let ids = Set(eligible.map(\.id))
         state.managers.removeAll { ids.contains($0.id) }
-        return ids.count
+        let gems = rewardedManagerRetirement(eligible)
+        save()
+        return (eligible.count, gems)
     }
 
     #if DEBUG
@@ -1731,7 +1779,8 @@ final class GameEngine: ObservableObject {
         let (gems, coins) = Errands.reward(manager: manager, hours: hours,
                                            incomePerSecond: state.automatedRate)
         state.errands.append(ActiveErrand(managerID: managerID, startedAt: state.now,
-                                          duration: hours * 3600, rewardGems: gems, rewardCoins: coins))
+                                          duration: hours * 3600, rewardGems: gems, rewardCoins: coins,
+                                          dispatchedAtPrestigeCount: state.prestigeCount))
         save()
         return true
     }
@@ -1750,8 +1799,19 @@ final class GameEngine: ObservableObject {
         guard let index = state.errands.firstIndex(where: { $0.id == id }),
               state.errands[index].isComplete(at: state.now) else { return nil }
         var errand = state.errands.remove(at: index)
-        errand.rewardCoins = errandCoinValue(errand)
         state.gems += errand.rewardGems
+        // Pays exactly what was promised at dispatch UNLESS a Franchise happened while the
+        // errand was in flight, in which case it falls back to `errandCoinValue`'s live-rate
+        // recompute. Honoring the locked-in value unconditionally used to pay ~0 coins for an
+        // honest player who happened to Franchise (for any reason) before claiming - the
+        // manager's rate at send time is what was promised. But trusting it unconditionally
+        // reopens the exact exploit `errandCoinValue` exists to close (see its comment and
+        // `DepthSystemsTests.testErrandsCannotBankOldIncomeThroughAPrestige`): send an errand
+        // on a huge board, franchise immediately, still collect it priced at the board that
+        // no longer exists. Comparing prestige counts tells the two cases apart.
+        if errand.dispatchedAtPrestigeCount != state.prestigeCount {
+            errand.rewardCoins = errandCoinValue(errand)
+        }
         addCoins(errand.rewardCoins)
         if persist { save() }
         return errand
@@ -2189,7 +2249,7 @@ final class GameEngine: ObservableObject {
     /// The $9.99 Research Grant's payout: 60% of the latest award, floored at 2,500 -
     /// about a rank and a half of deep research whenever it's bought, forever.
     var researchGrantStars: Int {
-        Swift.max(2_500, Int(0.6 * Double(state.lastPrestigeAward)))
+        Swift.max(2_500, Int(0.8 * Double(state.lastPrestigeAward)))
     }
 
     // MARK: Free boost (Coffee Break)

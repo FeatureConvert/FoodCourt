@@ -2,8 +2,20 @@ import SwiftUI
 
 /// The combo meter. Uses a `TimelineView` because the bar has to drain in real time while
 /// the engine is otherwise silent between taps.
+///
+/// Always on screen now, combo running or not - it used to fade out entirely between
+/// combos, which taught a new player nothing about the mechanic existing until they
+/// stumbled into it by accident. Idle, it just prompts instead of disappearing.
 struct ComboMeterView: View {
     @EnvironmentObject private var engine: GameEngine
+
+    /// One color per tier in `ActivePlay.comboTiers` - light yellow climbing to a hot red as
+    /// the multiplier climbs. The flame icon already reads as heat, so each new bar getting
+    /// visibly hotter reinforces "this is getting harder to hold onto" before a player has
+    /// even read the multiplier or noticed the window shrinking.
+    private static let tierColors: [Color] = [
+        Color(hex: "#FFF3B0"), Color(hex: "#FFC247"), Color(hex: "#FF6B3D"), Color(hex: "#D62839"),
+    ]
 
     var body: some View {
         // Capped like every other TimelineView in this codebase (StationListView,
@@ -14,54 +26,62 @@ struct ComboMeterView: View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
             let now = engine.state.now
             let live = engine.combo.isLive(at: now)
-            let steps = engine.state.comboMaxSteps
-            let multiplier = engine.combo.multiplier(maxSteps: steps)
-            let fill = engine.combo.fraction(maxSteps: steps)
-            let timeLeft = engine.combo.remaining(at: now) / ActivePlay.comboWindow
+            let bonus = engine.state.comboBonusTaps
+            let multiplier = engine.combo.multiplier(bonusTaps: bonus)
+            let active = engine.combo.activeTier(bonusTaps: bonus)
+            let tier = ActivePlay.comboTiers[active.index]
+            let tierColor = Self.tierColors[active.index]
+            let barFill = live && tier.taps > 0 ? Double(active.tapsDone) / Double(tier.taps) : 0
+            // Clamped to 1: a manager trait's windowBonus (e.g. Crowd-Reader Cleo) extends
+            // the window past `tier.window` itself, so right after a tap `remaining` can
+            // briefly exceed it - unclamped, the fill capsule's width formula below went
+            // wider than its own track and spilled past the frame.
+            let timeLeft = live ? min(1, engine.combo.remaining(at: now) / tier.window) : 0
 
             HStack(spacing: 10) {
-                GlyphIcon("flame.fill", tint: Theme.coin)
+                GlyphIcon("flame.fill", tint: live ? tierColor : Theme.textDim)
                     .frame(width: 17, height: 17)
                     .scaleEffect(1 + 0.15 * timeLeft)
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack {
-                        Text("COMBO ×\(String(format: "%.1f", multiplier))")
-                            .font(Theme.body(12, weight: .black))
-                            .foregroundStyle(Theme.text)
-                        Spacer()
-                        Text("\(engine.combo.count) taps")
-                            .font(Theme.body(10, weight: .bold))
-                            .foregroundStyle(Theme.textDim)
+                        if live {
+                            Text("COMBO ×\(String(format: "%.1f", multiplier))")
+                                .font(Theme.body(12, weight: .black))
+                                .foregroundStyle(Theme.text)
+                            Spacer()
+                            Text("\(active.tapsDone)/\(tier.taps) taps")
+                                .font(Theme.body(10, weight: .bold))
+                                .foregroundStyle(Theme.textDim)
+                        } else {
+                            Text("Tap a station to start your combo")
+                                .font(Theme.body(12, weight: .black))
+                                .foregroundStyle(Theme.textDim)
+                        }
                     }
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule().fill(Theme.ink.opacity(0.7))
                             // Depth sets the bar's ceiling, time-left drains it toward zero -
                             // each tap snaps it back out to that ceiling, then it visibly
-                            // empties again until the next one.
+                            // empties again until the next one. The ceiling and the drain
+                            // speed both belong to whichever tier is currently active, so
+                            // the bar visibly fills faster and drains quicker every time a
+                            // new, hotter tier starts.
                             Capsule()
-                                .fill(LinearGradient(colors: [Theme.coin, Theme.negative],
-                                                     startPoint: .leading, endPoint: .trailing))
-                                .frame(width: geo.size.width * fill * timeLeft)
+                                .fill(tierColor)
+                                .frame(width: geo.size.width * barFill * timeLeft)
                         }
                     }
                     .frame(height: 7)
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Combo window remaining")
-                    .accessibilityValue("\(Int((timeLeft * 100).rounded())) percent")
+                    .accessibilityLabel(live ? "Combo window remaining" : "No active combo")
+                    .accessibilityValue(live ? "\(Int((timeLeft * 100).rounded())) percent" : "")
                 }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
             .panel(Theme.panelRaised, radius: 14)
-            .opacity(live ? 1 : 0)
-            .scaleEffect(live ? 1 : 0.96, anchor: .top)
-            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: live)
-            // Reserves its natural height whether live or not and only fades in place -
-            // collapsing to zero height here used to shift the station list up and down
-            // every time a combo started or expired, right under the player's thumb while
-            // they were actively tapping.
         }
         .allowsHitTesting(false)
     }
@@ -85,11 +105,10 @@ struct RushBannerView: View {
             .foregroundStyle(Theme.ink)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(LinearGradient(colors: [Theme.coin, Theme.negative],
-                                         startPoint: .leading, endPoint: .trailing))
-            )
+            .litSurface(RoundedRectangle(cornerRadius: 14, style: .continuous),
+                       fill: LinearGradient(colors: [Theme.coin, Theme.negative],
+                                            startPoint: .leading, endPoint: .trailing),
+                       lineWidth: 1.5, shadowRadius: 6, shadowY: 3)
         }
     }
 }
@@ -284,14 +303,38 @@ struct StageActionsView: View {
                               cooldown: Cooldown?,
                               action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            // The badge wants top-trailing placement, but the cooldown ring (48pt) and the
-            // filled circle (42pt) need a shared center - putting all three in one ZStack
+            // The badge wants top-trailing placement, but the cooldown ring and the
+            // filled circle need a shared center - putting all three in one ZStack
             // with alignment: .topTrailing pinned the ring to the same corner as the badge
             // instead of centering it on the circle, so it rendered visibly offset. Centering
             // the circle and ring in their own default-aligned ZStack first, then overlaying
             // just the badge at top-trailing, keeps each piece aligned the way it should be.
             ZStack(alignment: .topTrailing) {
                 ZStack {
+                    // The ring track is always drawn, ready/active included - it used to only
+                    // appear during an actual cooldown, so whichever button wasn't cooling
+                    // down at the moment (usually Rush, spent far less often than the free
+                    // Coffee Break) looked like a plain flat dot next to the other one's ring,
+                    // reading as two different controls instead of one pair. White at moderate
+                    // opacity rather than CookerRing's Theme.stroke - CookerRing sits on the
+                    // light station-card panel, but these buttons float over the dark, busy
+                    // stage art, where Theme.stroke's dark violet all but disappears. Sized
+                    // LARGER than the fill circle (not equal) so the ring's whole stroke width
+                    // sits outside it - equal sizing left only a ~1.5pt sliver visible past the
+                    // fill's edge, too thin to read as a ring at all once it wasn't the bright
+                    // gold progress arc filling most of it. The 1pt gap this leaves between
+                    // fill and ring reads as a hairline at this size, not the multi-pt gap the
+                    // original 42-vs-48 mismatch produced.
+                    Circle()
+                        .stroke(Color.white.opacity(0.45), lineWidth: 3)
+                        .frame(width: 44, height: 44)
+                    if let cooldown {
+                        Circle()
+                            .trim(from: 0, to: cooldown.progress)
+                            .stroke(Theme.coin, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .frame(width: 44, height: 44)
+                    }
                     Circle()
                         .fill(tint)
                         .frame(width: 42, height: 42)
@@ -315,13 +358,6 @@ struct StageActionsView: View {
                             .offset(y: cooldown == nil ? 0 : -1)
                         )
                         .shadow(color: .black.opacity(0.35), radius: 4, y: 2)
-                    if let cooldown {
-                        Circle()
-                            .trim(from: 0, to: cooldown.progress)
-                            .stroke(Theme.coin, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                            .frame(width: 48, height: 48)
-                    }
                 }
                 if badge {
                     Circle().fill(Theme.negative)

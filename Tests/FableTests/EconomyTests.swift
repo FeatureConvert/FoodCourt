@@ -398,7 +398,7 @@ final class EconomyTests: XCTestCase {
 
     func testDurationFormatting() {
         XCTAssertEqual(Format.duration(45), "45s")
-        XCTAssertEqual(Format.duration(90), "1m 30s")
+        XCTAssertEqual(Format.duration(90), "1m")
         XCTAssertEqual(Format.duration(9_000), "2h 30m")
         // A festival/league week-long countdown - "167h 47m" is a raw hour count nobody reads
         // faster than "6d 23h".

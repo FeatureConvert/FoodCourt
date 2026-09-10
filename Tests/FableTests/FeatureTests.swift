@@ -27,13 +27,19 @@ final class FeatureTests: XCTestCase {
     func testComboBuildsAndCapsAtTheConfiguredCeiling() {
         var combo = ComboTracker()
         let now = Date()
-        for _ in 0..<10 { combo.register(at: now) }
-        XCTAssertEqual(combo.count, 10)
-        XCTAssertEqual(combo.multiplier(maxSteps: 30), 1 + 10 * ActivePlay.comboPerStep, accuracy: 1e-9)
+        for _ in 0..<ActivePlay.comboTiers[0].taps { combo.register(at: now) }
+        XCTAssertEqual(combo.count, ActivePlay.comboTiers[0].taps)
+        XCTAssertEqual(combo.multiplier(bonusTaps: 0), ActivePlay.comboTiers[0].multiplier, accuracy: 1e-9,
+                       "tier 0's bar just completed")
 
-        for _ in 0..<100 { combo.register(at: now) }
-        // Past the cap the multiplier stops growing even though the count keeps rising.
-        XCTAssertEqual(combo.multiplier(maxSteps: 30), 1 + 30 * ActivePlay.comboPerStep, accuracy: 1e-9)
+        for _ in 0..<ActivePlay.comboTiers[1].taps { combo.register(at: now) }
+        XCTAssertEqual(combo.multiplier(bonusTaps: 0), ActivePlay.comboTiers[1].multiplier, accuracy: 1e-9,
+                       "tier 1's bar (the next tier's taps) just completed too")
+
+        // Way past every tier's total - the multiplier stops growing at the last tier's
+        // value even though real taps keep accumulating.
+        for _ in 0..<500 { combo.register(at: now) }
+        XCTAssertEqual(combo.multiplier(bonusTaps: 0), ActivePlay.comboTiers.last!.multiplier, accuracy: 1e-9)
     }
 
     func testComboExpiresAfterItsWindow() {
@@ -42,7 +48,9 @@ final class FeatureTests: XCTestCase {
         combo.register(at: start)
         XCTAssertTrue(combo.isLive(at: start.addingTimeInterval(1)))
 
-        let after = start.addingTimeInterval(ActivePlay.comboWindow + 0.1)
+        // Still inside tier 0's bar (1 tap, needs comboTiers[0].taps), so tier 0's own
+        // window is what governs the window here - see ComboTracker.register.
+        let after = start.addingTimeInterval(ActivePlay.comboTiers[0].window + 0.1)
         XCTAssertFalse(combo.isLive(at: after))
         XCTAssertTrue(combo.prune(at: after))
         XCTAssertEqual(combo.count, 0)
@@ -53,7 +61,7 @@ final class FeatureTests: XCTestCase {
         let start = Date()
         combo.register(at: start)
         combo.register(at: start)
-        combo.register(at: start.addingTimeInterval(ActivePlay.comboWindow + 1))
+        combo.register(at: start.addingTimeInterval(ActivePlay.comboTiers[0].window + 1))
         XCTAssertEqual(combo.count, 1, "a lapsed combo starts over")
     }
 
@@ -65,7 +73,10 @@ final class FeatureTests: XCTestCase {
 
         XCTAssertFalse(e.tap(station: 0), "a staffed station has no manual cycle to start")
         XCTAssertEqual(e.combo.count, 1, "...but the tap still counts toward the combo")
-        XCTAssertGreaterThan(e.comboMultiplier, 1)
+        // One tap doesn't clear tier 0's bar (comboTiers[0].taps) on its own, so the
+        // multiplier itself hasn't moved yet - the progress is in the bar, not the number.
+        XCTAssertEqual(e.comboMultiplier, 1, accuracy: 1e-9)
+        XCTAssertEqual(e.combo.activeTier(bonusTaps: e.state.comboBonusTaps).tapsDone, 1)
     }
 
     // MARK: 2 - Rush Hour
@@ -1141,7 +1152,10 @@ final class FeatureTests: XCTestCase {
     func testLegendaryChefCrateGrantsAGuaranteedLegendary() {
         let e = engine()
         let store = StoreService(engine: e)
-        let item = ShopCatalog.offers.first { $0.reward == .legendaryManager }!
+        // Cut from sale in the IAP trim pass - kept in `retired` (not `offers`) so a
+        // historical owner's transaction still resolves; see ShopCatalog.retired's comment.
+        XCTAssertNil(ShopCatalog.offers.first { $0.reward == .legendaryManager }, "no longer purchasable")
+        let item = ShopCatalog.retired.first { $0.reward == .legendaryManager }!
 
         XCTAssertTrue(e.state.managers.isEmpty)
         // grant() is private; exercise it the way a real purchase would via the public
@@ -1170,14 +1184,6 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(earned, expectedCoins, accuracy: max(1, expectedCoins * 1e-9))
         XCTAssertEqual(e.state.coins, coinsBefore + expectedCoins, accuracy: max(1, expectedCoins * 1e-9))
         XCTAssertEqual(e.state.activeBoosts.first { $0.id == "accelerator" }?.multiplier, 2)
-    }
-
-    func testNewIAPsAreAllRepeatableConsumables() {
-        for id: ShopReward in [.legendaryManager, .accelerator] {
-            let item = ShopCatalog.all.first { $0.reward == id }
-            XCTAssertNotNil(item, "\(id) must be in the catalog")
-            XCTAssertTrue(item?.isConsumable ?? false, "\(id) must be repeatable, not one-time")
-        }
     }
 
     // MARK: Shop sort order

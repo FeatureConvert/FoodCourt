@@ -30,7 +30,7 @@ final class HireReuseTests: XCTestCase {
 
         XCTAssertEqual(engine.state.managers.count, 1, "the idle trainee should be reused, not joined by a new one")
         XCTAssertEqual(engine.state.assignment(of: idle.id)?.station, 0, "the reused trainee should now staff the station")
-        XCTAssertEqual(engine.idleTraineeCount, 0)
+        XCTAssertEqual(engine.idleRetirableCount, 0)
     }
 
     func testOrdinaryHireStillMintsAFreshTraineeWhenTheBenchHasNone() {

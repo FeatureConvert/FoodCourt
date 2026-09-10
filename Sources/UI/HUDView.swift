@@ -46,10 +46,10 @@ struct HUDView: View {
                     // of just matching the nominal frame number.
                     GemIcon().frame(width: 27, height: 27)
                     Text(Format.count(engine.state.gems))
-                        .font(Theme.numeric(17))
+                        .font(Theme.numeric(19))
                         .foregroundStyle(Theme.text)
                         .lineLimit(1)
-                        .minimumScaleFactor(hudMinScale(for: 17))
+                        .minimumScaleFactor(hudMinScale(for: 19))
                         .layoutPriority(1)
                 }
             }
@@ -104,7 +104,7 @@ struct HUDView: View {
                         .font(.system(size: 15, weight: .black))
                         .foregroundStyle(Theme.textDim)
                         .frame(width: 36, height: 36)
-                        .background(Circle().fill(Theme.panel.opacity(0.92)))
+                        .litSurface(Circle(), fill: Theme.panel.opacity(0.92), shadowRadius: 4, shadowY: 2)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Help")
@@ -114,7 +114,7 @@ struct HUDView: View {
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(Theme.textDim)
                         .frame(width: 36, height: 36)
-                        .background(Circle().fill(Theme.panel.opacity(0.92)))
+                        .litSurface(Circle(), fill: Theme.panel.opacity(0.92), shadowRadius: 4, shadowY: 2)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Settings")
@@ -152,7 +152,7 @@ struct HUDView: View {
                                   color: faceOffBadge.ready ? Theme.positive : Theme.coin)
                         }
                         if engine.state.isHappyHour() {
-                            badge("HAPPY HOUR ×\(Format.trim(ActivePlay.happyHourMultiplier))",
+                            badge("HAPPY HOUR ×\(Format.trim(ActivePlay.happyHourMultiplier)) · \(Format.duration(engine.state.happyHourRemaining()))",
                                   detail: "A daily 6-8pm window: ×\(Format.trim(ActivePlay.happyHourMultiplier)) on every payout and better odds of a Golden Customer.",
                                   color: Theme.positive)
                         }
@@ -335,7 +335,10 @@ struct HUDView: View {
     private func currencyPill<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         HStack(spacing: 7) { content() }
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            // Matches coinBar's own vertical padding so the gem and star pills come out the
+            // same height as the coin pill they sit next to - these two rows were tuned
+            // independently and had drifted a few points apart.
+            .padding(.vertical, 10)
             .panel(Theme.panel.opacity(0.92), radius: 14)
     }
 
@@ -352,7 +355,7 @@ struct HUDView: View {
                 .fixedSize()
                 .padding(.horizontal, 9)
                 .padding(.vertical, 4)
-                .background(Capsule().fill(color))
+                .litSurface(Capsule(), fill: color)
         }
         .buttonStyle(.plain)
         .accessibilityHint("Double tap for details")

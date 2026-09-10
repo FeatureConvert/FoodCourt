@@ -127,6 +127,7 @@ struct StationCardView: View {
     let spec: StationSpec
     let onToast: (String) -> Void
     let onChoosePerk: (Int) -> Void
+    @Environment(\.cardStyleVariant) private var cardStyleVariant
 
     private var venueID: Int { engine.state.currentVenue }
     private var state: StationState { engine.state.venues[venueID].stations[spec.id] }
@@ -150,13 +151,6 @@ struct StationCardView: View {
         state.isRunning ? max(0, cycle - state.elapsed) : cycle
     }
 
-    /// 1 at the start of a cycle, shrinking toward a floor (never to nothing - "0s" still
-    /// has to be legible) as the countdown lands. Idle stations stay at full size.
-    private var cycleRemainingScale: Double {
-        guard state.isRunning, cycle > 0 else { return 1 }
-        return 0.6 + 0.4 * min(1, cycleRemaining / cycle)
-    }
-
     /// Whether the live customer-order system (distinct from the tutorial's own highlight) is
     /// currently asking for a serve on this exact station.
     private var isOrderTarget: Bool {
@@ -172,7 +166,7 @@ struct StationCardView: View {
             actions
         }
         .padding(12)
-        .panel(state.isOwned ? Theme.panel : Theme.panel.opacity(0.6))
+        .stylizedPanel(cardStyleVariant, color: state.isOwned ? Theme.panel : Theme.panel.opacity(0.6))
         .overlay(alignment: .topLeading) {
             // Anchored over the cooker ring rather than centered: centered, the floating
             // payout number landed exactly on top of the station title and read as a
@@ -286,7 +280,6 @@ struct StationCardView: View {
                         .font(Theme.body(13, weight: .bold))
                         .foregroundStyle(Theme.textDim)
                         .lineLimit(1)
-                        .scaleEffect(cycleRemainingScale, anchor: .leading)
                 }
                 milestoneBar
                 staffLine
@@ -358,23 +351,24 @@ struct StationCardView: View {
 
     private var actions: some View {
         VStack(spacing: 6) {
-            Button(action: purchase) {
-                VStack(spacing: 1) {
-                    Text(state.isOwned ? buyLabel : "UNLOCK")
-                        .font(Theme.body(10, weight: .black))
-                        .lineLimit(1).minimumScaleFactor(0.7)
-                    Text(Format.price(engine.price(for: spec.id)))
-                        .font(Theme.numeric(13))
-                        .lineLimit(1).minimumScaleFactor(0.7)
-                }
-                .frame(width: 92, height: 42)
-            }
-            .buttonStyle(ChunkyButtonStyle(
+            styledButton(
+                Button(action: purchase) {
+                    VStack(spacing: 1) {
+                        Text(state.isOwned ? buyLabel : "UNLOCK")
+                            .font(Theme.body(10, weight: .black))
+                            .lineLimit(1).minimumScaleFactor(0.7)
+                        Text(Format.price(engine.price(for: spec.id)))
+                            .font(Theme.numeric(13))
+                            .lineLimit(1).minimumScaleFactor(0.7)
+                    }
+                    .frame(width: 92, height: 42)
+                },
+                variant: cardStyleVariant,
                 fill: affordable ? Theme.positive : Theme.locked,
                 shadow: affordable ? Theme.positive.opacity(0.55) : Theme.ink,
                 disabled: !affordable,
                 radius: 12
-            ))
+            )
             .disabled(!affordable)
             .tutorialHighlight(spec.id == 0 ? .stationBuy : nil)
 
@@ -409,14 +403,17 @@ struct StationCardView: View {
         if !state.isOwned {
             Color.clear.frame(width: 92, height: 26)
         } else if state.isStaffed, pendingPerk != nil {
-            Button { onChoosePerk(spec.id) } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "sparkles").font(.system(size: 10, weight: .black))
-                    Text("PERK").font(Theme.body(10, weight: .black))
-                }
-                .frame(width: 92, height: 26)
-            }
-            .buttonStyle(ChunkyButtonStyle(fill: Theme.star, shadow: Theme.coinDeep, radius: 10))
+            styledButton(
+                Button { onChoosePerk(spec.id) } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles").font(.system(size: 10, weight: .black))
+                        Text("PERK").font(Theme.body(10, weight: .black))
+                    }
+                    .frame(width: 92, height: 26)
+                },
+                variant: cardStyleVariant,
+                fill: Theme.star, shadow: Theme.coinDeep, radius: 10
+            )
         } else if state.isStaffed {
             HStack(spacing: 4) {
                 Image(systemName: "checkmark.seal.fill")
@@ -426,17 +423,20 @@ struct StationCardView: View {
             .foregroundStyle(Theme.positive)
             .frame(width: 92, height: 26)
         } else if eligibleForFreeFirstHire {
-            Button(action: hire) {
-                HStack(spacing: 4) {
-                    Image(systemName: "person.fill.badge.plus")
-                        .font(.system(size: 10, weight: .black))
-                    Text("FREE")
-                        .font(Theme.body(10, weight: .black))
-                        .lineLimit(1).minimumScaleFactor(0.7)
-                }
-                .frame(width: 92, height: 26)
-            }
-            .buttonStyle(ChunkyButtonStyle(fill: Theme.gemDeep, shadow: Theme.ink, radius: 10))
+            styledButton(
+                Button(action: hire) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "person.fill.badge.plus")
+                            .font(.system(size: 10, weight: .black))
+                        Text("FREE")
+                            .font(Theme.body(10, weight: .black))
+                            .lineLimit(1).minimumScaleFactor(0.7)
+                    }
+                    .frame(width: 92, height: 26)
+                },
+                variant: cardStyleVariant,
+                fill: Theme.gemDeep, shadow: Theme.ink, radius: 10
+            )
             .tutorialHighlight(.stationHire)
         } else {
             let cost = engine.managerCost(for: spec.id)
@@ -446,29 +446,30 @@ struct StationCardView: View {
             // uniformly usable even when it wasn't. Affordability now drives its own look,
             // same as the coin branch and the primary buy button already do.
             let canAffordGems = engine.state.gems >= GemSpend.instantManagerGemCost
-            Button(action: hire) {
-                HStack(spacing: 4) {
-                    if canHire {
-                        Image(systemName: "person.fill.badge.plus")
-                            .font(.system(size: 10, weight: .black))
-                    } else {
-                        // The bespoke gem, not the system diamond - every other gem cost
-                        // in the game (HUD, Shop, Quests, Daily Reward, Collection)
-                        // already renders this way; this was the one holdout.
-                        GemIcon().frame(width: 11, height: 11)
+            styledButton(
+                Button(action: hire) {
+                    HStack(spacing: 4) {
+                        if canHire {
+                            Image(systemName: "person.fill.badge.plus")
+                                .font(.system(size: 10, weight: .black))
+                        } else {
+                            // The bespoke gem, not the system diamond - every other gem cost
+                            // in the game (HUD, Shop, Quests, Daily Reward, Collection)
+                            // already renders this way; this was the one holdout.
+                            GemIcon().frame(width: 11, height: 11)
+                        }
+                        Text(canHire ? Format.price(cost) : "\(GemSpend.instantManagerGemCost)")
+                            .font(Theme.body(10, weight: .black))
+                            .lineLimit(1).minimumScaleFactor(0.7)
                     }
-                    Text(canHire ? Format.price(cost) : "\(GemSpend.instantManagerGemCost)")
-                        .font(Theme.body(10, weight: .black))
-                        .lineLimit(1).minimumScaleFactor(0.7)
-                }
-                .frame(width: 92, height: 26)
-            }
-            .buttonStyle(ChunkyButtonStyle(
+                    .frame(width: 92, height: 26)
+                },
+                variant: cardStyleVariant,
                 fill: (canHire || canAffordGems) ? Theme.gemDeep : Theme.locked,
                 shadow: Theme.ink,
                 disabled: !canHire && !canAffordGems,
                 radius: 10
-            ))
+            )
             .tutorialHighlight(spec.id == 0 ? .stationHire : nil)
         }
     }
@@ -581,33 +582,26 @@ private struct CookerRing: View {
     private func flatOut(at date: Date) -> some View {
         let t = date.timeIntervalSinceReferenceDate
         let pulse = 0.5 + 0.5 * sin(t * 4.5)
-        let sweep = Angle.degrees((t * 400).truncatingRemainder(dividingBy: 360))
 
-        return ZStack {
-            // The glow used to animate the shadow's own radius and color alpha every frame -
-            // a fixed-shape shadow can be cached and reused across frames, but one whose blur
-            // kernel changes size every frame can't be, so this was quietly one of the
-            // costlier things on screen: a from-scratch blur re-render up to 30x/sec for
-            // every leveled-up station visible at once (a live battery/heat report traced to
-            // this view, see the doc comment above - capping the frame rate there wasn't
-            // enough on its own since the shadow itself was still the expensive part of each
-            // of those frames). The pulse now animates the stroke's opacity instead - plain
-            // alpha blending, not a blur - so the "breathing" glow survives on a shadow that
-            // stays cheap to draw.
-            Circle()
-                .stroke(accent.opacity(0.65 + 0.35 * pulse), lineWidth: 5)
-                .shadow(color: accent.opacity(0.55), radius: 6)
-            Circle()
-                .trim(from: 0, to: 0.2)
-                .stroke(
-                    AngularGradient(
-                        gradient: Gradient(colors: [accent.opacity(0), .white.opacity(0.85)]),
-                        center: .center
-                    ),
-                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
-                )
-                .rotationEffect(sweep)
-        }
+        // The glow used to animate the shadow's own radius and color alpha every frame -
+        // a fixed-shape shadow can be cached and reused across frames, but one whose blur
+        // kernel changes size every frame can't be, so this was quietly one of the
+        // costlier things on screen: a from-scratch blur re-render up to 30x/sec for
+        // every leveled-up station visible at once (a live battery/heat report traced to
+        // this view, see the doc comment above - capping the frame rate there wasn't
+        // enough on its own since the shadow itself was still the expensive part of each
+        // of those frames). The pulse now animates the stroke's opacity instead - plain
+        // alpha blending, not a blur - so the "breathing" glow survives on a shadow that
+        // stays cheap to draw.
+        //
+        // This used to carry a second ring: a short white arc racing around on top, meant
+        // to read as motion once the ring itself locks solid. On a ring that's already a
+        // steady, glowing solid color it just looked like a rendering glitch - a stray
+        // line rather than a highlight - so the sweep is gone and the glow now speaks for
+        // "running flat out" on its own.
+        return Circle()
+            .stroke(accent.opacity(0.65 + 0.35 * pulse), lineWidth: 5)
+            .shadow(color: accent.opacity(0.55), radius: 6)
     }
 }
 
@@ -615,6 +609,7 @@ private struct CookerRing: View {
 struct NextVenueTeaser: View {
     @EnvironmentObject private var engine: GameEngine
     @EnvironmentObject private var sound: SoundService
+    @Environment(\.cardStyleVariant) private var cardStyleVariant
     let venue: VenueSpec
     let onToast: (String) -> Void
 
@@ -622,44 +617,45 @@ struct NextVenueTeaser: View {
         let palette = VenuePalette.of(venue.theme)
         let affordable = engine.canUnlock(venue)
 
-        Button {
-            if engine.unlock(venue) {
-                Haptics.success()
-                sound.play(.reward)
-                onToast("\(venue.name) is open for business!")
-            } else {
-                sound.play(.denied)
-                onToast("Need \(Format.price(engine.unlockCost(for: venue))) to open \(venue.name)")
-            }
-        } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle().fill(palette.counter)
-                    FoodSprite(art: venue.stations[1].art, colors: venue.stations[1].colors)
-                        .equatable()
-                        .frame(width: 40, height: 40)
-                        .saturation(affordable ? 1 : 0.2)
+        styledButton(
+            Button {
+                if engine.unlock(venue) {
+                    Haptics.success()
+                    sound.play(.reward)
+                    onToast("\(venue.name) is open for business!")
+                } else {
+                    sound.play(.denied)
+                    onToast("Need \(Format.price(engine.unlockCost(for: venue))) to open \(venue.name)")
                 }
-                .frame(width: 60, height: 60)
+            } label: {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle().fill(palette.counter)
+                        FoodSprite(art: venue.stations[1].art, colors: venue.stations[1].colors)
+                            .equatable()
+                            .frame(width: 40, height: 40)
+                            .saturation(affordable ? 1 : 0.2)
+                    }
+                    .frame(width: 60, height: 60)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("OPEN \(venue.name.uppercased())")
-                        .font(Theme.body(13, weight: .black))
-                        .foregroundStyle(Theme.text)
-                    Text("Earns ×\(Format.currency(venue.revenueMultiplier)) more per dish")
-                        .font(Theme.body(10, weight: .medium))
-                        .foregroundStyle(Theme.textDim)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("OPEN \(venue.name.uppercased())")
+                            .font(Theme.body(13, weight: .black))
+                            .foregroundStyle(Theme.text)
+                        Text("Earns ×\(Format.currency(venue.revenueMultiplier)) more per dish")
+                            .font(Theme.body(10, weight: .medium))
+                            .foregroundStyle(Theme.textDim)
+                    }
+                    Spacer(minLength: 0)
+                    Text(Format.price(engine.unlockCost(for: venue)))
+                        .font(Theme.numeric(14))
+                        .foregroundStyle(affordable ? Theme.coin : Theme.textDim)
                 }
-                Spacer(minLength: 0)
-                Text(Format.price(engine.unlockCost(for: venue)))
-                    .font(Theme.numeric(14))
-                    .foregroundStyle(affordable ? Theme.coin : Theme.textDim)
-            }
-            .padding(12)
-        }
-        .buttonStyle(ChunkyButtonStyle(
+                .padding(12)
+            },
+            variant: cardStyleVariant,
             fill: affordable ? palette.counter : Theme.panel,
             shadow: affordable ? palette.counterEdge : Theme.ink
-        ))
+        )
     }
 }

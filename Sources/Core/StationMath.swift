@@ -142,9 +142,12 @@ extension GameState {
         venueManagerEffects(venue: venue).comboRetention + toolEffects.comboWindowBonus
     }
 
-    var comboMaxSteps: Int {
-        ActivePlay.comboBaseSteps + Int(researchEffects.comboCap)
-            + (contract?.comboCapBonus ?? 0) + legacyEffects.comboCapBonus
+    /// Bonus taps toward the combo tier ladder (ActivePlay.comboTiers) from Research's
+    /// Kitchen Rhythm, Legacy's Crowd Favorite, and an active Showtime Franchise Contract -
+    /// added to real taps before looking up which tier is active, so a fully invested
+    /// late-game player climbs the ladder faster without the ladder itself changing shape.
+    var comboBonusTaps: Int {
+        Int(researchEffects.comboCap) + (contract?.comboCapBonus ?? 0) + legacyEffects.comboCapBonus
     }
 
     var goldenChance: Double {

@@ -122,7 +122,10 @@ enum Format {
         let sec = s % 60
         if d > 0 { return "\(d)d \(h)h" }
         if h > 0 { return "\(h)h \(m)m" }
-        if m > 0 { return "\(m)m \(sec)s" }
+        // No seconds while a minute or more remains - "5m 32s" ticking every second reads as
+        // busier than the countdown needs to be; seconds only earn their place once they're
+        // the most meaningful unit left.
+        if m > 0 { return "\(m)m" }
         return "\(sec)s"
     }
 
