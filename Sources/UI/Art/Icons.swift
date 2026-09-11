@@ -734,6 +734,55 @@ struct CupIcon: View {
     }
 }
 
+struct FlaskIcon: View {
+    var tint: Color
+    var body: some View {
+        Canvas { context, size in
+            let rect = CGRect(origin: .zero, size: size)
+            let p = unitMap(rect)
+            let line = max(1, rect.width * 0.06)
+            let outline = Color(hex: "#2B1D14")
+
+            var flask = Path()
+            flask.move(to: p(0.40, 0.14)); flask.addLine(to: p(0.60, 0.14))
+            flask.addLine(to: p(0.60, 0.42)); flask.addLine(to: p(0.82, 0.78))
+            flask.addQuadCurve(to: p(0.74, 0.88), control: p(0.82, 0.88))
+            flask.addLine(to: p(0.26, 0.88))
+            flask.addQuadCurve(to: p(0.18, 0.78), control: p(0.18, 0.88))
+            flask.addLine(to: p(0.40, 0.42))
+            flask.closeSubpath()
+            context.fill(flask, with: .color(tint.opacity(0.28)))
+            context.stroke(flask, with: .color(outline), lineWidth: line)
+
+            var liquid = Path()
+            liquid.move(to: p(0.27, 0.62)); liquid.addLine(to: p(0.73, 0.62))
+            liquid.addLine(to: p(0.82, 0.78))
+            liquid.addQuadCurve(to: p(0.74, 0.88), control: p(0.82, 0.88))
+            liquid.addLine(to: p(0.26, 0.88))
+            liquid.addQuadCurve(to: p(0.18, 0.78), control: p(0.18, 0.88))
+            liquid.closeSubpath()
+            context.fill(liquid, with: .color(tint))
+
+            var neckCap = Path()
+            neckCap.move(to: p(0.36, 0.14)); neckCap.addLine(to: p(0.64, 0.14))
+            context.stroke(neckCap, with: .color(outline), style: .init(lineWidth: line * 1.3, lineCap: .round))
+
+            for (cx, cy, r): (CGFloat, CGFloat, CGFloat) in [(0.44, 0.72, 0.035), (0.56, 0.78, 0.026)] {
+                let bubble = Path(ellipseIn: CGRect(x: p(cx, cy).x - r * rect.width, y: p(cx, cy).y - r * rect.width,
+                                                    width: r * 2 * rect.width, height: r * 2 * rect.width))
+                context.fill(bubble, with: .color(.white.opacity(0.5)))
+            }
+
+            var gloss = Path()
+            gloss.move(to: p(0.44, 0.42)); gloss.addLine(to: p(0.48, 0.42))
+            gloss.addLine(to: p(0.40, 0.60)); gloss.addLine(to: p(0.34, 0.60))
+            gloss.closeSubpath()
+            context.fill(gloss, with: .color(.white.opacity(0.3)))
+        }
+        .accessibilityHidden(true)
+    }
+}
+
 struct SparklesIcon: View {
     var tint: Color
     var body: some View {
@@ -784,6 +833,12 @@ func GlyphIcon(_ symbol: String, tint: Color) -> some View {
     case "snowflake": SnowflakeIcon(tint: tint)
     case "cup.and.saucer.fill": CupIcon(tint: tint)
     case "sparkles": SparklesIcon(tint: tint)
+    case "flask.fill": FlaskIcon(tint: tint)
+    // Both read close enough to their 2-up bespoke counterpart at list size (a rewind
+    // clock, a third teammate) that a visually near-duplicate icon would add noise, not
+    // clarity - same call the plain register already makes for "bell.badge.fill".
+    case "clock.arrow.circlepath": TimerIcon(tint: tint)
+    case "person.3.fill": PeopleIcon(tint: tint)
     case "dollarsign.circle.fill": CoinIcon()
     case "diamond.fill": GemIcon()
     case "ticket.fill": TicketIcon()

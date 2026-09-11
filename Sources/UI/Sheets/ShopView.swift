@@ -97,8 +97,8 @@ struct ShopView: View {
         } label: {
             HStack(spacing: 12) {
                 GlyphIcon(offer.symbol, tint: Theme.gem)
-                    .frame(width: 21, height: 21)
-                    .frame(width: 38, height: 38)
+                    .frame(width: 26, height: 26)
+                    .frame(width: 46, height: 46)
                     .background(Circle().fill(Theme.ink.opacity(0.5)))
 
                 VStack(alignment: .leading, spacing: 2) {
