@@ -125,6 +125,20 @@ struct OwnedManager: Codable, Equatable, Identifiable {
     }
 }
 
+/// What `GameEngine.grantManager` actually did - a caller composing its own toast (Face-Off,
+/// League) needs to know which happened rather than assuming the named hire always joins.
+enum ManagerGrantOutcome {
+    case recruited(ManagerSpec)
+    case duplicate(ManagerSpec, gems: Int)
+
+    var spec: ManagerSpec {
+        switch self {
+        case .recruited(let spec): return spec
+        case .duplicate(let spec, _): return spec
+        }
+    }
+}
+
 enum ManagerCatalog {
 
     /// The baseline hire. Coins still buy one of these, so the original flow is intact and
@@ -193,12 +207,32 @@ enum ManagerCatalog {
     }
 
     /// Used by quest, festival, and league rewards to hand out staff of a given quality.
-    static func random(rarity: ManagerRarity, seed: Int) -> ManagerSpec {
+    /// `excluding` steers away from specs already owned (see `GameEngine.grantManager`) -
+    /// legendary alone is a 2-name pool (August, Nova), so a blind reroll would hand back
+    /// a duplicate about half the time instead of the *other* legendary the player doesn't
+    /// have yet. Only actually excludes anything once every spec in the pool is owned does
+    /// this fall back to the full pool, so the result can still be a duplicate - that's the
+    /// caller's cue to convert it to gems instead of a second copy.
+    static func random(rarity: ManagerRarity, seed: Int, excluding owned: Set<String> = []) -> ManagerSpec {
         let pool = specs(rarity: rarity)
         guard !pool.isEmpty else { return baseRoster[0] }
+        let unowned = pool.filter { !owned.contains($0.id) }
+        let choices = unowned.isEmpty ? pool : unowned
         // Double-modulo rather than abs(): abs(Int.min) is a trap, and callers' seeds are
         // an implementation detail this shouldn't have to trust.
-        return pool[((seed % pool.count) + pool.count) % pool.count]
+        return choices[((seed % choices.count) + choices.count) % choices.count]
+    }
+
+    /// Gems paid when a manager grant would otherwise hand out a second copy of a named
+    /// hire the player already owns - same shape as `Tools.duplicateGems`, same rates,
+    /// since both are "a random premium drop that turned out to be a repeat."
+    static func duplicateGems(_ rarity: ManagerRarity) -> Int {
+        switch rarity {
+        case .common: return 10
+        case .rare: return 25
+        case .epic: return 60
+        case .legendary: return 300
+        }
     }
 
     /// First names for Trainee hires - deliberately disjoint from every named character above

@@ -409,6 +409,7 @@ struct GameState: Codable, Equatable {
         venues[0].unlocked = true
 
         migrateLegacyManagers()
+        migrateDuplicatePremiumManagers()
 
         // A save with history belongs to someone who already knows how to play; only a
         // genuinely fresh start should get the guided opening.
@@ -431,6 +432,30 @@ struct GameState: Codable, Equatable {
                 venues[venueIndex].stations[stationIndex] = station
             }
         }
+    }
+
+    /// `GameEngine.grantManager` could hand out a second copy of a named premium hire before
+    /// it learned to treat that like a duplicate tool drop - a save that already picked one up
+    /// needs cleaning up once, here, since the fix going forward only stops new duplicates.
+    /// Keeps whichever copy is currently at work (assigned to a station, or away on an errand
+    /// or Face-Off) if there is one, so nothing active gets pulled out from under itself, and
+    /// refunds every other IDLE copy as gems at the same rate a fresh duplicate converts to.
+    /// A pair that's busy on both sides is left alone - it'll resolve itself on a later load
+    /// once one side frees up, which is safer than reaching into an active commitment here.
+    private mutating func migrateDuplicatePremiumManagers() {
+        let idle = Set(unassignedManagers.map(\.id))
+        let groups = Dictionary(grouping: managers.filter { $0.premium && $0.specID != ManagerCatalog.traineeID },
+                                 by: \.specID)
+        var idsToRemove: Set<String> = []
+        for (_, group) in groups where group.count > 1 {
+            let keeper = group.first(where: { !idle.contains($0.id) }) ?? group[0]
+            for manager in group where manager.id != keeper.id && idle.contains(manager.id) {
+                gems += ManagerCatalog.duplicateGems(manager.spec.rarity)
+                idsToRemove.insert(manager.id)
+            }
+        }
+        guard !idsToRemove.isEmpty else { return }
+        managers.removeAll { idsToRemove.contains($0.id) }
     }
 
     // MARK: Derived

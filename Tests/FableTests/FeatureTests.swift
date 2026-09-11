@@ -1218,11 +1218,53 @@ final class FeatureTests: XCTestCase {
         XCTAssertTrue(e.state.managers.isEmpty)
         // grant() is private; exercise it the way a real purchase would via the public
         // engine call it wraps, matching what StoreService.grant(_:announce:) does internally.
-        let spec = e.grantManager(rarity: .legendary)
+        guard case .recruited(let spec) = e.grantManager(rarity: .legendary) else {
+            return XCTFail("empty roster - the first legendary grant should never read as a duplicate")
+        }
         XCTAssertEqual(spec.rarity, .legendary)
         XCTAssertEqual(e.state.managers.count, 1)
         XCTAssertEqual(e.state.managers.first?.specID, spec.id)
         XCTAssertFalse(store.isOwned(item), "a repeatable consumable never reads as permanently owned")
+    }
+
+    /// Regression for a live duplicate-name bug: legendary is only a 2-name pool (August,
+    /// Nova), and `grantManager` used to reroll blind, so a second grant landed on the
+    /// already-owned name about half the time - two independent `OwnedManager` copies of
+    /// the same person, each separately assignable/errandable/Face-Off-able, and each
+    /// summed by `Expeditions.crewScore`. It should redirect to the other legendary instead
+    /// whenever one is still unowned.
+    @MainActor
+    func testSecondLegendaryGrantRedirectsToTheOtherName() {
+        let e = engine()
+        guard case .recruited(let first) = e.grantManager(rarity: .legendary) else {
+            return XCTFail("empty roster - the first grant should never read as a duplicate")
+        }
+        guard case .recruited(let second) = e.grantManager(rarity: .legendary) else {
+            return XCTFail("one legendary still unowned - the second grant should find it, not duplicate")
+        }
+        XCTAssertNotEqual(first.id, second.id, "the second grant should be the other legendary, not a repeat")
+        XCTAssertEqual(e.state.managers.count, 2)
+        XCTAssertEqual(Set(e.state.managers.map(\.specID)), Set([first.id, second.id]))
+    }
+
+    /// Once every name in the pool is owned, a further grant is unavoidably a repeat - it
+    /// should convert to gems (same shape as a duplicate tool drop) rather than silently
+    /// stacking a second `OwnedManager` for a name already on the roster.
+    @MainActor
+    func testThirdLegendaryGrantConvertsToGemsInsteadOfDuplicating() {
+        let e = engine()
+        _ = e.grantManager(rarity: .legendary)
+        _ = e.grantManager(rarity: .legendary)
+        XCTAssertEqual(e.state.managers.count, 2)
+        let gemsBefore = e.state.gems
+
+        guard case .duplicate(let spec, let gems) = e.grantManager(rarity: .legendary) else {
+            return XCTFail("both legendaries already owned - the third grant must read as a duplicate")
+        }
+        XCTAssertEqual(spec.rarity, .legendary)
+        XCTAssertEqual(gems, ManagerCatalog.duplicateGems(.legendary))
+        XCTAssertEqual(e.state.gems, gemsBefore + gems)
+        XCTAssertEqual(e.state.managers.count, 2, "no third copy should be added to the roster")
     }
 
     @MainActor

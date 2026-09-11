@@ -370,8 +370,14 @@ final class StoreService: ObservableObject {
             if announce { lastGrant = "Carnival Pass unlocked" }
 
         case .legendaryManager:
-            let spec = engine.grantManager(rarity: .legendary)
-            if announce { lastGrant = "\(spec.name) joins your roster!" }
+            switch engine.grantManager(rarity: .legendary) {
+            case .recruited(let spec):
+                if announce { lastGrant = "\(spec.name) joins your roster!" }
+            case .duplicate(let spec, let gems):
+                // Real money, so this can't just quietly become gems - a paying player needs
+                // to see why they didn't get a second \(spec.name).
+                if announce { lastGrant = "Already own \(spec.name) - +\(gems) gems instead" }
+            }
 
         case .accelerator:
             let earned = engine.grantFranchiseAccelerator()

@@ -239,4 +239,77 @@ final class MigrationTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - Duplicate premium managers
+
+    /// `GameEngine.grantManager` could hand out a second copy of a named premium manager
+    /// before it learned to treat that like a duplicate tool drop (fixed alongside this
+    /// migration) - a save that already picked one up this way needs a one-time cleanup.
+    /// Two idle copies of the same legendary: one survives, the other refunds as gems at
+    /// the same rate a fresh duplicate converts to.
+    func testDuplicateIdlePremiumManagerCollapsesToOneAndRefundsGems() throws {
+        let state = try decode("""
+        {"gems": 0, "managers": [
+            {"id": "m1", "specID": "august", "premium": true},
+            {"id": "m2", "specID": "august", "premium": true}
+        ]}
+        """)
+        XCTAssertEqual(state.managers.count, 1, "one idle copy should be collapsed away")
+        XCTAssertEqual(state.gems, ManagerCatalog.duplicateGems(.legendary))
+    }
+
+    /// A duplicate pair where one copy is actively assigned to a station: the working copy
+    /// must survive untouched (yanking it mid-shift would silently unstaff a station), only
+    /// the idle spare is refunded.
+    func testDuplicatePremiumManagerKeepsTheOneAssignedToAStation() throws {
+        let state = try decode("""
+        {"gems": 0,
+         "managers": [
+            {"id": "m1", "specID": "august", "premium": true},
+            {"id": "m2", "specID": "august", "premium": true}
+         ],
+         "venues": [{"unlocked": true, "stations": [
+            {"level": 1, "managerID": "m1"}, {"level": 0}, {"level": 0},
+            {"level": 0}, {"level": 0}, {"level": 0}]}]}
+        """)
+        XCTAssertEqual(state.managers.count, 1)
+        XCTAssertEqual(state.managers.first?.id, "m1", "the assigned copy survives, not an arbitrary one")
+        XCTAssertEqual(state.venues[0].stations[0].managerID, "m1", "the station stays staffed")
+        XCTAssertEqual(state.gems, ManagerCatalog.duplicateGems(.legendary))
+    }
+
+    /// A duplicate pair that's busy on BOTH sides (here, both away on errands) is left alone
+    /// rather than reaching into an active errand to cancel one - safer to defer the cleanup
+    /// to a later load, once at least one side is idle again.
+    func testDuplicatePremiumManagerBothBusyIsLeftForALaterLoad() throws {
+        let state = try decode("""
+        {"gems": 0,
+         "managers": [
+            {"id": "m1", "specID": "august", "premium": true},
+            {"id": "m2", "specID": "august", "premium": true}
+         ],
+         "errands": [
+            {"id": "e1", "managerID": "m1", "startedAt": "2026-01-01T00:00:00Z",
+             "duration": 3600, "rewardGems": 10, "rewardCoins": 100},
+            {"id": "e2", "managerID": "m2", "startedAt": "2026-01-01T00:00:00Z",
+             "duration": 3600, "rewardGems": 10, "rewardCoins": 100}
+         ]}
+        """)
+        XCTAssertEqual(state.managers.count, 2, "neither copy is safe to remove while both are away")
+        XCTAssertEqual(state.gems, 0)
+    }
+
+    /// Trainee is deliberately unlimited (every coin hire is one) - the migration must only
+    /// ever look at *premium* managers, never collapse an ordinary staffed roster.
+    func testDuplicateTraineesAreNeverTouchedByTheMigration() throws {
+        let state = try decode("""
+        {"gems": 0, "managers": [
+            {"id": "m1", "specID": "trainee", "premium": false},
+            {"id": "m2", "specID": "trainee", "premium": false},
+            {"id": "m3", "specID": "trainee", "premium": false}
+        ]}
+        """)
+        XCTAssertEqual(state.managers.count, 3, "ordinary coin-hired Trainees are never deduplicated")
+        XCTAssertEqual(state.gems, 0)
+    }
 }

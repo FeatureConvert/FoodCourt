@@ -1030,11 +1030,27 @@ final class GameEngine: ObservableObject {
 
     /// Adds staff from a reward source and reports who turned up. Always premium - these are
     /// rare, one-off grants (festival, league, IAP), never the coin-grind staffing loop.
+    /// Steers away from a name already owned (see `ManagerCatalog.random`'s `excluding`);
+    /// once every spec in that rarity's pool is owned, the roll is unavoidably a repeat and
+    /// converts to gems instead of a silent second copy - the same shape as a duplicate tool
+    /// drop. Without this, legendary's 2-name pool made a second August or Nova the *likely*
+    /// outcome of a third legendary grant, not an edge case: two independent `OwnedManager`
+    /// copies of the same person, each separately assignable, errandable, and Face-Off-able -
+    /// `Expeditions.crewScore` sums per-manager, so a stacked duplicate was a real win-rate
+    /// exploit, not just a cosmetic double-listing.
     @discardableResult
-    func grantManager(rarity: ManagerRarity) -> ManagerSpec {
-        let spec = ManagerCatalog.random(rarity: rarity, seed: Int.random(in: 0..<10_000, using: &rng))
-        state.recruit(specID: spec.id, premium: true)
-        return spec
+    func grantManager(rarity: ManagerRarity) -> ManagerGrantOutcome {
+        let owned = Set(state.managers.map(\.specID))
+        let spec = ManagerCatalog.random(rarity: rarity,
+                                          seed: Int.random(in: 0..<10_000, using: &rng),
+                                          excluding: owned)
+        guard owned.contains(spec.id) else {
+            state.recruit(specID: spec.id, premium: true)
+            return .recruited(spec)
+        }
+        let gems = ManagerCatalog.duplicateGems(rarity)
+        state.gems += gems
+        return .duplicate(spec, gems: gems)
     }
 
     // MARK: Guest Chef
@@ -2177,15 +2193,22 @@ final class GameEngine: ObservableObject {
         state.gems += gems
         addCoins(coins)
         var recruit: ManagerSpec?
+        var recruitNote = ""
         if won {
             state.expeditionWins += 1
             if Double.random(in: 0..<1, using: &rng) < tier.recruitChance {
-                recruit = grantManager(rarity: .epic)
+                switch grantManager(rarity: .epic) {
+                case .recruited(let spec):
+                    recruit = spec
+                    recruitNote = " · \(spec.name) joins!"
+                case .duplicate(let spec, let gems):
+                    recruitNote = " · duplicate \(spec.name) → +\(gems) gems"
+                }
             }
             rollToolDrop(.expeditionWin)
         }
         toast = won
-            ? "Face-Off won! +\(gems) gems\(recruit.map { " · \($0.name) joins!" } ?? "")"
+            ? "Face-Off won! +\(gems) gems\(recruitNote)"
             : "Face-Off lost - the crew still learned something. +\(gems) gems"
         save()
         return (won, gems, coins, recruit)
@@ -2267,8 +2290,15 @@ final class GameEngine: ObservableObject {
         // top rarity. Deliberately rare (#1 in the hardest tier), so it never undercuts the
         // paid path's convenience, but a dedicated free player is never permanently locked out.
         if case .held(let tier, let rank, _) = outcome, tier == .diamond, rank == 1 {
-            let spec = grantManager(rarity: .legendary)
-            toast = "Diamond Champion! \(spec.name) joins your roster"
+            switch grantManager(rarity: .legendary) {
+            case .recruited(let spec):
+                toast = "Diamond Champion! \(spec.name) joins your roster"
+            case .duplicate(let spec, let gems):
+                // Both legendaries already owned - the free route to the top rarity has
+                // nothing left to give, so the win still pays out as gems rather than a
+                // silent second copy.
+                toast = "Diamond Champion! Duplicate \(spec.name) - traded for +\(gems) gems"
+            }
         }
         let nextTier = League.nextTier(after: outcome, current: state.league.tier)
         if nextTier.rawValue > state.bestLeagueTierReached.rawValue {
