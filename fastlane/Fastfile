@@ -33,6 +33,15 @@ platform :ios do
     )
   end
 
+  desc "Create (or reuse) an Apple Distribution certificate in this keychain"
+  lane :dist_cert do
+    get_certificates(
+      api_key: connect_api_key,
+      development: false,
+      team_id: "5X98G8X3FJ"
+    )
+  end
+
   desc "Upload the current App Store screenshots (no binary, no metadata)"
   lane :screenshots do
     upload_to_app_store(

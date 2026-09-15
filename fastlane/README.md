@@ -23,6 +23,22 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 Build and upload a new build to TestFlight
 
+### ios dist_cert
+
+```sh
+[bundle exec] fastlane ios dist_cert
+```
+
+Create (or reuse) an Apple Distribution certificate in this keychain
+
+### ios check_readiness
+
+```sh
+[bundle exec] fastlane ios check_readiness
+```
+
+TEMP: check App Store submission readiness
+
 ### ios screenshots
 
 ```sh
