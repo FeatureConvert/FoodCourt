@@ -31,6 +31,14 @@ Build and upload a new build to TestFlight
 
 Create (or reuse) an Apple Distribution certificate in this keychain
 
+### ios whats_new
+
+```sh
+[bundle exec] fastlane ios whats_new
+```
+
+Upload the What's New text for the current version (nothing else)
+
 ### ios screenshots
 
 ```sh

@@ -20,11 +20,21 @@ platform :ios do
     # auto-increment would drift the shipped build number away from the "buildN"
     # the release notes and CURRENT_PROJECT_VERSION agree on.
 
+    # -allowProvisioningUpdates plus explicit API-key auth so xcodebuild can refresh the
+    # App Store distribution profile to include the cert dist_cert just created, fully
+    # unattended (no locally-signed-in Apple ID needed).
+    auth_xcargs = "-allowProvisioningUpdates " \
+      "-authenticationKeyPath #{File.expand_path('~/.appstoreconnect/private_keys/AuthKey_8RTWXH9MN9.p8')} " \
+      "-authenticationKeyID 8RTWXH9MN9 " \
+      "-authenticationKeyIssuerID 274b012d-e779-4150-bc2d-65f2b44f6f27"
+
     build_app(
       scheme: "Fable",
       workspace: nil,
       project: "Fable.xcodeproj",
-      export_method: "app-store"
+      export_method: "app-store",
+      xcargs: auth_xcargs,
+      export_xcargs: auth_xcargs
     )
 
     upload_to_testflight(
@@ -39,6 +49,19 @@ platform :ios do
       api_key: connect_api_key,
       development: false,
       team_id: "5X98G8X3FJ"
+    )
+  end
+
+  desc "Upload the What's New text for the current version (nothing else)"
+  lane :whats_new do
+    upload_to_app_store(
+      api_key: connect_api_key,
+      app_version: "1.7",
+      skip_screenshots: true,
+      skip_binary_upload: true,
+      skip_metadata: false,
+      run_precheck_before_submit: false,
+      force: true
     )
   end
 

@@ -1,0 +1,5 @@
+New: Franchise Vouchers — a rare, bankable item that pays off a random
+hour-long bonus when you use it. Combo can now climb higher than before if
+you've invested in the right upgrades, franchising itself grants its own
+permanent profit bonus, and the rarest tool in the game got another pass.
+Fixed a crash and a handful of UI bugs along the way.

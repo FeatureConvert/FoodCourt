@@ -18,3 +18,10 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# `fastlane cert`/get_certificates drops its raw output here - the cert +
+# private key are installed into the keychain, these are just its scratch
+# files and must never be committed.
+*.cer
+*.p12
+*.certSigningRequest
