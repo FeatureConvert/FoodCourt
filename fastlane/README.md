@@ -31,14 +31,6 @@ Build and upload a new build to TestFlight
 
 Create (or reuse) an Apple Distribution certificate in this keychain
 
-### ios check_readiness
-
-```sh
-[bundle exec] fastlane ios check_readiness
-```
-
-TEMP: check App Store submission readiness
-
 ### ios screenshots
 
 ```sh
