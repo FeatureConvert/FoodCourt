@@ -24,7 +24,7 @@ platform :ios do
       scheme: "Fable",
       workspace: nil,
       project: "Fable.xcodeproj",
-      export_method: "app-store"
+      export_method: "app-store-connect"
     )
 
     upload_to_testflight(
