@@ -39,6 +39,14 @@ Create (or reuse) an Apple Distribution certificate in this keychain
 
 Upload the What's New text for the current version (nothing else)
 
+### ios submit
+
+```sh
+[bundle exec] fastlane ios submit
+```
+
+Attach the latest processed build to 1.7 and submit it for App Store review
+
 ### ios screenshots
 
 ```sh
