@@ -26,6 +26,8 @@ Fixed a crash and a handful of UI bugs along the way.
   instead of just looking stuck
 - Fixed a rare crash while building a long combo
 - Fixed a new venue opening scrolled to the bottom instead of the top
+- Fixed a duplicate manager pull not converting to gems like a duplicate tool
+  already does
 - Various smaller bug fixes and polish
 
 ---
