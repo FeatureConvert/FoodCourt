@@ -37,10 +37,12 @@ platform :ios do
   lane :screenshots do
     upload_to_app_store(
       api_key: connect_api_key,
+      app_version: "1.7",
       screenshots_path: "Marketing/AppStoreAssets",
       skip_binary_upload: true,
       skip_metadata: true,
       overwrite_screenshots: true,
+      run_precheck_before_submit: false,
       force: true
     )
   end
