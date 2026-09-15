@@ -1,15 +1,19 @@
 default_platform(:ios)
 
 platform :ios do
-  desc "Build and upload a new build to TestFlight"
-  lane :release do
-    api_key = app_store_connect_api_key(
+  private_lane :connect_api_key do
+    app_store_connect_api_key(
       key_id: "8RTWXH9MN9",
       issuer_id: "274b012d-e779-4150-bc2d-65f2b44f6f27",
       key_filepath: "~/.appstoreconnect/private_keys/AuthKey_8RTWXH9MN9.p8",
       duration: 1200,
       in_house: false
     )
+  end
+
+  desc "Build and upload a new build to TestFlight"
+  lane :release do
+    api_key = connect_api_key
 
     # Build/marketing version are set by hand in project.yml (kept in sync with
     # docs/release-notes-buildN.md) rather than auto-incremented here - an
@@ -26,6 +30,18 @@ platform :ios do
     upload_to_testflight(
       api_key: api_key,
       skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Upload the current App Store screenshots (no binary, no metadata)"
+  lane :screenshots do
+    upload_to_app_store(
+      api_key: connect_api_key,
+      screenshots_path: "Marketing/AppStoreAssets",
+      skip_binary_upload: true,
+      skip_metadata: true,
+      overwrite_screenshots: true,
+      force: true
     )
   end
 end
