@@ -177,8 +177,8 @@ final class StoreTests: XCTestCase {
 
         XCTAssertTrue(engine.state.entitlements.starterPack)
         XCTAssertEqual(engine.state.gems, gemsBefore + 500)
-        XCTAssertTrue(engine.state.venues[0].stations[0].hasManager)
-        XCTAssertTrue(engine.state.venues[0].stations[1].hasManager)
+        XCTAssertTrue(engine.state.venues[0].stations[0].isStaffed)
+        XCTAssertTrue(engine.state.venues[0].stations[1].isStaffed)
         XCTAssertEqual(engine.state.activeBoosts.count, 1)
         XCTAssertEqual(engine.state.activeBoosts.first?.multiplier, 2)
     }
